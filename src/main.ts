@@ -1,8 +1,10 @@
 import { gridViewCanvas, subscriberToGridMap } from "./grid-map"
-import { nodesManager } from "./nodes/stickers"
+import { nodesManager, type StickerNode } from "./nodes/stickers"
 import { screenToCanvas } from "./point"
-import { canvas, context } from "./setup"
+import { canvas, context as _context } from "./setup"
 import "./index.css"
+
+const context = _context as CanvasRenderingContext2D
 
 const pointerPosition = subscriberToGridMap.pointerPosition
 const camera = subscriberToGridMap.camera
@@ -19,6 +21,60 @@ zoomElement.textContent = toPercentZoom(camera.scale)
 document.body.appendChild(zoomElement)
 
 const grid = gridViewCanvas
+
+const drawActiveBox = (node: StickerNode) => {
+  const padding = 7
+
+  context.beginPath()
+  context.strokeStyle = "#3859ff"
+  context.lineWidth = 0.2
+  context.moveTo(node.x - padding, node.y - padding)
+  context.lineTo(node.x + node.width + padding, node.y - padding)
+  context.lineTo(node.x + node.width + padding, node.y + node.height + padding)
+  context.lineTo(node.x - padding, node.y + node.height + padding)
+  context.lineTo(node.x - padding, node.y - padding)
+  context.closePath()
+  context.stroke()
+
+  const dots = [
+    {
+      x: node.x - padding,
+      y: node.y - padding,
+    },
+    {
+      x: node.x + node.width + padding,
+      y: node.y - padding,
+    },
+    {
+      x: node.x + node.width + padding,
+      y: node.y + node.height + padding,
+    },
+    {
+      x: node.x - padding,
+      y: node.y + node.height + padding,
+    },
+  ]
+
+  const baseRadius = 5
+  const baseLineWidth = 0.15
+  const scalePower = 0.75
+
+  const dotRadius = baseRadius / Math.pow(camera.scale, scalePower)
+  const dotLineWidth = baseLineWidth / Math.pow(camera.scale, scalePower)
+
+  dots.forEach((dot) => {
+    if (context === null) return
+
+    context.beginPath()
+    context.fillStyle = "#ffffff"
+    context.strokeStyle = "#aaaaaa"
+    context.lineWidth = dotLineWidth
+    context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)
+    context.fill()
+    context.closePath()
+    context.stroke()
+  })
+}
 
 const drawStickers = () => {
   if (context === null) return
@@ -51,6 +107,10 @@ const drawStickers = () => {
     context.fillStyle = node.color
     context.fillRect(node.x, node.y, node.width, node.height)
 
+    if (node.isSelected) {
+      drawActiveBox(node)
+    }
+
     if (canViewShadowAndText) {
       context.font = "22px Roboto"
       context.fillStyle = "#333"
@@ -71,6 +131,8 @@ const render = () => {
 
   requestAnimationFrame(render)
   context.clearRect(0, 0, canvas.width, canvas.height)
+
+  // console.log(subscriberToGridMap.camera)
 
   context.save()
   context.translate(subscriberToGridMap.camera.x, subscriberToGridMap.camera.y)

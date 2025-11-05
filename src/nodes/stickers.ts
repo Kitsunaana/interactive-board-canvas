@@ -2,7 +2,7 @@ import { emitter, subscriberToGridMap } from "../grid-map"
 import { isRectIntersection, screenToCanvas } from "../point"
 import type { Point } from "../type"
 
-type StickerNode = {
+export type StickerNode = {
   id: string
   x: number
   y: number
@@ -52,6 +52,7 @@ export class NodesManager {
 
     if (foundNode !== undefined) {
       foundNode.isDragging = true
+      foundNode.isSelected = true
 
       const worldPos = screenToCanvas({
         camera: subscriberToGridMap.camera,
@@ -115,8 +116,8 @@ const createStickers = (count: number) => {
 export const nodesManager = new NodesManager([
   {
     id: "1",
-    x: 20,
-    y: 20,
+    x: 200,
+    y: 200,
     text: "Hello",
     width: 100,
     height: 80,
@@ -126,8 +127,8 @@ export const nodesManager = new NodesManager([
   },
   {
     id: "2",
-    x: 120,
-    y: 120,
+    x: 420,
+    y: 420,
     text: "World",
     width: 100,
     height: 80,

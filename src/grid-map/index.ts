@@ -12,26 +12,27 @@ type Events = {
 
 export const emitter = mitt<Events>()
 
+const defaultPoint: Point = {
+  x: 0,
+  y: 0,
+}
+
+const defaultCamera: Camera = {
+  scale: 1,
+  x: 0,
+  y: 0,
+}
+
 class SubsciberToGridMap {
   private readonly zoomIntensity = 0.1
   private readonly zoomMinScale = 0.01
   private readonly zoomMaxScale = 10
 
-  private readonly _pointerPosition: Point = {
-    x: 0,
-    y: 0,
-  }
+  private readonly _camera: Camera = { ...defaultCamera }
 
-  private readonly _camera: Camera = {
-    scale: 1,
-    x: 0,
-    y: 0,
-  }
+  private readonly _pointerPosition: Point = { ...defaultPoint }
 
-  private readonly _panOffset: Point = {
-    x: 0,
-    y: 0,
-  }
+  private readonly _panOffset: Point = { ...defaultPoint }
 
   private _isPanning = false
 
