@@ -6,9 +6,10 @@ type StickerNode = {
   id: string
   x: number
   y: number
+  text: string
+  color: string
   width: number
   height: number
-  color: string
   isSelected: boolean
   isDragging: boolean
 }
@@ -94,20 +95,21 @@ export class NodesManager {
   }
 }
 
-const generateRandomSticker = () => {
+const generateRandomSticker = (index: number) => {
   const id = Math.random().toString(36).substring(2, 15)
   const x = Math.random() * 5000
   const y = Math.random() * 5000
   const width = 100
   const height = 80
   const color = "#fef69e"
+  const text = `Hello ${index}`
   const isSelected = false
   const isDragging = false
-  return { id, x, y, width, height, color, isSelected, isDragging }
+  return { id, x, y, width, height, color, text, isSelected, isDragging }
 }
 
 const createStickers = (count: number) => {
-  return Array.from({ length: count }, generateRandomSticker)
+  return Array.from({ length: count }, (_, index) => generateRandomSticker(index))
 }
 
 export const nodesManager = new NodesManager([
@@ -115,6 +117,7 @@ export const nodesManager = new NodesManager([
     id: "1",
     x: 20,
     y: 20,
+    text: "Hello",
     width: 100,
     height: 80,
     color: "#fef69e",
@@ -125,6 +128,7 @@ export const nodesManager = new NodesManager([
     id: "2",
     x: 120,
     y: 120,
+    text: "World",
     width: 100,
     height: 80,
     color: "#fef69e",
