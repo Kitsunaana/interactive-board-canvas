@@ -1,3 +1,7 @@
+import { emitter, subscriberToGridMap } from "../grid-map"
+import { isRectIntersection, screenToCanvas } from "../point"
+import type { Point } from "../type"
+
 type StickerNode = {
   id: string
   x: number
@@ -12,12 +16,53 @@ type StickerNode = {
 export class NodesManager {
   private _nodes: StickerNode[] = []
 
+  private readonly _dragOffset: Point = {
+    x: 0,
+    y: 0,
+  }
+
   public constructor(nodes: StickerNode[]) {
     this._nodes = nodes
+
+    emitter.on("grid-map:pointer-down", this._startNodeDragging.bind(this))
+    emitter.on("grid-map:pointer-up", this._stopNodeDragging.bind(this))
+  }
+
+  public get dragOffset() {
+    return this._dragOffset
   }
 
   public get nodes(): StickerNode[] {
     return this._nodes
+  }
+
+  private _stopNodeDragging(_event: PointerEvent) {
+    this._nodes.forEach((node) => {
+      node.isDragging = false
+    })
+  }
+
+  private _startNodeDragging(event: PointerEvent) {
+    const foundNode = this._nodes.find((node) => isRectIntersection({
+      pointer: subscriberToGridMap.pointerPosition,
+      camera: subscriberToGridMap.camera,
+      rect: node,
+    }))
+
+    if (foundNode !== undefined) {
+      foundNode.isDragging = true
+
+      const worldPos = screenToCanvas({
+        camera: subscriberToGridMap.camera,
+        point: {
+          x: event.offsetX,
+          y: event.offsetY
+        },
+      })
+
+      this._dragOffset.x = worldPos.x - foundNode.x
+      this._dragOffset.y = worldPos.y - foundNode.y
+    }
   }
 
   public addNode(node: StickerNode) {

@@ -12,13 +12,6 @@ type Events = {
 
 export const emitter = mitt<Events>()
 
-let isPanning = false
-
-const PAN_OFFSET = {
-  x: 0,
-  y: 0,
-}
-
 class SubsciberToGridMap {
   private readonly zoomIntensity = 0.1
   private readonly zoomMinScale = 0.01
@@ -33,6 +26,17 @@ class SubsciberToGridMap {
     scale: 1,
     x: 0,
     y: 0,
+  }
+
+  private readonly _panOffset: Point = {
+    x: 0,
+    y: 0,
+  }
+
+  private _isPanning = false
+
+  public get pointerPosition() {
+    return this._pointerPosition
   }
 
   public get camera() {
@@ -64,10 +68,10 @@ class SubsciberToGridMap {
 
   private _startDragging(event: PointerEvent) {
     if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
-      isPanning = true
+      this._isPanning = true
 
-      PAN_OFFSET.x = event.offsetX - this._camera.x
-      PAN_OFFSET.y = event.offsetY - this._camera.y
+      this._panOffset.x = event.offsetX - this._camera.x
+      this._panOffset.y = event.offsetY - this._camera.y
 
       this._canvas.style.cursor = "grabbing"
     }
@@ -77,14 +81,14 @@ class SubsciberToGridMap {
     this._pointerPosition.x = event.offsetX
     this._pointerPosition.y = event.offsetY
 
-    if (isPanning) {
-      this._camera.x = event.offsetX - PAN_OFFSET.x
-      this._camera.y = event.offsetY - PAN_OFFSET.y
+    if (this._isPanning) {
+      this._camera.x = event.offsetX - this._panOffset.x
+      this._camera.y = event.offsetY - this._panOffset.y
     }
   }
 
   private _stopDragging(_event: PointerEvent) {
-    isPanning = false
+    this._isPanning = false
 
     this._canvas.style.cursor = "default"
   }
@@ -101,21 +105,8 @@ class SubsciberToGridMap {
     this._camera.x = mouseX - (mouseX - this._camera.x) * (newScale / this._camera.scale)
     this._camera.y = mouseY - (mouseY - this._camera.y) * (newScale / this._camera.scale)
     this._camera.scale = newScale
-
-    // zoomElement.textContent = toPercentZoom(this._camera.scale)
   }
 }
-
-// const toPercentZoom = (scale: number) => {
-//   return (scale * 100).toFixed(0) + "%"
-// }
-
-// const zoomElement = document.createElement("div")
-
-// zoomElement.classList.add("zoom-indicator")
-// zoomElement.textContent = toPercentZoom(CAMERA.scale)
-
-// document.body.appendChild(zoomElement)
 
 export const subscriberToGridMap = new SubsciberToGridMap(canvas)
 
