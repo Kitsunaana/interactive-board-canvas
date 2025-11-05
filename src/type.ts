@@ -8,6 +8,19 @@ export type Point = {
   y: number
 }
 
+export type Rect = {
+  height: number
+  width: number
+  x: number
+  y: number
+}
+
+export type Camera = {
+  scale: number
+  x: number
+  y: number
+}
+
 export type ToDrawOneLevelParams = {
   startWorld: Point
   endWorld: Point

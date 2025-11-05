@@ -1,20 +1,8 @@
 import { nodesManager } from "./stickers"
 import "./index.css"
 import type { Level, ToDrawOneLevel } from "./type"
-
-const canvas = document.createElement("canvas")
-
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight
-canvas.style.backgroundColor = "#f2f2f2"
-canvas.oncontextmenu = (event) => {
-  event.preventDefault()
-}
-
-document.body.appendChild(canvas)
-
-const context = canvas.getContext("2d")
-if (context === null) throw new Error("Failed to get context")
+import { gridViewCanvas, subscriberToGridMap } from "./grid-map"
+import { canvas, context } from "./setup"
 
 const POINTER_POSITION = {
   x: 0,
@@ -46,20 +34,13 @@ type Rect = {
   y: number
 }
 
-const screenToCanvas = (screenX: number, screenY: number) => {
-  return {
-    x: (screenX - CAMERA.x) / CAMERA.scale,
-    y: (screenY - CAMERA.y) / CAMERA.scale,
-  }
-}
-
 const isRectIntersection = (rect: Rect) => {
-  const worldPosition = screenToCanvas(POINTER_POSITION.x, POINTER_POSITION.y)
+  // const worldPosition = screenToCanvas(POINTER_POSITION.x, POINTER_POSITION.y)
 
-  return (
-    worldPosition.x >= rect.x && worldPosition.x <= rect.x + rect.width &&
-    worldPosition.y >= rect.y && worldPosition.y <= rect.y + rect.height
-  )
+  // return (
+  //   worldPosition.x >= rect.x && worldPosition.x <= rect.x + rect.width &&
+  //   worldPosition.y >= rect.y && worldPosition.y <= rect.y + rect.height
+  // )
 }
 
 window.addEventListener("pointerdown", (event) => {
@@ -68,38 +49,38 @@ window.addEventListener("pointerdown", (event) => {
 })
 
 function handleClickingNode(event: PointerEvent) {
-  const foundNodeClicked = nodesManager.nodes.find(isRectIntersection)
+  // const foundNodeClicked = nodesManager.nodes.find(isRectIntersection)
 
-  if (foundNodeClicked !== undefined) {
-    foundNodeClicked.isDragging = true
+  // if (foundNodeClicked !== undefined) {
+  //   foundNodeClicked.isDragging = true
 
-    const worldPos = screenToCanvas(event.offsetX, event.offsetY)
+  //   const worldPos = screenToCanvas(event.offsetX, event.offsetY)
 
-    DRAG_OFFSET.x = worldPos.x - foundNodeClicked.x
-    DRAG_OFFSET.y = worldPos.y - foundNodeClicked.y
-  }
+  //   DRAG_OFFSET.x = worldPos.x - foundNodeClicked.x
+  //   DRAG_OFFSET.y = worldPos.y - foundNodeClicked.y
+  // }
 }
 
 function handleDrggingMap(event: PointerEvent) {
-  if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
-    isPanning = true
+  // if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
+  //   isPanning = true
 
-    PAN_OFFSET.x = event.offsetX - CAMERA.x
-    PAN_OFFSET.y = event.offsetY - CAMERA.y
+  //   PAN_OFFSET.x = event.offsetX - CAMERA.x
+  //   PAN_OFFSET.y = event.offsetY - CAMERA.y
 
-    canvas.style.cursor = "grabbing"
+  //   canvas.style.cursor = "grabbing"
 
-    return
-  }
+  //   return
+  // }
 }
 
 window.addEventListener("pointerup", () => {
-  isPanning = false
-  canvas.style.cursor = "default"
+  // isPanning = false
+  // canvas.style.cursor = "default"
 
-  nodesManager.nodes.forEach(node => {
-    node.isDragging = false
-  })
+  // nodesManager.nodes.forEach(node => {
+  //   node.isDragging = false
+  // })
 })
 
 window.addEventListener("pointermove", (event) => {
@@ -145,152 +126,155 @@ function handleZoomingMap(event: WheelEvent) {
   zoomElement.textContent = toPercentZoom(CAMERA.scale)
 }
 
-class GridView {
-  private readonly _baseGridSize = 8
-  private readonly _color = "#e5e5e5"
+// class GridView {
+//   private readonly _baseGridSize = 8
+//   private readonly _color = "#e5e5e5"
 
-  private readonly _levels: Array<Level> = [
-    { size: this._baseGridSize, minScale: 2.0 },
-    { size: this._baseGridSize * 2, minScale: 1.0 },
-    { size: this._baseGridSize * 4, minScale: 0.5 },
-    { size: this._baseGridSize * 8, minScale: 0.25 },
-    { size: this._baseGridSize * 16, minScale: 0.125 },
-    { size: this._baseGridSize * 32, minScale: 0.0625 },
-    { size: this._baseGridSize * 64, minScale: 0.03125 },
-    { size: this._baseGridSize * 128, minScale: 0.015625 },
-    { size: this._baseGridSize * 256, minScale: 0.0078125 },
-    { size: this._baseGridSize * 512, minScale: 0.00390625 },
-    { size: this._baseGridSize * 1024, minScale: 0.001953125 },
-    { size: this._baseGridSize * 2048, minScale: 0 },
-  ]
+//   private readonly _levels: Array<Level> = [
+//     { size: this._baseGridSize, minScale: 2.0 },
+//     { size: this._baseGridSize * 2, minScale: 1.0 },
+//     { size: this._baseGridSize * 4, minScale: 0.5 },
+//     { size: this._baseGridSize * 8, minScale: 0.25 },
+//     { size: this._baseGridSize * 16, minScale: 0.125 },
+//     { size: this._baseGridSize * 32, minScale: 0.0625 },
+//     { size: this._baseGridSize * 64, minScale: 0.03125 },
+//     { size: this._baseGridSize * 128, minScale: 0.015625 },
+//     { size: this._baseGridSize * 256, minScale: 0.0078125 },
+//     { size: this._baseGridSize * 512, minScale: 0.00390625 },
+//     { size: this._baseGridSize * 1024, minScale: 0.001953125 },
+//     { size: this._baseGridSize * 2048, minScale: 0 },
+//   ]
 
-  public get levels() {
-    return this._levels
-  }
+//   public get levels() {
+//     return this._levels
+//   }
 
-  public toDrawOneLevel: ToDrawOneLevel = ({ endWorld, startWorld, level }) => {
-    const isScaleSmallerThanLevel = CAMERA.scale < level.minScale
+//   public toDrawOneLevel: ToDrawOneLevel = ({ endWorld, startWorld, level }) => {
+//     const isScaleSmallerThanLevel = CAMERA.scale < level.minScale
 
-    if (isScaleSmallerThanLevel) return null
+//     if (isScaleSmallerThanLevel) return null
 
-    const fadeProgress = this._getFadeProgress(level)
+//     const fadeProgress = this._getFadeProgress(level)
 
-    if (fadeProgress <= 0) return null
+//     if (fadeProgress <= 0) return null
 
-    const startX = Math.floor(startWorld.x / level.size) * level.size
-    const startY = Math.floor(startWorld.y / level.size) * level.size
-    const endX = Math.ceil(endWorld.x / level.size) * level.size
-    const endY = Math.ceil(endWorld.y / level.size) * level.size
+//     const startX = Math.floor(startWorld.x / level.size) * level.size
+//     const startY = Math.floor(startWorld.y / level.size) * level.size
+//     const endX = Math.ceil(endWorld.x / level.size) * level.size
+//     const endY = Math.ceil(endWorld.y / level.size) * level.size
 
-    const opacity = fadeProgress * 0.5
-    const strokeStyle = this._color + Math.floor(opacity * 255).toString(16).padStart(2, '0')
-    const lineWidth = 1 / CAMERA.scale
+//     const opacity = fadeProgress * 0.5
+//     const strokeStyle = this._color + Math.floor(opacity * 255).toString(16).padStart(2, '0')
+//     const lineWidth = 1 / CAMERA.scale
 
-    return {
-      strokeStyle,
-      lineWidth,
-      startX,
-      startY,
-      endX,
-      endY,
-    }
-  }
+//     return {
+//       strokeStyle,
+//       lineWidth,
+//       startX,
+//       startY,
+//       endX,
+//       endY,
+//     }
+//   }
 
-  private _getNextLevelMinScale(level: typeof this._levels[number]) {
-    return this._levels[this._levels.indexOf(level) - 1]?.minScale || level.minScale * 2
-  }
+//   private _getNextLevelMinScale(level: typeof this._levels[number]) {
+//     return this._levels[this._levels.indexOf(level) - 1]?.minScale || level.minScale * 2
+//   }
 
-  private _getFadeProgress(level: typeof this._levels[number]) {
-    const nextLevelMinScale = this._getNextLevelMinScale(level)
-    const fadeRange = nextLevelMinScale - level.minScale
-    return Math.min(1, Math.max(0, (CAMERA.scale - level.minScale) / fadeRange))
-  }
-}
+//   private _getFadeProgress(level: typeof this._levels[number]) {
+//     const nextLevelMinScale = this._getNextLevelMinScale(level)
+//     const fadeRange = nextLevelMinScale - level.minScale
+//     return Math.min(1, Math.max(0, (CAMERA.scale - level.minScale) / fadeRange))
+//   }
+// }
 
-const grid = new GridView()
+const grid = gridViewCanvas
 
-class GridViewBridge {
-  constructor(private readonly _gridView: GridView) { }
+// class GridViewBridge {
+//   constructor(private readonly _gridView: GridView) { }
 
-  toDrawGrid(context: CanvasRenderingContext2D) {
-    context.save()
+//   toDrawGrid(context: CanvasRenderingContext2D) {
+//     context.save()
 
-    const startWorld = screenToCanvas(0, 0)
-    const endWorld = screenToCanvas(canvas.width, canvas.height)
+//     const startWorld = screenToCanvas(0, 0)
+//     const endWorld = screenToCanvas(canvas.width, canvas.height)
 
-    this._gridView.levels.forEach(level => {
-      const result = this._gridView.toDrawOneLevel({
-        startWorld,
-        endWorld,
-        level
-      })
+//     this._gridView.levels.forEach(level => {
+//       const result = this._gridView.toDrawOneLevel({
+//         startWorld,
+//         endWorld,
+//         level
+//       })
 
-      if (result === null) return
+//       if (result === null) return
 
-      const { strokeStyle, lineWidth, startX, startY, endX, endY } = result
+//       const { strokeStyle, lineWidth, startX, startY, endX, endY } = result
 
-      context.strokeStyle = strokeStyle
-      context.lineWidth = lineWidth
+//       context.strokeStyle = strokeStyle
+//       context.lineWidth = lineWidth
 
-      for (let x = startX; x <= endX; x += level.size) {
-        context.beginPath()
-        context.moveTo(x, startY)
-        context.lineTo(x, endY)
-        context.stroke()
-      }
+//       for (let x = startX; x <= endX; x += level.size) {
+//         context.beginPath()
+//         context.moveTo(x, startY)
+//         context.lineTo(x, endY)
+//         context.stroke()
+//       }
 
-      for (let y = startY; y <= endY; y += level.size) {
-        context.beginPath()
-        context.moveTo(startX, y)
-        context.lineTo(endX, y)
-        context.stroke()
-      }
-    })
+//       for (let y = startY; y <= endY; y += level.size) {
+//         context.beginPath()
+//         context.moveTo(startX, y)
+//         context.lineTo(endX, y)
+//         context.stroke()
+//       }
+//     })
 
-    context.restore()
-  }
-}
+//     context.restore()
+//   }
+// }
 
-const gridViewBridge = new GridViewBridge(grid)
+// const gridViewBridge = new GridViewBridge(grid)
 
-const drawStickers = () => {
-  context.save()
+// const drawStickers = () => {
+//   context.save()
 
-  nodesManager.nodes.forEach(node => {
-    if (node.isDragging) {
-      const worldPosition = screenToCanvas(POINTER_POSITION.x, POINTER_POSITION.y)
+//   nodesManager.nodes.forEach(node => {
+//     if (node.isDragging) {
+//       const worldPosition = screenToCanvas(POINTER_POSITION.x, POINTER_POSITION.y)
 
-      node.x = worldPosition.x - DRAG_OFFSET.x
-      node.y = worldPosition.y - DRAG_OFFSET.y
-    }
+//       node.x = worldPosition.x - DRAG_OFFSET.x
+//       node.y = worldPosition.y - DRAG_OFFSET.y
+//     }
 
-    if (CAMERA.scale >= 0.4) {
-      context.shadowOffsetX = 2
-      context.shadowOffsetY = 8
-      context.shadowBlur = 16
-      context.shadowColor = "#dbdad4"
-    }
+//     if (CAMERA.scale >= 0.4) {
+//       context.shadowOffsetX = 2
+//       context.shadowOffsetY = 8
+//       context.shadowBlur = 16
+//       context.shadowColor = "#dbdad4"
+//     }
 
-    context.strokeStyle = node.color
-    context.fillStyle = node.color
-    context.fillRect(node.x, node.y, node.width, node.height)
-    context.stroke()
-  })
+//     context.strokeStyle = node.color
+//     context.fillStyle = node.color
+//     context.fillRect(node.x, node.y, node.width, node.height)
+//     context.stroke()
+//   })
 
-  context.restore()
-}
+//   context.restore()
+// }
 
 const render = () => {
+  if (context === null) return
+
   requestAnimationFrame(render)
   context.clearRect(0, 0, canvas.width, canvas.height)
 
   context.save()
-  context.translate(CAMERA.x, CAMERA.y)
-  context.scale(CAMERA.scale, CAMERA.scale)
+  context.translate(subscriberToGridMap.camera.x, subscriberToGridMap.camera.y)
+  context.scale(subscriberToGridMap.camera.scale, subscriberToGridMap.camera.scale)
 
-  gridViewBridge.toDrawGrid(context)
+  grid.toDrawGrid(context)
+  // gridViewBridge.toDrawGrid(context)
 
-  drawStickers()
+  // drawStickers()
 
   context.restore()
 }
