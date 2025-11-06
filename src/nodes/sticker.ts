@@ -1,6 +1,6 @@
-import { subscriberToGridMap } from "../grid-map"
+import { canvasCamera } from "../new/camera/model"
 import { isRectIntersection } from "../point"
-import type { Point, Rect } from "../type"
+import type { Rect } from "../type"
 
 export type StickerNode = {
   id: string
@@ -36,7 +36,7 @@ export class CanvasRectangle {
 
   private _canCallMouseDown(event: PointerEvent) {
     return isRectIntersection({
-      camera: subscriberToGridMap.camera,
+      camera: canvasCamera.camera,
       rect: this.rect,
       point: {
         x: event.offsetX,
@@ -47,7 +47,7 @@ export class CanvasRectangle {
 
   private _canCallMouseUp(event: PointerEvent) {
     return isRectIntersection({
-      camera: subscriberToGridMap.camera,
+      camera: canvasCamera.camera,
       rect: this.rect,
       point: {
         x: event.offsetX,
@@ -75,8 +75,8 @@ const drawActiveBox = (context: CanvasRenderingContext2D, { rect, activeBoxDots 
   const baseLineWidth = 0.45
   const scalePower = 0.75
 
-  const dotRadius = baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
-  const dotLineWidth = baseLineWidth / Math.pow(subscriberToGridMap.camera.scale, scalePower)
+  const dotRadius = baseRadius / Math.pow(canvasCamera.camera.scale, scalePower)
+  const dotLineWidth = baseLineWidth / Math.pow(canvasCamera.camera.scale, scalePower)
 
   context.save()
   context.fillStyle = "#ffffff"
@@ -109,7 +109,7 @@ export class StickerToDraw extends CanvasRectangle {
   }
 
   public drawSticker(context: CanvasRenderingContext2D) {
-    const canViewShadowAndText = subscriberToGridMap.camera.scale >= 0.4
+    const canViewShadowAndText = canvasCamera.camera.scale >= 0.4
 
     if (this.sticker.isSelected) {
       drawActiveBox(context, this.sticker)
@@ -173,22 +173,22 @@ export class Sticker implements StickerToView {
       {
         x: this.rect.x - PADDING,
         y: this.rect.y - PADDING,
-        radius: baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
+        radius: baseRadius / Math.pow(canvasCamera.camera.scale, scalePower)
       },
       {
         x: this.rect.x + this.rect.width + PADDING,
         y: this.rect.y - PADDING,
-        radius: baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
+        radius: baseRadius / Math.pow(canvasCamera.camera.scale, scalePower)
       },
       {
         x: this.rect.x + this.rect.width + PADDING,
         y: this.rect.y + this.rect.height + PADDING,
-        radius: baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
+        radius: baseRadius / Math.pow(canvasCamera.camera.scale, scalePower)
       },
       {
         x: this.rect.x - PADDING,
         y: this.rect.y + this.rect.height + PADDING,
-        radius: baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
+        radius: baseRadius / Math.pow(canvasCamera.camera.scale, scalePower)
       },
     ]
   }

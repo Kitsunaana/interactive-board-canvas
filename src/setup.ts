@@ -10,7 +10,9 @@ canvas.oncontextmenu = (event) => {
 
 document.body.appendChild(canvas)
 
-const context = canvas.getContext("2d")
+const context = canvas.getContext("2d", {
+  willReadFrequently: true,
+})
 
 if (context === null) throw new Error("Failed to get context")
 

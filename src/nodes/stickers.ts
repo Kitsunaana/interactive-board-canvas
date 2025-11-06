@@ -1,4 +1,3 @@
-import { emitter } from "../grid-map"
 import type { Point } from "../type"
 import { Sticker, type StickerToView } from "./sticker"
 
@@ -13,27 +12,8 @@ export class NodesManager {
   public constructor(nodes: Sticker[]) {
     this._stickers = nodes
 
-    emitter.on("grid-map:pointer-down", (event) => {
-      // this._startNodeDragging.bind(this)(event)
-
-      // this._stickers.forEach(node => {
-      //   if (node.canCallMouseDown(event)) {
-      //     node.onMouseDown(event)
-      //   }
-      // })
-    })
-
-    emitter.on("grid-map:pointer-move", (event) => { })
-
-    emitter.on("grid-map:pointer-up", (event) => {
-      // this._stopNodeDragging.bind(this)(event)
-
-      // this._stickers.forEach(node => {
-      //   if (node.canCallMouseUp(event)) {
-      //     node.onMouseUp(event)
-      //   }
-      // })
-    })
+    window.addEventListener("pointerdown", this._startNodeDragging.bind(this))
+    window.addEventListener("pointerup", this._stopNodeDragging.bind(this))
   }
 
   public get dragOffset() {
@@ -45,43 +25,9 @@ export class NodesManager {
   }
 
   private _stopNodeDragging(_event: PointerEvent) {
-    this._state = "idle"
-
-    this._stickers.forEach((node) => {
-      // node.isDragging = false
-    })
   }
 
-  private _state: "idle" | "dragging" | "selected" = "idle"
-
   private _startNodeDragging(event: PointerEvent) {
-    // const foundNode = this._stickers.find((node) => isRectIntersection({
-    //   pointer: subscriberToGridMap.pointerPosition,
-    //   camera: subscriberToGridMap.camera,
-    //   rect: node.rect,
-    // }))
-
-    // if (foundNode !== undefined && this._state === "idle") {
-    //   this._stickers.forEach((node) => {
-    //     node.isSelected = false
-    //   })
-
-    //   this._state = "dragging"
-
-    //   foundNode.isDragging = true
-    //   foundNode.isSelected = true
-
-    //   const worldPos = screenToCanvas({
-    //     camera: subscriberToGridMap.camera,
-    //     point: {
-    //       x: event.offsetX,
-    //       y: event.offsetY
-    //     },
-    //   })
-
-    //   this._dragOffset.x = worldPos.x - foundNode.rect.x
-    //   this._dragOffset.y = worldPos.y - foundNode.rect.y
-    // }
   }
 
   public addNode(node: Sticker) {
@@ -97,19 +43,9 @@ export class NodesManager {
   }
 
   public toggleStickerDraggingState(id: string) {
-    const foundSticker = this._stickers.find((node) => node.id === id)
-
-    if (foundSticker) {
-      // foundSticker.isDragging = !foundSticker.isDragging
-    }
   }
 
   public toggleStickerSelectionState(id: string) {
-    const foundSticker = this._stickers.find((node) => node.id === id)
-
-    if (foundSticker) {
-      foundSticker.isSelected = !foundSticker.isSelected
-    }
   }
 }
 

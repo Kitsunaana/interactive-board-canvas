@@ -1,4 +1,4 @@
-import { gridViewCanvas, subscriberToGridMap } from "./grid-map"
+import { gridViewCanvas } from "./grid-map"
 import "./index.css"
 import { ViewModelContext } from "./nodes/system"
 import { IdleViewModel } from "./nodes/view-model/idle"
@@ -6,10 +6,9 @@ import { isRectIntersection } from "./point"
 import { context as _context, canvas } from "./setup"
 import type { Point, Rect } from "./type"
 
-const context = _context as CanvasRenderingContext2D
+import { canvasCamera } from "./new/camera/model"
 
-const pointerPosition = subscriberToGridMap.pointerPosition
-const camera = subscriberToGridMap.camera
+const context = _context as CanvasRenderingContext2D
 
 const toPercentZoom = (scale: number) => {
   return (scale * 100).toFixed(0) + "%"
@@ -18,7 +17,7 @@ const toPercentZoom = (scale: number) => {
 const zoomElement = document.createElement("div")
 
 zoomElement.classList.add("zoom-indicator")
-zoomElement.textContent = toPercentZoom(camera.scale)
+zoomElement.textContent = toPercentZoom(canvasCamera.camera.scale)
 
 document.body.appendChild(zoomElement)
 
@@ -49,7 +48,7 @@ window.addEventListener("click", (event) => {
     }
 
     const isIntersect = isRectIntersection({
-      camera: subscriberToGridMap.camera,
+      camera: canvasCamera.camera,
       point,
       rect,
     })
@@ -76,11 +75,9 @@ const render = () => {
   requestAnimationFrame(render)
   context.clearRect(0, 0, canvas.width, canvas.height)
 
-  // console.log(subscriberToGridMap.camera)
-
   context.save()
-  context.translate(subscriberToGridMap.camera.x, subscriberToGridMap.camera.y)
-  context.scale(subscriberToGridMap.camera.scale, subscriberToGridMap.camera.scale)
+  context.translate(canvasCamera.camera.x, canvasCamera.camera.y)
+  context.scale(canvasCamera.camera.scale, canvasCamera.camera.scale)
 
   grid.toDrawGrid(context)
 
