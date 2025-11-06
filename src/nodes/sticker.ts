@@ -38,7 +38,7 @@ export class CanvasRectangle {
     return isRectIntersection({
       camera: subscriberToGridMap.camera,
       rect: this.rect,
-      pointer: {
+      point: {
         x: event.offsetX,
         y: event.offsetY,
       },
@@ -49,7 +49,7 @@ export class CanvasRectangle {
     return isRectIntersection({
       camera: subscriberToGridMap.camera,
       rect: this.rect,
-      pointer: {
+      point: {
         x: event.offsetX,
         y: event.offsetY,
       },
@@ -72,24 +72,25 @@ const drawActiveBox = (context: CanvasRenderingContext2D, { rect, activeBoxDots 
   context.stroke()
 
   const baseRadius = 5
-  const baseLineWidth = 0.15
+  const baseLineWidth = 0.45
   const scalePower = 0.75
 
   const dotRadius = baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
   const dotLineWidth = baseLineWidth / Math.pow(subscriberToGridMap.camera.scale, scalePower)
 
-  activeBoxDots.forEach((dot) => {
-    if (context === null) return
+  context.save()
+  context.fillStyle = "#ffffff"
+  context.strokeStyle = "#aaaaaa"
 
+  activeBoxDots.forEach((dot) => {
     context.beginPath()
-    context.fillStyle = "#ffffff"
-    context.strokeStyle = "#aaaaaa"
     context.lineWidth = dotLineWidth
     context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)
-    context.fill()
     context.closePath()
+    context.fill()
     context.stroke()
   })
+  context.restore()
 }
 
 export type StickerToView = {
@@ -99,7 +100,7 @@ export type StickerToView = {
   rect: Rect
   isSelected: boolean
 
-  get activeBoxDots(): Point[]
+  get activeBoxDots(): { x: number, y: number, radius: number }[]
 }
 
 export class StickerToDraw extends CanvasRectangle {
@@ -124,10 +125,8 @@ export class StickerToDraw extends CanvasRectangle {
   private _drawBackground(context: CanvasRenderingContext2D) {
     const { color, rect } = this.sticker
 
-    context.strokeStyle = color
     context.fillStyle = color
     context.fillRect(rect.x, rect.y, rect.width, rect.height)
-    context.stroke()
   }
 
   private _drawShadow(context: CanvasRenderingContext2D) {
@@ -167,22 +166,29 @@ export class Sticker implements StickerToView {
   }
 
   public get activeBoxDots() {
+    const baseRadius = 5
+    const scalePower = 0.75
+
     return [
       {
         x: this.rect.x - PADDING,
         y: this.rect.y - PADDING,
+        radius: baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
       },
       {
         x: this.rect.x + this.rect.width + PADDING,
         y: this.rect.y - PADDING,
+        radius: baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
       },
       {
         x: this.rect.x + this.rect.width + PADDING,
         y: this.rect.y + this.rect.height + PADDING,
+        radius: baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
       },
       {
         x: this.rect.x - PADDING,
         y: this.rect.y + this.rect.height + PADDING,
+        radius: baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
       },
     ]
   }

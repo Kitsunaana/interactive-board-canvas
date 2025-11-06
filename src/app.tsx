@@ -1,16 +1,68 @@
 import { useEffect, useRef, useState } from "react";
+import "./index.css"
 
 export function App() {
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
-      <WebGLPickerCanvas width={800} height={600} />
-    </div>
+    <WebGLPickerCanvas width={window.innerWidth} height={window.innerHeight} />
   )
 }
 
-function WebGLPickerCanvas({ width = 800, height = 600 }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [objects, setObjects] = useState([
+type TriangleFigure = {
+  pickColor: [number, number, number],
+  type: 'triangle'
+  name: string,
+  id: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  x3: number,
+  y3: number,
+}
+
+type CircleFigure = {
+  pickColor: [number, number, number],
+  radius: number,
+  type: 'circle'
+  name: string,
+  id: number,
+  x: number,
+  y: number,
+}
+
+type RectangleFigure = {
+  pickColor: [number, number, number],
+  height: number,
+  width: number,
+  name: string,
+  type: 'rect'
+  id: number,
+  x: number,
+  y: number,
+}
+
+type ObjectsFigure =
+  | RectangleFigure
+  | TriangleFigure
+  | CircleFigure
+
+const createRandomRectangles = (count: number): RectangleFigure[] => {
+  return Array.from({ length: count }, () => ({
+    type: "rect",
+    id: Math.random(),
+    name: "Прямоугольник",
+    pickColor: [255, 0, 0],
+    x: Math.random() * 10000,
+    y: Math.random() * 10000,
+    width: 200,
+    height: 120,
+  }))
+}
+
+function WebGLPickerCanvas({ width, height }) {
+  const gridCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const webglCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [objects, setObjects] = useState<ObjectsFigure[]>([
     {
       id: 1,
       name: "Прямоугольник",
@@ -116,10 +168,14 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
 
   // ---------- Основной рендер ----------
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const gridCanvas = gridCanvasRef.current;
+    const webglCanvas = webglCanvasRef.current;
+    if (!gridCanvas || !webglCanvas) return;
 
-    const gl = canvas.getContext("webgl", { antialias: false });
+    const ctx = gridCanvas.getContext("2d");
+    if (!ctx) return;
+
+    const gl = webglCanvas.getContext("webgl", { antialias: false, alpha: true });
     if (!gl) {
       console.error("WebGL не поддерживается в этом браузере.");
       return;
@@ -179,32 +235,6 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
       return Math.min(1, Math.max(0, (cameraRef.current.scale - level.minScale) / fadeRange));
     }
 
-    function createGridLines(level: any, startWorld: any, endWorld: any) {
-      if (cameraRef.current.scale < level.minScale) return null;
-
-      const fadeProgress = getFadeProgress(level);
-      if (fadeProgress <= 0) return null;
-
-      const startX = Math.floor(startWorld.x / level.size) * level.size;
-      const startY = Math.floor(startWorld.y / level.size) * level.size;
-      const endX = Math.ceil(endWorld.x / level.size) * level.size;
-      const endY = Math.ceil(endWorld.y / level.size) * level.size;
-
-      const lines = [];
-
-      // Вертикальные линии
-      for (let x = startX; x <= endX; x += level.size) {
-        lines.push(x, startY, x, endY);
-      }
-
-      // Горизонтальные линии
-      for (let y = startY; y <= endY; y += level.size) {
-        lines.push(startX, y, endX, y);
-      }
-
-      return { lines: new Float32Array(lines), opacity: fadeProgress * 0.3 };
-    }
-
     // ---------- Функции фигур ----------
     function rect(x: number, y: number, w: number, h: number) {
       return new Float32Array([
@@ -233,38 +263,89 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
       return new Float32Array(pts);
     }
 
-    // ---------- Рендер сцены ----------
+    // ---------- Рендер сетки на 2D canvas ----------
+    function drawGrid() {
+      ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+
+      // Background: rgb(242, 242, 242)
+      ctx.fillStyle = 'rgb(242, 242, 242)';
+      ctx.fillRect(0, 0, gridCanvas.width, gridCanvas.height);
+
+      ctx.save();
+
+      const startWorld = screenToWorld(0, 0);
+      const endWorld = screenToWorld(gridCanvas.width, gridCanvas.height);
+
+      // Применяем трансформацию камеры
+      ctx.translate(-cameraRef.current.x * cameraRef.current.scale, -cameraRef.current.y * cameraRef.current.scale);
+      ctx.scale(cameraRef.current.scale, cameraRef.current.scale);
+
+      for (const level of gridLevels) {
+        if (cameraRef.current.scale < level.minScale) continue;
+
+        const fadeProgress = getFadeProgress(level);
+        if (fadeProgress <= 0 || fadeProgress < 0.2) continue;
+
+        const startX = Math.floor(startWorld.x / level.size) * level.size;
+        const startY = Math.floor(startWorld.y / level.size) * level.size;
+        const endX = Math.ceil(endWorld.x / level.size) * level.size;
+        const endY = Math.ceil(endWorld.y / level.size) * level.size;
+
+        // Grid lines: rgb(200, 200, 200)
+        ctx.strokeStyle = `rgba(200, 200, 200, ${fadeProgress})`;
+        ctx.lineWidth = 1 / cameraRef.current.scale;
+
+        ctx.beginPath();
+        // Вертикальные линии
+        for (let x = startX; x <= endX; x += level.size) {
+          ctx.moveTo(x, startY);
+          ctx.lineTo(x, endY);
+        }
+        // Горизонтальные линии
+        for (let y = startY; y <= endY; y += level.size) {
+          ctx.moveTo(startX, y);
+          ctx.lineTo(endX, y);
+        }
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // ---------- Рендер фигур на WebGL canvas ----------
     function drawScene(isPicking = false) {
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.clearColor(0.1, 0.1, 0.1, 1);
+      gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
+
+      // Прозрачный фон для WebGL canvas
+      gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
       gl.useProgram(program);
-      gl.uniform2f(resLoc, canvas.width, canvas.height);
+      gl.uniform2f(resLoc, webglCanvas.width, webglCanvas.height);
       gl.uniform3f(cameraLoc, cameraRef.current.x, cameraRef.current.y, cameraRef.current.scale);
-
-      // Рисуем сетку (только если не в режиме picking)
-      if (!isPicking) {
-        const startWorld = screenToWorld(0, 0);
-        const endWorld = screenToWorld(canvas.width, canvas.height);
-
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-        for (const level of gridLevels) {
-          const gridData = createGridLines(level, startWorld, endWorld);
-          if (!gridData) continue;
-
-          gl.uniform4f(colorLoc, 0.9, 0.9, 0.9, gridData.opacity);
-          gl.bufferData(gl.ARRAY_BUFFER, gridData.lines, gl.STATIC_DRAW);
-          gl.drawArrays(gl.LINES, 0, gridData.lines.length / 2);
-        }
-
-        gl.disable(gl.BLEND);
-      }
 
       // Рисуем объекты
       for (const obj of objects) {
+        // Рисуем тень только для прямоугольников и не в режиме picking
+        if (!isPicking && obj.type === 'rect' && obj.x !== undefined && obj.y !== undefined) {
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+          // Параметры тени
+          const shadowOffsetX = 5;  // смещение тени по X
+          const shadowOffsetY = 5;  // смещение тени по Y
+          const shadowColor = [0, 0, 0, 0.3];  // черная с прозрачностью 30%
+
+          // Рисуем тень (смещенный прямоугольник)
+          gl.uniform4fv(colorLoc, shadowColor);
+          const shadowVerts = rect(obj.x + shadowOffsetX, obj.y + shadowOffsetY, obj.width, obj.height);
+          gl.bufferData(gl.ARRAY_BUFFER, shadowVerts, gl.STATIC_DRAW);
+          gl.drawArrays(gl.TRIANGLES, 0, shadowVerts.length / 2);
+
+          gl.disable(gl.BLEND);
+        }
+
+        // Рисуем сам объект
         const color = isPicking
           ? [...obj.pickColor.map((v) => v / 255), 1]
           : [
@@ -295,14 +376,15 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
     // ---------- Цикл анимации ----------
     let animationId: number;
     function animate() {
-      drawScene(false);
+      drawGrid();        // Рисуем сетку на 2D canvas
+      drawScene(false);  // Рисуем фигуры на WebGL canvas
       animationId = requestAnimationFrame(animate);
     }
     animate();
 
     // ---------- Функция определения объекта под курсором ----------
     function getObjectAtPosition(clientX: number, clientY: number) {
-      const rect = canvas.getBoundingClientRect();
+      const rect = webglCanvas.getBoundingClientRect();
       const x = clientX - rect.left;
       const y = rect.height - (clientY - rect.top);
 
@@ -321,6 +403,7 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
       );
 
       drawScene(false);
+      drawGrid();
       return hit;
     }
 
@@ -328,14 +411,14 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
     const handleMouseDown = (e: MouseEvent) => {
       // Средняя кнопка мыши или Shift + левая кнопка для перемещения камеры
       if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
-        const rect = canvas.getBoundingClientRect();
+        const rect = webglCanvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
         panStateRef.current.isPanning = true;
         panStateRef.current.offsetX = mouseX + cameraRef.current.x * cameraRef.current.scale;
         panStateRef.current.offsetY = mouseY + cameraRef.current.y * cameraRef.current.scale;
-        canvas.style.cursor = "grabbing";
+        webglCanvas.style.cursor = "grabbing";
         return;
       }
 
@@ -346,7 +429,7 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
         dragStateRef.current.isDragging = true;
         dragStateRef.current.selectedObject = hit;
 
-        const rect = canvas.getBoundingClientRect();
+        const rect = webglCanvas.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
@@ -367,12 +450,12 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
           dragStateRef.current.offsetY = worldPos.y - centerY;
         }
 
-        canvas.style.cursor = "grabbing";
+        webglCanvas.style.cursor = "grabbing";
       }
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
+      const rect = webglCanvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
@@ -433,13 +516,13 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
     const handleMouseUp = (_e: MouseEvent) => {
       if (panStateRef.current.isPanning) {
         panStateRef.current.isPanning = false;
-        canvas.style.cursor = "default";
+        webglCanvas.style.cursor = "default";
       }
 
       if (dragStateRef.current.isDragging) {
         dragStateRef.current.isDragging = false;
         dragStateRef.current.selectedObject = null;
-        canvas.style.cursor = "default";
+        webglCanvas.style.cursor = "default";
       }
     };
 
@@ -455,7 +538,7 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
 
       if (newScale < zoomMinScale || newScale > zoomMaxScale) return;
 
-      const rect = canvas.getBoundingClientRect();
+      const rect = webglCanvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
@@ -469,34 +552,49 @@ function WebGLPickerCanvas({ width = 800, height = 600 }) {
       cameraRef.current.y = worldBeforeY - (mouseY / newScale);
     };
 
-    canvas.addEventListener("mousedown", handleMouseDown);
-    canvas.addEventListener("mousemove", handleMouseMove);
-    canvas.addEventListener("mouseup", handleMouseUp);
-    canvas.addEventListener("mouseleave", handleMouseUp);
-    canvas.addEventListener("wheel", handleWheel);
+    webglCanvas.addEventListener("mousedown", handleMouseDown);
+    webglCanvas.addEventListener("mousemove", handleMouseMove);
+    webglCanvas.addEventListener("mouseup", handleMouseUp);
+    webglCanvas.addEventListener("mouseleave", handleMouseUp);
+    webglCanvas.addEventListener("wheel", handleWheel);
 
     // ---------- Очистка ----------
     return () => {
       cancelAnimationFrame(animationId);
-      canvas.removeEventListener("mousedown", handleMouseDown);
-      canvas.removeEventListener("mousemove", handleMouseMove);
-      canvas.removeEventListener("mouseup", handleMouseUp);
-      canvas.removeEventListener("mouseleave", handleMouseUp);
-      canvas.removeEventListener("wheel", handleWheel);
+      webglCanvas.removeEventListener("mousedown", handleMouseDown);
+      webglCanvas.removeEventListener("mousemove", handleMouseMove);
+      webglCanvas.removeEventListener("mouseup", handleMouseUp);
+      webglCanvas.removeEventListener("mouseleave", handleMouseUp);
+      webglCanvas.removeEventListener("wheel", handleWheel);
     };
   }, [objects]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={width}
-      height={height}
-      style={{
-        display: "block",
-        margin: "20px auto",
-        border: "2px solid #333",
-        background: "#000",
-      }}
-    />
+    <div style={{ position: 'relative', width, height }}>
+      {/* Canvas для сетки (2D) */}
+      <canvas
+        ref={gridCanvasRef}
+        width={width}
+        height={height}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          display: 'block',
+        }}
+      />
+      {/* Canvas для фигур (WebGL) */}
+      <canvas
+        ref={webglCanvasRef}
+        width={width}
+        height={height}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          display: 'block',
+        }}
+      />
+    </div>
   );
 }

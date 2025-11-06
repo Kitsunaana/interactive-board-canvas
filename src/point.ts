@@ -7,12 +7,12 @@ export const screenToCanvas = ({ point, camera }: { point: Point, camera: Camera
   }
 }
 
-export const isRectIntersection = ({ camera, rect, pointer }: {
+export const isRectIntersection = ({ camera, rect, point }: {
   rect: Rect
+  point: Point
   camera: Camera
-  pointer: Point
 }) => {
-  const worldPosition = screenToCanvas({ point: pointer, camera })
+  const worldPosition = screenToCanvas({ point, camera })
 
   return (
     worldPosition.x >= rect.x && worldPosition.x <= rect.x + rect.width &&
