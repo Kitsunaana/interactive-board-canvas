@@ -1,8 +1,9 @@
 import { gridViewCanvas, subscriberToGridMap } from "./grid-map"
-import { nodesManager, type StickerNode } from "./nodes/stickers"
-import { screenToCanvas } from "./point"
-import { canvas, context as _context } from "./setup"
 import "./index.css"
+import { CanvasRectangle, StickerToDraw, type Sticker } from "./nodes/sticker"
+import { nodesManager } from "./nodes/stickers"
+import { viewModelContext } from "./nodes/system"
+import { context as _context, canvas } from "./setup"
 
 const context = _context as CanvasRenderingContext2D
 
@@ -22,7 +23,7 @@ document.body.appendChild(zoomElement)
 
 const grid = gridViewCanvas
 
-const drawActiveBox = (node: StickerNode) => {
+const drawActiveBox = ({ rect: node, activeBoxDots }: Sticker) => {
   const padding = 7
 
   context.beginPath()
@@ -36,25 +37,6 @@ const drawActiveBox = (node: StickerNode) => {
   context.closePath()
   context.stroke()
 
-  const dots = [
-    {
-      x: node.x - padding,
-      y: node.y - padding,
-    },
-    {
-      x: node.x + node.width + padding,
-      y: node.y - padding,
-    },
-    {
-      x: node.x + node.width + padding,
-      y: node.y + node.height + padding,
-    },
-    {
-      x: node.x - padding,
-      y: node.y + node.height + padding,
-    },
-  ]
-
   const baseRadius = 5
   const baseLineWidth = 0.15
   const scalePower = 0.75
@@ -62,7 +44,7 @@ const drawActiveBox = (node: StickerNode) => {
   const dotRadius = baseRadius / Math.pow(camera.scale, scalePower)
   const dotLineWidth = baseLineWidth / Math.pow(camera.scale, scalePower)
 
-  dots.forEach((dot) => {
+  activeBoxDots.forEach((dot) => {
     if (context === null) return
 
     context.beginPath()
@@ -76,52 +58,28 @@ const drawActiveBox = (node: StickerNode) => {
   })
 }
 
-const drawStickers = () => {
-  if (context === null) return
+console.log(viewModelContext.nodes)
 
+const drawStickers = () => {
   context.save()
 
-  nodesManager.nodes.forEach((node) => {
-    if (context === null) return
-
-    if (node.isDragging) {
-      const worldPosition = screenToCanvas({
-        point: pointerPosition,
-        camera,
-      })
-
-      node.x = worldPosition.x - nodesManager.dragOffset.x
-      node.y = worldPosition.y - nodesManager.dragOffset.y
-    }
-
-    const canViewShadowAndText = camera.scale >= 0.4
-
-    if (canViewShadowAndText) {
-      context.shadowOffsetX = 2
-      context.shadowOffsetY = 8
-      context.shadowBlur = 16
-      context.shadowColor = "#dbdad4"
-    }
-
-    context.strokeStyle = node.color
-    context.fillStyle = node.color
-    context.fillRect(node.x, node.y, node.width, node.height)
-
-    if (node.isSelected) {
-      drawActiveBox(node)
-    }
-
-    if (canViewShadowAndText) {
-      context.font = "22px Roboto"
-      context.fillStyle = "#333"
-      context.textAlign = "center"
-      context.textBaseline = "middle"
-
-      context.fillText(node.text, node.x + node.width / 2, node.y + node.height / 2)
-    }
-
-    context.stroke()
+  viewModelContext.nodes.forEach((sticker) => {
+    sticker.drawSticker(context)
   })
+
+  // if (isDragging) {
+  //   const worldPosition = screenToCanvas({
+  //     point: pointerPosition,
+  //     camera,
+  //   })
+
+  //   node.x = worldPosition.x - nodesManager.dragOffset.x
+  //   node.y = worldPosition.y - nodesManager.dragOffset.y
+  // }
+
+  // if (isSelected) {
+  // drawActiveBox(sticker)
+  // }
 
   context.restore()
 }
