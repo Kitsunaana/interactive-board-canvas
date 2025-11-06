@@ -1,8 +1,8 @@
 import { gridViewCanvas, subscriberToGridMap } from "./grid-map"
 import "./index.css"
-import { CanvasRectangle, StickerToDraw, type Sticker } from "./nodes/sticker"
-import { nodesManager } from "./nodes/stickers"
-import { viewModelContext } from "./nodes/system"
+import { type Sticker } from "./nodes/sticker"
+import { ViewModelContext } from "./nodes/system"
+import { IdleViewModel } from "./nodes/view-model/idle"
 import { context as _context, canvas } from "./setup"
 
 const context = _context as CanvasRenderingContext2D
@@ -23,42 +23,9 @@ document.body.appendChild(zoomElement)
 
 const grid = gridViewCanvas
 
-const drawActiveBox = ({ rect: node, activeBoxDots }: Sticker) => {
-  const padding = 7
+const viewModelContext = new ViewModelContext(IdleViewModel.goToIdle())
 
-  context.beginPath()
-  context.strokeStyle = "#3859ff"
-  context.lineWidth = 0.2
-  context.moveTo(node.x - padding, node.y - padding)
-  context.lineTo(node.x + node.width + padding, node.y - padding)
-  context.lineTo(node.x + node.width + padding, node.y + node.height + padding)
-  context.lineTo(node.x - padding, node.y + node.height + padding)
-  context.lineTo(node.x - padding, node.y - padding)
-  context.closePath()
-  context.stroke()
-
-  const baseRadius = 5
-  const baseLineWidth = 0.15
-  const scalePower = 0.75
-
-  const dotRadius = baseRadius / Math.pow(camera.scale, scalePower)
-  const dotLineWidth = baseLineWidth / Math.pow(camera.scale, scalePower)
-
-  activeBoxDots.forEach((dot) => {
-    if (context === null) return
-
-    context.beginPath()
-    context.fillStyle = "#ffffff"
-    context.strokeStyle = "#aaaaaa"
-    context.lineWidth = dotLineWidth
-    context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)
-    context.fill()
-    context.closePath()
-    context.stroke()
-  })
-}
-
-console.log(viewModelContext.nodes)
+console.log(viewModelContext.nodes[0].sticker)
 
 const drawStickers = () => {
   context.save()
@@ -75,10 +42,6 @@ const drawStickers = () => {
 
   //   node.x = worldPosition.x - nodesManager.dragOffset.x
   //   node.y = worldPosition.y - nodesManager.dragOffset.y
-  // }
-
-  // if (isSelected) {
-  // drawActiveBox(sticker)
   // }
 
   context.restore()

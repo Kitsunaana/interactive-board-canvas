@@ -1,6 +1,6 @@
 import { subscriberToGridMap } from "../grid-map"
 import { isRectIntersection } from "../point"
-import type { Rect } from "../type"
+import type { Point, Rect } from "../type"
 
 export type StickerNode = {
   id: string
@@ -20,7 +20,7 @@ export class CanvasRectangle {
   public onMouseDown?: (event: PointerEvent) => void
   public onMouseUp?: (event: PointerEvent) => void
 
-  constructor(public readonly rect: Rect) {
+  constructor(private readonly rect: Rect) {
     window.addEventListener("pointerdown", (event) => {
       if (this._canCallMouseDown.call(this, event)) {
         this.onMouseDown?.call(this, event)
@@ -57,29 +57,62 @@ export class CanvasRectangle {
   }
 }
 
+const drawActiveBox = (context: CanvasRenderingContext2D, { rect, activeBoxDots }: Sticker) => {
+  const padding = 7
+
+  context.beginPath()
+  context.strokeStyle = "#3859ff"
+  context.lineWidth = 0.2
+  context.moveTo(rect.x - padding, rect.y - padding)
+  context.lineTo(rect.x + rect.width + padding, rect.y - padding)
+  context.lineTo(rect.x + rect.width + padding, rect.y + rect.height + padding)
+  context.lineTo(rect.x - padding, rect.y + rect.height + padding)
+  context.lineTo(rect.x - padding, rect.y - padding)
+  context.closePath()
+  context.stroke()
+
+  const baseRadius = 5
+  const baseLineWidth = 0.15
+  const scalePower = 0.75
+
+  const dotRadius = baseRadius / Math.pow(subscriberToGridMap.camera.scale, scalePower)
+  const dotLineWidth = baseLineWidth / Math.pow(subscriberToGridMap.camera.scale, scalePower)
+
+  activeBoxDots.forEach((dot) => {
+    if (context === null) return
+
+    context.beginPath()
+    context.fillStyle = "#ffffff"
+    context.strokeStyle = "#aaaaaa"
+    context.lineWidth = dotLineWidth
+    context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)
+    context.fill()
+    context.closePath()
+    context.stroke()
+  })
+}
+
 export type StickerToView = {
   id: string
   text: string
   color: string
-
   rect: Rect
-
   isSelected: boolean
 
-  onMouseUp?: (event: PointerEvent) => void
-  onMouseDown?: (event: PointerEvent) => void
+  get activeBoxDots(): Point[]
 }
 
 export class StickerToDraw extends CanvasRectangle {
   constructor(public sticker: StickerToView) {
     super(sticker.rect)
-
-    this.onMouseDown = sticker.onMouseDown
-    this.onMouseUp = sticker.onMouseUp
   }
 
   public drawSticker(context: CanvasRenderingContext2D) {
     const canViewShadowAndText = subscriberToGridMap.camera.scale >= 0.4
+
+    if (this.sticker.isSelected) {
+      drawActiveBox(context, this.sticker)
+    }
 
     if (canViewShadowAndText) this._drawShadow(context)
 

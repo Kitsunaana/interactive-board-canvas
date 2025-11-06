@@ -144,13 +144,13 @@ export const nodesManager = new NodesManager([
     width: 100,
     height: 80,
   }),
-  // new Sticker({
-  //   text: "World",
-  //   color: "#fef69e",
-  //   x: 420,
-  //   y: 420,
-  //   width: 100,
-  //   height: 80,
-  // }),
+  new Sticker({
+    text: "World",
+    color: "#fef69e",
+    x: 420,
+    y: 420,
+    width: 100,
+    height: 80,
+  }),
   ...createStickers(0)
 ])
