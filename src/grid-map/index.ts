@@ -4,7 +4,7 @@ import type { Level, ToDrawOneLevel } from "../type"
 
 export class GridToRenderLevels {
   public readonly baseGridSize = 8
-  public readonly color = "#e5e5e5"
+  public readonly color = "#dedede"
 
   public readonly levels: Array<Level> = [
     { size: this.baseGridSize, minScale: 2.0 },

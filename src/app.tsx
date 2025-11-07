@@ -27,6 +27,8 @@ export function App() {
       ctx.translate(canvasCamera.camera.x, canvasCamera.camera.y)
       ctx.scale(canvasCamera.camera.scale, canvasCamera.camera.scale)
 
+      canvasCamera.update()
+
       gridViewCanvas.toDrawGrid(ctx);
 
       ctx.restore()
