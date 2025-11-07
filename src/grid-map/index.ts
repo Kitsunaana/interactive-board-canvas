@@ -1,33 +1,30 @@
-import { canvasCamera } from "../new/camera/model"
+import type { CanvasCamera } from "../new/camera/model"
 import { screenToCanvas } from "../point"
-import { canvas } from "../setup"
 import type { Level, ToDrawOneLevel } from "../type"
 
-class GridToRenderLevels {
-  private readonly _baseGridSize = 8
-  private readonly _color = "#e5e5e5"
+export class GridToRenderLevels {
+  public readonly baseGridSize = 8
+  public readonly color = "#e5e5e5"
 
-  private readonly _levels: Array<Level> = [
-    { size: this._baseGridSize, minScale: 2.0 },
-    { size: this._baseGridSize * 2, minScale: 1.0 },
-    { size: this._baseGridSize * 4, minScale: 0.5 },
-    { size: this._baseGridSize * 8, minScale: 0.25 },
-    { size: this._baseGridSize * 16, minScale: 0.125 },
-    { size: this._baseGridSize * 32, minScale: 0.0625 },
-    { size: this._baseGridSize * 64, minScale: 0.03125 },
-    { size: this._baseGridSize * 128, minScale: 0.015625 },
-    { size: this._baseGridSize * 256, minScale: 0.0078125 },
-    { size: this._baseGridSize * 512, minScale: 0.00390625 },
-    { size: this._baseGridSize * 1024, minScale: 0.001953125 },
-    { size: this._baseGridSize * 2048, minScale: 0 },
+  public readonly levels: Array<Level> = [
+    { size: this.baseGridSize, minScale: 2.0 },
+    { size: this.baseGridSize * 2, minScale: 1.0 },
+    { size: this.baseGridSize * 4, minScale: 0.5 },
+    { size: this.baseGridSize * 8, minScale: 0.25 },
+    { size: this.baseGridSize * 16, minScale: 0.125 },
+    { size: this.baseGridSize * 32, minScale: 0.0625 },
+    { size: this.baseGridSize * 64, minScale: 0.03125 },
+    { size: this.baseGridSize * 128, minScale: 0.015625 },
+    { size: this.baseGridSize * 256, minScale: 0.0078125 },
+    { size: this.baseGridSize * 512, minScale: 0.00390625 },
+    { size: this.baseGridSize * 1024, minScale: 0.001953125 },
+    { size: this.baseGridSize * 2048, minScale: 0 },
   ]
 
-  public get levels() {
-    return this._levels
-  }
+  constructor(private readonly _canvasCamera: CanvasCamera) { }
 
   public toDrawOneLevel: ToDrawOneLevel = ({ endWorld, startWorld, level }) => {
-    const isScaleSmallerThanLevel = canvasCamera.camera.scale < level.minScale
+    const isScaleSmallerThanLevel = this._canvasCamera.camera.scale < level.minScale
 
     if (isScaleSmallerThanLevel) return null
 
@@ -41,8 +38,8 @@ class GridToRenderLevels {
     const endY = Math.ceil(endWorld.y / level.size) * level.size
 
     const opacity = fadeProgress * 0.5
-    const strokeStyle = this._color + Math.floor(opacity * 255).toString(16).padStart(2, '0')
-    const lineWidth = 1 / canvasCamera.camera.scale
+    const strokeStyle = this.color + Math.floor(opacity * 255).toString(16).padStart(2, '0')
+    const lineWidth = 1 / this._canvasCamera.camera.scale
 
     return {
       strokeStyle,
@@ -54,21 +51,23 @@ class GridToRenderLevels {
     }
   }
 
-  private _getNextLevelMinScale(level: typeof this._levels[number]) {
-    return this._levels[this._levels.indexOf(level) - 1]?.minScale || level.minScale * 2
+  private _getNextLevelMinScale(level: Level) {
+    return this.levels[this.levels.indexOf(level) - 1]?.minScale || level.minScale * 2
   }
 
-  private _getFadeProgress(level: typeof this._levels[number]) {
+  private _getFadeProgress(level: Level) {
     const nextLevelMinScale = this._getNextLevelMinScale(level)
     const fadeRange = nextLevelMinScale - level.minScale
-    return Math.min(1, Math.max(0, (canvasCamera.camera.scale - level.minScale) / fadeRange))
+    return Math.min(1, Math.max(0, (this._canvasCamera.camera.scale - level.minScale) / fadeRange))
   }
 }
 
-const gridToRenderLevels = new GridToRenderLevels()
-
-class GridViewCanvas {
-  constructor(private readonly _gridToRenderLevels: GridToRenderLevels) { }
+export class GridViewCanvas {
+  constructor(
+    private readonly _gridToRenderLevels: GridToRenderLevels,
+    private readonly _canvas: HTMLCanvasElement,
+    private readonly _canvasCamera: CanvasCamera
+  ) { }
 
   toDrawGrid(context: CanvasRenderingContext2D) {
     context.save()
@@ -79,21 +78,21 @@ class GridViewCanvas {
     }
 
     const endPoint = {
-      x: canvas.width,
-      y: canvas.height,
+      x: this._canvas.width,
+      y: this._canvas.height,
     }
 
     const startWorld = screenToCanvas({
-      camera: canvasCamera.camera,
+      camera: this._canvasCamera.camera,
       point: startPoint,
     })
 
     const endWorld = screenToCanvas({
-      camera: canvasCamera.camera,
+      camera: this._canvasCamera.camera,
       point: endPoint,
     })
 
-    this._gridToRenderLevels.levels.forEach(level => {
+    const renderLevel = (level: Level) => {
       const result = this._gridToRenderLevels.toDrawOneLevel({
         startWorld,
         endWorld,
@@ -120,10 +119,12 @@ class GridViewCanvas {
         context.lineTo(endX, y)
         context.stroke()
       }
-    })
+    }
+
+    this._gridToRenderLevels.levels.forEach(renderLevel)
 
     context.restore()
   }
 }
 
-export const gridViewCanvas = new GridViewCanvas(gridToRenderLevels)
+

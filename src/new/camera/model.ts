@@ -1,5 +1,5 @@
-import { canvas } from "../../setup"
 import type { Camera, Point } from "../../type"
+import mitt from "mitt"
 
 const defaultPoint: Point = {
   x: 0,
@@ -12,7 +12,15 @@ const defaultCamera: Camera = {
   y: 0,
 }
 
-class CanvasCamera {
+export type CameraEvents = {
+  "change-zoom": Camera
+  "zoom-in": void
+  "zoom-out": void
+}
+
+export const cameraEmitter = mitt<CameraEvents>()
+
+export class CanvasCamera {
   public readonly zoomIntensity = 0.1
   public readonly zoomMinScale = 0.01
   public readonly zoomMaxScale = 10
@@ -31,6 +39,19 @@ class CanvasCamera {
     window.addEventListener("pointerup", this._stopDragging.bind(this))
 
     window.addEventListener("pointermove", this._dragging.bind(this))
+
+    cameraEmitter.on("zoom-in", this._zoomIn.bind(this))
+    cameraEmitter.on("zoom-out", this._zoomOut.bind(this))
+  }
+
+  private _zoomIn() {
+    this.camera.scale *= 1 + this.zoomIntensity
+    cameraEmitter.emit("change-zoom", this.camera)
+  }
+
+  private _zoomOut() {
+    this.camera.scale *= 1 - this.zoomIntensity
+    cameraEmitter.emit("change-zoom", this.camera)
   }
 
   private _startDragging(event: PointerEvent) {
@@ -72,8 +93,9 @@ class CanvasCamera {
     this.camera.x = mouseX - (mouseX - this.camera.x) * (newScale / this.camera.scale)
     this.camera.y = mouseY - (mouseY - this.camera.y) * (newScale / this.camera.scale)
     this.camera.scale = newScale
+
+    cameraEmitter.emit("change-zoom", this.camera)
   }
 }
 
-export const canvasCamera = new CanvasCamera(canvas)
 
