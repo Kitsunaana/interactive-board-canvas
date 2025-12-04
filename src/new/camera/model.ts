@@ -1,7 +1,7 @@
 import type { Camera, Point } from "../../type"
 import mitt from "mitt"
 
-const defaultPoint: Point = {
+export const defaultPoint: Point = {
   x: 0,
   y: 0,
 }
@@ -20,7 +20,7 @@ export type CameraEvents = {
 
 export const cameraEmitter = mitt<CameraEvents>()
 
-class Vector {
+export class Vector {
   constructor(public x: number, public y: number) { }
 
   public add(vector: Vector) {
@@ -40,14 +40,18 @@ export class CanvasCamera {
 
   private _isPanning = false
 
-  constructor(private readonly _canvas: HTMLCanvasElement) {
+  private readonly _canvas: HTMLCanvasElement = (
+    document.getElementById("canvas") as HTMLCanvasElement
+  )
+
+  constructor(private readonly __canvas: HTMLCanvasElement) {
     window.addEventListener("wheel", this._changeZoom.bind(this), { passive: true })
     window.addEventListener("pointerdown", this._startDragging.bind(this))
     window.addEventListener("pointerup", this._stopDragging.bind(this))
     window.addEventListener("pointermove", this._dragging.bind(this))
 
-    cameraEmitter.on("zoom-in", this._zoomIn.bind(this))
     cameraEmitter.on("zoom-out", this._zoomOut.bind(this))
+    cameraEmitter.on("zoom-in", this._zoomIn.bind(this))
   }
 
   private _zoomIn() {
@@ -71,7 +75,7 @@ export class CanvasCamera {
       this.panOffset.x = event.offsetX - this.camera.x
       this.panOffset.y = event.offsetY - this.camera.y
 
-      this._canvas.style.cursor = "grabbing"
+      // this._canvas.style.cursor = "grabbing"
 
       this._lastPosition.x = event.offsetX
       this._lastPosition.y = event.offsetY
@@ -101,7 +105,7 @@ export class CanvasCamera {
   private _velocity = new Vector(0, 0)
 
   private _velocityScale = 0.35
-  private _friction = 0.99
+  private _friction = 0.9
   private _minVelocity = 0.01
 
   public update() {
@@ -143,5 +147,3 @@ export class CanvasCamera {
     cameraEmitter.emit("change-zoom", this.camera)
   }
 }
-
-

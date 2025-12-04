@@ -14,12 +14,15 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
+    "@preact/signals-react": "^3.6.1",
     "@tailwindcss/vite": "^4.1.17",
     "@vitejs/plugin-react": "^5.1.0",
     "clsx": "^2.1.1",
     "mitt": "^3.0.1",
+    "mobx": "^6.15.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-merge-refs": "^3.0.2",
     "rxjs": "^7.8.2",
     "tailwindcss": "^4.1.17"
   }

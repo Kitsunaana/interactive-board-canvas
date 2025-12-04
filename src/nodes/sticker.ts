@@ -1,4 +1,3 @@
-import { canvasCamera } from "../new/camera/model"
 import { isRectIntersection } from "../point"
 import type { Rect } from "../type"
 
@@ -15,6 +14,14 @@ export type StickerNode = {
 }
 
 const PADDING = 7
+
+const canvasCamera = {
+  camera: {
+    scale: 1,
+    x: 0,
+    y: 0,
+  }
+}
 
 export class CanvasRectangle {
   public onMouseDown?: (event: PointerEvent) => void
@@ -57,7 +64,7 @@ export class CanvasRectangle {
   }
 }
 
-const drawActiveBox = (context: CanvasRenderingContext2D, { rect, activeBoxDots }: Sticker) => {
+export const drawActiveBox = (context: CanvasRenderingContext2D, { rect, activeBoxDots }: Sticker) => {
   const padding = 7
 
   context.beginPath()
