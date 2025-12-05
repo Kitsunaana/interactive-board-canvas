@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { cameraEmitter, type CameraEvents } from "./model"
+import { cameraEmitter, type CameraEvents } from "../../../to_remove/model"
 
 const toPercentZoom = (scale: number) => (scale * 100).toFixed(0) + "%"
 

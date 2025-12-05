@@ -1,4 +1,4 @@
-import type { Camera, Point } from "../../type"
+import type { Camera, Point } from "../src/type"
 import mitt from "mitt"
 
 export const defaultPoint: Point = {

@@ -2,11 +2,10 @@ import { Signal, useSignal } from "@preact/signals-react";
 import { clsx } from "clsx";
 import { useEffect, useRef } from "react";
 import "./collect";
-import { GridToRenderLevels, GridViewCanvas } from "./grid-map";
+// import "./collect-v2";
 import "./index.css";
-import { CanvasCamera } from "./new/camera/model";
 import { useSubscribeToCameraZoom } from "./new/camera/view";
-import { useViewModel, type ViewModelV2 } from "./nodes/view-model/idle";
+import { type ViewModelV2 } from "./nodes/view-model/idle";
 import { isRectIntersection } from "./point";
 import type { Camera, Point, Rect } from "./type";
 
@@ -140,19 +139,12 @@ const getActiveBoxDots = ({ rect, camera }: {
   ]
 }
 
-const canvasCamera = new CanvasCamera();
-
 export function App() {
   useSignal()
 
   const animationRef = useRef<number | null>(null);
 
   const { zoom, onZoomIn, onZoomOut } = useSubscribeToCameraZoom()
-
-  const viewModel = useViewModel({
-    camera: canvasCamera.camera,
-
-  })
 
   useEffect(() => {
     const canvas = document.getElementById("canvas") as HTMLCanvasElement
@@ -163,61 +155,56 @@ export function App() {
 
     if (!context || !canvas) throw new Error("Failed to get context");
 
-    const gridToRenderLevels = new GridToRenderLevels(canvasCamera);
-    const gridViewCanvas = new GridViewCanvas(gridToRenderLevels, canvas, canvasCamera);
+    // const triggerEeventForSticker = getTriggerEeventForSticker({ viewModel, camera })
 
-    const { camera } = canvasCamera
+    // subscibeToElementEvents(canvas, ["click", "mousedown", "mouseup"], {
+    //   mousedown: triggerEeventForSticker,
+    //   mouseup: triggerEeventForSticker,
+    //   click: triggerEeventForSticker,
+    // })
 
-    const triggerEeventForSticker = getTriggerEeventForSticker({ viewModel, camera })
+    // const draw = () => {
+    //   animationRef.current = requestAnimationFrame(draw);
+    //   context.clearRect(0, 0, canvas.width, canvas.height)
 
-    subscibeToElementEvents(canvas, ["click", "mousedown", "mouseup"], {
-      mousedown: triggerEeventForSticker,
-      mouseup: triggerEeventForSticker,
-      click: triggerEeventForSticker,
-    })
+    //   context.save()
+    //   context.translate(canvasCamera.camera.x, canvasCamera.camera.y)
+    //   context.scale(canvasCamera.camera.scale, canvasCamera.camera.scale)
 
-    const draw = () => {
-      animationRef.current = requestAnimationFrame(draw);
-      context.clearRect(0, 0, canvas.width, canvas.height)
+    //   canvasCamera.update()
 
-      context.save()
-      context.translate(canvasCamera.camera.x, canvasCamera.camera.y)
-      context.scale(canvasCamera.camera.scale, canvasCamera.camera.scale)
+    //   gridViewCanvas.toDrawGrid(context);
 
-      canvasCamera.update()
+    //   viewModel.value.nodes.forEach((sticker) => {
+    //     context.beginPath()
+    //     context.shadowOffsetX = 2
+    //     context.shadowOffsetY = 8
+    //     context.shadowBlur = 16
+    //     context.shadowColor = "#dbdad4"
 
-      gridViewCanvas.toDrawGrid(context);
+    //     context.rect(sticker.x, sticker.y, sticker.width, sticker.height);
+    //     context.fillStyle = "#ffff88";
+    //     context.fill();
 
-      viewModel.value.nodes.forEach((sticker) => {
-        context.beginPath()
-        context.shadowOffsetX = 2
-        context.shadowOffsetY = 8
-        context.shadowBlur = 16
-        context.shadowColor = "#dbdad4"
+    //     if (sticker.isSelected) {
+    //       const activeBoxDots = getActiveBoxDots({
+    //         rect: sticker,
+    //         camera,
+    //       })
 
-        context.rect(sticker.x, sticker.y, sticker.width, sticker.height);
-        context.fillStyle = "#ffff88";
-        context.fill();
+    //       drawActiveBox({
+    //         rect: sticker,
+    //         activeBoxDots,
+    //         context,
+    //         camera,
+    //       })
+    //     }
 
-        if (sticker.isSelected) {
-          const activeBoxDots = getActiveBoxDots({
-            rect: sticker,
-            camera,
-          })
+    //     context.closePath()
+    //   })
 
-          drawActiveBox({
-            rect: sticker,
-            activeBoxDots,
-            context,
-            camera,
-          })
-        }
-
-        context.closePath()
-      })
-
-      context.restore()
-    };
+    //   context.restore()
+    // };
 
     // animationRef.current = requestAnimationFrame(draw);
 

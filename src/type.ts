@@ -24,6 +24,7 @@ export type Camera = {
 export type ToDrawOneLevelParams = {
   startWorld: Point
   endWorld: Point
+  camera: Camera
   level: Level
 }
 

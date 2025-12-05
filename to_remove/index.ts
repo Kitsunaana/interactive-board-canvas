@@ -1,6 +1,5 @@
-import type { CanvasCamera } from "../new/camera/model"
-import { screenToCanvas } from "../point"
-import type { Camera, Level, ToDrawOneLevel } from "../type"
+import { screenToCanvas } from "../src/point"
+import type { Camera, Level, ToDrawOneLevel } from "../src/type"
 
 export class GridToRenderLevels {
   public readonly baseGridSize = 8
@@ -21,14 +20,12 @@ export class GridToRenderLevels {
     { size: this.baseGridSize * 2048, minScale: 0 },
   ]
 
-  constructor(private readonly _camera: Camera) { }
-
-  public toDrawOneLevel: ToDrawOneLevel = ({ endWorld, startWorld, level }) => {
-    const isScaleSmallerThanLevel = this._camera.scale < level.minScale
+  public toDrawOneLevel: ToDrawOneLevel = ({ endWorld, startWorld, level, camera }) => {
+    const isScaleSmallerThanLevel = camera.scale < level.minScale
 
     if (isScaleSmallerThanLevel) return null
 
-    const fadeProgress = this._getFadeProgress(level)
+    const fadeProgress = this._getFadeProgress(level, camera)
 
     if (fadeProgress <= 0) return null
 
@@ -39,7 +36,7 @@ export class GridToRenderLevels {
 
     const opacity = fadeProgress * 0.5
     const strokeStyle = this.color + Math.floor(opacity * 255).toString(16).padStart(2, '0')
-    const lineWidth = 1 / this._camera.scale
+    const lineWidth = 1 / camera.scale
 
     return {
       strokeStyle,
@@ -55,10 +52,10 @@ export class GridToRenderLevels {
     return this.levels[this.levels.indexOf(level) - 1]?.minScale || level.minScale * 2
   }
 
-  private _getFadeProgress(level: Level) {
+  private _getFadeProgress(level: Level, camera: Camera) {
     const nextLevelMinScale = this._getNextLevelMinScale(level)
     const fadeRange = nextLevelMinScale - level.minScale
-    return Math.min(1, Math.max(0, (this._camera.scale - level.minScale) / fadeRange))
+    return Math.min(1, Math.max(0, (camera.scale - level.minScale) / fadeRange))
   }
 }
 
@@ -66,10 +63,9 @@ export class GridViewCanvas {
   constructor(
     private readonly _gridToRenderLevels: GridToRenderLevels,
     private readonly _canvas: HTMLCanvasElement,
-    private readonly _camera: Camera
   ) { }
 
-  toDrawGrid(context: CanvasRenderingContext2D) {
+  toDrawGrid(context: CanvasRenderingContext2D, camera: Camera) {
     context.save()
 
     const startPoint = {
@@ -83,17 +79,18 @@ export class GridViewCanvas {
     }
 
     const startWorld = screenToCanvas({
-      camera: this._camera,
+      camera,
       point: startPoint,
     })
 
     const endWorld = screenToCanvas({
-      camera: this._camera,
+      camera,
       point: endPoint,
     })
 
     const renderLevel = (level: Level) => {
       const result = this._gridToRenderLevels.toDrawOneLevel({
+        camera,
         startWorld,
         endWorld,
         level
