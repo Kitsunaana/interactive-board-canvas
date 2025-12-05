@@ -1,20 +1,14 @@
-const canvas = document.createElement("canvas")
+import { fromEvent } from "rxjs"
 
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight
-canvas.style.backgroundColor = "#f2f2f2"
-
-canvas.oncontextmenu = (event) => {
-  event.preventDefault()
-}
-
-document.body.appendChild(canvas)
-
+const canvas = document.getElementById("canvas") as HTMLCanvasElement
 const context = canvas.getContext("2d", {
-  willReadFrequently: true,
-})
+  willReadFrequently: true
+}) as CanvasRenderingContext2D
 
-if (context === null) throw new Error("Failed to get context")
+canvas.height = window.innerHeight
+canvas.width = window.innerWidth
+
+export const resize$ = fromEvent(window, "resize")
 
 export {
   context,

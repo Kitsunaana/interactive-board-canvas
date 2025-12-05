@@ -1,42 +1,33 @@
 import { animationFrames, map, startWith, tap, withLatestFrom } from "rxjs"
-import { generateGridPropertiesToRender, drawGrid } from "./grid-map/v2"
-import { camera$ } from "./rx/camera"
-import { canvas, context, resize$ } from "./setup-v2"
-import type { Camera, Point } from "./type"
-
-export type StartDraggingReturn = {
-  lastPosition: Point
-  panOffset: Point
-  velocity: Point
-  camera: Camera
-}
+import { camera$ } from "./camera"
+import { drawGrid, generateGridPropertiesToRender } from "./grid-map/v2"
+import { canvas, context, resize$ } from "./setup"
+import { gridActor } from "./xstate"
 
 const getCanvasSizes = () => ({
   height: window.innerHeight,
   width: window.innerWidth,
 })
 
-const renderLoop$ = animationFrames()
-  .pipe(
-    withLatestFrom(camera$, resize$
-      .pipe(
-        map(getCanvasSizes),
-        startWith(getCanvasSizes()),
-        tap((value) => {
-          canvas.height = value.height
-          canvas.width = value.width
-        })
-      )),
-    map(([timestamp, cameraState, canvasSizes]) => ({
-      ...cameraState,
-      timestamp,
+const renderLoop$ = animationFrames().pipe(
+  withLatestFrom(camera$, resize$.pipe(
+    map(getCanvasSizes),
+    startWith(getCanvasSizes()),
+    tap((value) => {
+      canvas.height = value.height
+      canvas.width = value.width
+    })
+  )),
+  map(([timestamp, cameraState, canvasSizes]) => ({
+    ...cameraState,
+    timestamp,
+    canvasSizes,
+    gridProps: generateGridPropertiesToRender({
+      camera: cameraState.camera,
       canvasSizes,
-      gridProps: generateGridPropertiesToRender({
-        camera: cameraState.camera,
-        canvasSizes,
-      }),
-    }))
-  )
+    }),
+  }))
+)
 
 renderLoop$.subscribe(({ canvasSizes, gridProps, camera }) => {
   context.save()
@@ -46,10 +37,17 @@ renderLoop$.subscribe(({ canvasSizes, gridProps, camera }) => {
   context.translate(camera.x, camera.y)
   context.scale(camera.scale, camera.scale)
 
-  drawGrid({
-    generatedProperties: gridProps,
-    context,
-  })
+  const gridType = gridActor.getSnapshot().context.gridType
+
+  if (gridType === "lines") {
+    drawGrid({
+      generatedProperties: gridProps,
+      context,
+    })
+  }
+
+  context.rect(100, 100, 100, 100)
+  context.fill()
 
   context.restore()
 })

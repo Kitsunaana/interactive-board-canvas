@@ -1,68 +1,9 @@
-import { Signal, useSignal } from "@preact/signals-react";
 import { clsx } from "clsx";
-import { useEffect, useRef } from "react";
+import { useZoomAdapter } from "./camera/adapter";
 import "./collect";
-// import "./collect-v2";
 import "./index.css";
-import { useSubscribeToCameraZoom } from "./new/camera/view";
-import { type ViewModelV2 } from "./nodes/view-model/idle";
-import { isRectIntersection } from "./point";
-import type { Camera, Point, Rect } from "./type";
-
-const getPointFromEvent = (event: PointerEvent | MouseEvent): Point => {
-  return {
-    x: event.offsetX,
-    y: event.offsetY,
-  }
-}
-
-type SubscibeToElementEvents<Key extends keyof HTMLElementEventMap, Types extends Key[]> = {
-  [Prop in Types[number]]?: (event: HTMLElementEventMap[Prop]) => void
-}
-
-const subscibeToElementEvents = <Key extends keyof HTMLElementEventMap, Types extends Key[]>(
-  element: HTMLElement,
-  types: Types,
-  events: SubscibeToElementEvents<Key, Types>
-) => {
-  const unsubscribes = types.map((type) => {
-    const listener = <Event extends Key>(event: HTMLElementEventMap[Event]) => events[type]?.(event)
-    element.addEventListener(type, listener)
-
-    return () => (
-      element.removeEventListener(type, listener)
-    )
-  })
-
-  return () => (
-    unsubscribes.forEach((unsubscribe) => unsubscribe())
-  )
-}
-
-const getTriggerEeventForSticker = ({ viewModel, camera }: {
-  viewModel: Signal<ViewModelV2>
-  camera: Camera
-}) => (
-  (event: PointerEvent | MouseEvent) => {
-    viewModel.value.nodes.forEach((rect) => {
-      const point: Point = getPointFromEvent(event)
-
-      const isIntersection = isRectIntersection({
-        camera,
-        point,
-        rect,
-      })
-
-      if (isIntersection) {
-        ({
-          mousedown: rect?.onMouseDown,
-          mouseup: rect?.onMouseUp,
-          click: rect?.onClick,
-        })[event.type]?.call(null, event as any)
-      }
-    })
-  }
-)
+import type { Camera, Rect } from "./type";
+import "./xstate";
 
 const PADDING = 7
 
@@ -140,84 +81,13 @@ const getActiveBoxDots = ({ rect, camera }: {
 }
 
 export function App() {
-  useSignal()
-
-  const animationRef = useRef<number | null>(null);
-
-  const { zoom, onZoomIn, onZoomOut } = useSubscribeToCameraZoom()
-
-  useEffect(() => {
-    const canvas = document.getElementById("canvas") as HTMLCanvasElement
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-
-    const context = canvas?.getContext("2d");
-
-    if (!context || !canvas) throw new Error("Failed to get context");
-
-    // const triggerEeventForSticker = getTriggerEeventForSticker({ viewModel, camera })
-
-    // subscibeToElementEvents(canvas, ["click", "mousedown", "mouseup"], {
-    //   mousedown: triggerEeventForSticker,
-    //   mouseup: triggerEeventForSticker,
-    //   click: triggerEeventForSticker,
-    // })
-
-    // const draw = () => {
-    //   animationRef.current = requestAnimationFrame(draw);
-    //   context.clearRect(0, 0, canvas.width, canvas.height)
-
-    //   context.save()
-    //   context.translate(canvasCamera.camera.x, canvasCamera.camera.y)
-    //   context.scale(canvasCamera.camera.scale, canvasCamera.camera.scale)
-
-    //   canvasCamera.update()
-
-    //   gridViewCanvas.toDrawGrid(context);
-
-    //   viewModel.value.nodes.forEach((sticker) => {
-    //     context.beginPath()
-    //     context.shadowOffsetX = 2
-    //     context.shadowOffsetY = 8
-    //     context.shadowBlur = 16
-    //     context.shadowColor = "#dbdad4"
-
-    //     context.rect(sticker.x, sticker.y, sticker.width, sticker.height);
-    //     context.fillStyle = "#ffff88";
-    //     context.fill();
-
-    //     if (sticker.isSelected) {
-    //       const activeBoxDots = getActiveBoxDots({
-    //         rect: sticker,
-    //         camera,
-    //       })
-
-    //       drawActiveBox({
-    //         rect: sticker,
-    //         activeBoxDots,
-    //         context,
-    //         camera,
-    //       })
-    //     }
-
-    //     context.closePath()
-    //   })
-
-    //   context.restore()
-    // };
-
-    // animationRef.current = requestAnimationFrame(draw);
-
-    return () => {
-      // cancelAnimationFrame(animationRef.current!);
-    }
-  }, [])
+  const zoomAdapter = useZoomAdapter()
 
   return (
     <>
       <div className="flex items-center gap-2 absolute bottom-4 right-4 bg-white shadow-xl p-1 rounded-md text-sm text-gray-800 font-bold">
         <button
-          onClick={onZoomOut}
+          onClick={zoomAdapter.onZoomOut}
           className={clsx(
             "w-[40px] h-[40px] cursor-pointer rounded-md transition-all duration-100 hover:bg-[#f1f2f5] relative",
 
@@ -227,7 +97,7 @@ export function App() {
         />
 
         <button
-          data-zoom={zoom}
+          data-zoom={zoomAdapter.zoom}
           className={clsx(
             "relative w-[52px] h-[40px] cursor-pointer rounded-md transition-all duration-100 hover:bg-[#f1f2f5]",
             "before:content-[attr(data-zoom)] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:text-sm before:font-bold before:text-gray-900"
@@ -235,7 +105,7 @@ export function App() {
         />
 
         <button
-          onClick={onZoomIn}
+          onClick={zoomAdapter.onZoomIn}
           className={clsx(
             "w-[40px] h-[40px] cursor-pointer rounded-md transition-all duration-100 hover:bg-[#f1f2f5] relative",
 
