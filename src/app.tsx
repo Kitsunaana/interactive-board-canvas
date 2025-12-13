@@ -1,9 +1,13 @@
-import { clsx } from "clsx";
-import { useZoomAdapter } from "./camera/adapter";
-import "./collect";
 import "./index.css";
-import type { Camera, Rect } from "./type";
-import "./xstate";
+import "./render-loop";
+
+import { map } from "rxjs"
+import { useViewModel } from "./mobx"
+import { wheelCamera$, zoomTrigger$ } from "./modules/camera"
+import type { Camera, DragState } from "./modules/camera/domain"
+import type { Rect } from "./type"
+import { bind } from "@react-rxjs/core";
+import { clsx } from "clsx"
 
 const PADDING = 7
 
@@ -49,45 +53,62 @@ export const drawActiveBox = ({ context, rect, camera, activeBoxDots }: {
   context.restore()
 }
 
-const getActiveBoxDots = ({ rect, camera }: {
-  rect: Rect
-  camera: Camera
-}) => {
-  const baseRadius = 5
-  const scalePower = 0.75
+const BASE_RADIUS = 5
+const SCALE_POWER = 0.75
 
-  return [
-    {
-      x: rect.x - PADDING,
-      y: rect.y - PADDING,
-      radius: baseRadius / Math.pow(camera.scale, scalePower)
-    },
-    {
-      x: rect.x + rect.width + PADDING,
-      y: rect.y - PADDING,
-      radius: baseRadius / Math.pow(camera.scale, scalePower)
-    },
-    {
-      x: rect.x + rect.width + PADDING,
-      y: rect.y + rect.height + PADDING,
-      radius: baseRadius / Math.pow(camera.scale, scalePower)
-    },
-    {
-      x: rect.x - PADDING,
-      y: rect.y + rect.height + PADDING,
-      radius: baseRadius / Math.pow(camera.scale, scalePower)
-    },
-  ]
+type ActiveBoxDotsParams = {
+  camera: Camera
+  rect: Rect
+}
+
+const getActiveBoxDots = ({ rect, camera }: ActiveBoxDotsParams) => [
+  {
+    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+    x: rect.x - PADDING,
+    y: rect.y - PADDING,
+  },
+  {
+    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+    x: rect.x + rect.width + PADDING,
+    y: rect.y - PADDING,
+  },
+  {
+    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+    x: rect.x + rect.width + PADDING,
+    y: rect.y + rect.height + PADDING,
+  },
+  {
+    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+    x: rect.x - PADDING,
+    y: rect.y + rect.height + PADDING,
+  },
+]
+
+const toPercentage = (state: DragState) => `${Math.trunc(state.camera.scale * 100)}%`
+
+const [useZoomValue] = bind(wheelCamera$.pipe(map(toPercentage)), "100%")
+
+const zoomOut = () => {
+  zoomTrigger$.next({
+    __event: "zoomOut"
+  })
+}
+
+const zoomIn = () => {
+  zoomTrigger$.next({
+    __event: "zoomIn"
+  })
 }
 
 export function App() {
-  const zoomAdapter = useZoomAdapter()
+  const viewModel = useViewModel()
+  const zoomValue = useZoomValue()
 
   return (
     <>
       <div className="flex items-center gap-2 absolute bottom-4 right-4 bg-white shadow-xl p-1 rounded-md text-sm text-gray-800 font-bold">
         <button
-          onClick={zoomAdapter.onZoomOut}
+          onClick={zoomOut}
           className={clsx(
             "w-[40px] h-[40px] cursor-pointer rounded-md transition-all duration-100 hover:bg-[#f1f2f5] relative",
 
@@ -97,7 +118,7 @@ export function App() {
         />
 
         <button
-          data-zoom={zoomAdapter.zoom}
+          data-zoom={zoomValue}
           className={clsx(
             "relative w-[52px] h-[40px] cursor-pointer rounded-md transition-all duration-100 hover:bg-[#f1f2f5]",
             "before:content-[attr(data-zoom)] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:text-sm before:font-bold before:text-gray-900"
@@ -105,7 +126,7 @@ export function App() {
         />
 
         <button
-          onClick={zoomAdapter.onZoomIn}
+          onClick={zoomIn}
           className={clsx(
             "w-[40px] h-[40px] cursor-pointer rounded-md transition-all duration-100 hover:bg-[#f1f2f5] relative",
 

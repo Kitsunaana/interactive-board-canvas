@@ -1,8 +1,28 @@
-import { screenToCanvas } from "../point"
-import type { Camera, Level, Point } from "../type"
+import type { Point } from "../type"
+import type { Camera } from "./camera/domain"
 
-const BASE_GRID_SIZE = 8
-const COLOR = "#dedede"
+export const BASE_GRID_SIZE = 8
+export const COLOR = "#dedede"
+
+export type Level = {
+  size: number
+  minScale: number
+}
+
+export type ComputeGridPropsReturn = {
+  levelSize: number
+  startX: number
+  startY: number
+  color: string
+  width: number
+  endX: number
+  endY: number
+}
+
+export type DrawGridParams = {
+  generatedProperties: ComputeGridPropsReturn[]
+  context: CanvasRenderingContext2D
+}
 
 export const LEVELS: Array<Level> = [
   { size: BASE_GRID_SIZE, minScale: 2.0 },
@@ -19,18 +39,18 @@ export const LEVELS: Array<Level> = [
   { size: BASE_GRID_SIZE * 2048, minScale: 0 },
 ]
 
-const _getNextLevelMinScale = (level: Level) => {
+export const getNextLevelMinScale = (level: Level) => {
   return LEVELS[LEVELS.indexOf(level) - 1]?.minScale || level.minScale * 2
 }
 
-const _getFadeProgress = (camera: Camera, level: Level) => {
-  const nextLevelMinScale = _getNextLevelMinScale(level)
+export const getFadeProgress = (camera: Camera, level: Level) => {
+  const nextLevelMinScale = getNextLevelMinScale(level)
   const fadeRange = nextLevelMinScale - level.minScale
 
   return Math.min(1, Math.max(0, (camera.scale - level.minScale) / fadeRange))
 }
 
-const computeGridProps = ({ camera, level, endWorld, startWorld, fadeProgress }: {
+export const computeGridProps = ({ camera, level, endWorld, startWorld, fadeProgress }: {
   fadeProgress: number
   startWorld: Point
   endWorld: Point
@@ -43,15 +63,15 @@ const computeGridProps = ({ camera, level, endWorld, startWorld, fadeProgress }:
   const endY = Math.ceil(endWorld.y / level.size) * level.size
 
   const opacity = fadeProgress * 0.5
-  const strokeStyle = COLOR + Math.floor(opacity * 255).toString(16).padStart(2, '0')
-  const lineWidth = 1 / camera.scale
+  const color = COLOR + Math.floor(opacity * 255).toString(16).padStart(2, '0')
+  const width = 1 / camera.scale
 
   return {
     levelSize: level.size,
-    strokeStyle,
-    lineWidth,
     startX,
     startY,
+    color,
+    width,
     endX,
     endY,
   }
@@ -64,7 +84,7 @@ export const toDrawOneLevel = ({ camera, level, endWorld, startWorld }: {
   level: Level
 }) => {
   if (camera.scale < level.minScale) return null
-  const fadeProgress = _getFadeProgress(camera, level)
+  const fadeProgress = getFadeProgress(camera, level)
   if (fadeProgress <= 0) return null
 
   return computeGridProps({
@@ -76,54 +96,12 @@ export const toDrawOneLevel = ({ camera, level, endWorld, startWorld }: {
   })
 }
 
-type Sizes = {
-  height: number
-  width: number
-}
-
-const startPoint = {
-  x: 0,
-  y: 0,
-}
-
-export const generateGridPropertiesToRender = ({ camera, canvasSizes }: {
-  canvasSizes: Sizes
-  camera: Camera
-}) => {
-  const endPoint = {
-    y: canvasSizes.height,
-    x: canvasSizes.width,
-  }
-
-  const startWorld = screenToCanvas({
-    point: startPoint,
-    camera,
-  })
-
-  const endWorld = screenToCanvas({
-    point: endPoint,
-    camera,
-  })
-
-  return LEVELS
-    .map((level) => toDrawOneLevel({
-      startWorld,
-      endWorld,
-      camera,
-      level,
-    }))
-    .filter((properties): properties is ReturnType<typeof computeGridProps> => Boolean(properties))
-}
-
-export function drawGrid({ context, generatedProperties }: {
-  generatedProperties: ReturnType<typeof generateGridPropertiesToRender>
-  context: CanvasRenderingContext2D
-}) {
+export function drawLinesGrid({ context, generatedProperties }: DrawGridParams) {
   context.save()
 
-  generatedProperties.forEach(({ levelSize, strokeStyle, lineWidth, startX, startY, endX, endY }) => {
-    context.strokeStyle = strokeStyle
-    context.lineWidth = lineWidth
+  generatedProperties.forEach(({ levelSize, color, width, startX, startY, endX, endY }) => {
+    context.strokeStyle = color
+    context.lineWidth = width
 
     for (let x = startX; x <= endX; x += levelSize) {
       context.beginPath()
@@ -142,3 +120,24 @@ export function drawGrid({ context, generatedProperties }: {
 
   context.restore()
 }
+
+export function drawDotsGrid({ context, generatedProperties }: DrawGridParams) {
+  context.save()
+
+  generatedProperties.forEach(({ levelSize, color, width, startX, startY, endX, endY }) => {
+    context.fillStyle = color
+    context.lineWidth = width
+
+    for (let x = startX; x <= endX; x += levelSize) {
+      for (let y = startY; y <= endY; y += levelSize) {
+        context.beginPath()
+        context.arc(x, y, width * 2, 0, 2 * Math.PI);
+        context.closePath()
+        context.fill()
+      }
+    }
+  })
+
+  context.restore()
+}
+

@@ -1,6 +1,9 @@
-import type { Camera, Point } from "../type"
+import type { Point } from "../../type"
+import type { Camera } from "./domain"
 
-export const VELOCITY_SCALE = 0.35
+export const VELOCITY_SCALE = 0.05
+export const MIN_VELOCITY = 10
+export const FRICTION = 0.9
 
 export const DEFAULT_POINT: Point = {
   x: 0,
@@ -17,6 +20,11 @@ export const ZOOM = {
   INTENSITY: 0.1,
   MIN_SCALE: 0.01,
   MAX_SCALE: 10,
+}
+
+export const START_POINT: Point = {
+  x: 0,
+  y: 0,
 }
 
 export const INITIAL_CAMERA: Camera = {

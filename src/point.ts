@@ -1,4 +1,5 @@
-import type { Camera, Point, Rect } from "./type"
+import type { Camera } from "./modules/camera/domain"
+import type { Point, Rect } from "./type"
 
 export const screenToCanvas = ({ point, camera }: { point: Point, camera: Camera }) => {
   return {
@@ -8,9 +9,9 @@ export const screenToCanvas = ({ point, camera }: { point: Point, camera: Camera
 }
 
 export const isRectIntersection = ({ camera, rect, point }: {
-  rect: Rect
-  point: Point
   camera: Camera
+  point: Point
+  rect: Rect
 }) => {
   const worldPosition = screenToCanvas({ point, camera })
 

@@ -45,13 +45,13 @@ export class CanvasCamera {
   )
 
   constructor(private readonly __canvas: HTMLCanvasElement) {
-    window.addEventListener("wheel", this._changeZoom.bind(this), { passive: true })
-    window.addEventListener("pointerdown", this._startDragging.bind(this))
-    window.addEventListener("pointerup", this._stopDragging.bind(this))
-    window.addEventListener("pointermove", this._dragging.bind(this))
+    // window.addEventListener("wheel", this._changeZoom.bind(this), { passive: true })
+    // window.addEventListener("pointerdown", this._startDragging.bind(this))
+    // window.addEventListener("pointerup", this._stopDragging.bind(this))
+    // window.addEventListener("pointermove", this._dragging.bind(this))
 
-    cameraEmitter.on("zoom-out", this._zoomOut.bind(this))
-    cameraEmitter.on("zoom-in", this._zoomIn.bind(this))
+    // cameraEmitter.on("zoom-out", this._zoomOut.bind(this))
+    // cameraEmitter.on("zoom-in", this._zoomIn.bind(this))
   }
 
   private _zoomIn() {
