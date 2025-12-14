@@ -1,11 +1,27 @@
 import { fromEvent } from "rxjs"
 
-export const canvas = document.getElementById("canvas") as HTMLCanvasElement
-export const context = canvas.getContext("2d", {
-  willReadFrequently: true
-}) as CanvasRenderingContext2D
+type InitialCanvasParams = {
+  canvasId: string
+  height: number
+  width: number
+}
 
-canvas.height = window.innerHeight
-canvas.width = window.innerWidth
+export const initialCanvas = ({ width, height, canvasId }: InitialCanvasParams) => {
+  const canvas = document.getElementById(canvasId) as HTMLCanvasElement
+  const context = canvas.getContext("2d", {
+    willReadFrequently: true
+  }) as CanvasRenderingContext2D
+
+  canvas.height = height
+  canvas.width = width
+
+  return [context, canvas] as const
+}
+
+export const [context, canvas] = initialCanvas({
+  height: window.innerHeight,
+  width: window.innerWidth,
+  canvasId: "canvas",
+})
 
 export const resize$ = fromEvent(window, "resize")

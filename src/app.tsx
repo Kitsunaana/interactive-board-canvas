@@ -84,7 +84,7 @@ const getActiveBoxDots = ({ rect, camera }: ActiveBoxDotsParams) => [
   },
 ]
 
-const toPercentage = (state: DragState) => `${Math.trunc(state.camera.scale * 100)}%`
+const toPercentage = (state: DragState) => `${Math.round(state.camera.scale * 100)}%`
 
 const [useZoomValue] = bind(wheelCamera$.pipe(map(toPercentage)), "100%")
 

@@ -12,6 +12,20 @@
 body {
   overflow: hidden;
   font-family: 'Roboto', sans-serif;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+canvas {
+  /* position: absolute; */
+}
+
+#map {
+  z-index: 100;
+  position: absolute;
+  background-color: white;
+  bottom: 0px;
 }
 
 .zoom-indicator {

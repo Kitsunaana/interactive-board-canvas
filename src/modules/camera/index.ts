@@ -9,6 +9,8 @@ const pointerUp$ = fromEvent<PointerEvent>(window, "pointerup")
 const wheel$ = fromEvent<WheelEvent>(window, "wheel")
 
 export const zoomTrigger$ = new Subject<ZoomEvent>()
+
+export const gridTypeSubject$ = new BehaviorSubject<"lines" | "dots">("lines")
 export const cameraSubject$ = new BehaviorSubject(INITIAL_STATE)
 
 export const activityStart$ = merge(pointerDown$, wheel$, zoomTrigger$).pipe(map(() => true))
@@ -56,5 +58,3 @@ export const cameraWithInertia$ = animationFrames().pipe(
     ),
     distinctUntilChanged(isEqual)
 ).subscribe(cameraSubject$)
-
-export const gridTypeSubject$ = new BehaviorSubject<"lines" | "dots">("lines")

@@ -20,7 +20,7 @@ export type ComputeGridPropsReturn = {
 }
 
 export type DrawGridParams = {
-  generatedProperties: ComputeGridPropsReturn[]
+  gridProps: ComputeGridPropsReturn[]
   context: CanvasRenderingContext2D
 }
 
@@ -96,10 +96,10 @@ export const toDrawOneLevel = ({ camera, level, endWorld, startWorld }: {
   })
 }
 
-export function drawLinesGrid({ context, generatedProperties }: DrawGridParams) {
+export function drawLinesGrid({ context, gridProps }: DrawGridParams) {
   context.save()
 
-  generatedProperties.forEach(({ levelSize, color, width, startX, startY, endX, endY }) => {
+  gridProps.forEach(({ levelSize, color, width, startX, startY, endX, endY }) => {
     context.strokeStyle = color
     context.lineWidth = width
 
@@ -121,10 +121,10 @@ export function drawLinesGrid({ context, generatedProperties }: DrawGridParams) 
   context.restore()
 }
 
-export function drawDotsGrid({ context, generatedProperties }: DrawGridParams) {
+export function drawDotsGrid({ context, gridProps }: DrawGridParams) {
   context.save()
 
-  generatedProperties.forEach(({ levelSize, color, width, startX, startY, endX, endY }) => {
+  gridProps.forEach(({ levelSize, color, width, startX, startY, endX, endY }) => {
     context.fillStyle = color
     context.lineWidth = width
 
