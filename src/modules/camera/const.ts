@@ -1,5 +1,5 @@
 import type { Point } from "../../type"
-import type { Camera } from "./domain"
+import type { Camera } from "./core"
 
 export const VELOCITY_SCALE = 0.05
 export const MIN_VELOCITY = 10

@@ -8,7 +8,7 @@ export type Camera = {
   y: number
 }
 
-export type DragState = {
+export type CameraState = {
   lastPosition: Point
   panOffset: Point
   velocity: Point
@@ -21,7 +21,7 @@ export type ZoomEvent = {
 
 export const toMovingPanState = ({ moveEvent, dragState }: {
   moveEvent: PointerEvent;
-  dragState: DragState
+  dragState: CameraState
 }) => ({
   ...dragState,
   camera: {
@@ -45,8 +45,8 @@ export const toMovingPanState = ({ moveEvent, dragState }: {
 
 export const toStartPanState = ({ dragState, startEvent }: {
   startEvent: PointerEvent
-  dragState: DragState
-}): DragState => ({
+  dragState: CameraState
+}): CameraState => ({
   camera: dragState.camera,
   panOffset: {
     x: startEvent.offsetX - dragState.camera.x,
@@ -78,7 +78,7 @@ export const changeZoom = (camera: Camera, event: WheelEvent) => {
   }
 }
 
-export const mergeCameraWithUpdatedState = (camera: DragState, updated: DragState) => ({
+export const mergeCameraWithUpdatedState = (camera: CameraState, updated: CameraState) => ({
   ...camera,
   ...updated,
   camera: {
@@ -89,7 +89,7 @@ export const mergeCameraWithUpdatedState = (camera: DragState, updated: DragStat
 
 export const wheelCameraUpdate = ({ cameraState, event }: {
   event: WheelEvent | ZoomEvent
-  cameraState: DragState
+  cameraState: CameraState
 }) => ({
   ...INITIAL_STATE,
   camera: event instanceof WheelEvent
@@ -97,7 +97,7 @@ export const wheelCameraUpdate = ({ cameraState, event }: {
     : ({ zoomIn, zoomOut })[event.__event](cameraState.camera)
 })
 
-export const inertiaCameraUpdate = (cameraState: DragState) => {
+export const inertiaCameraUpdate = (cameraState: CameraState) => {
   const velocityMagnitude = Math.hypot(cameraState.velocity.x, cameraState.velocity.y)
 
   if (velocityMagnitude > MIN_VELOCITY) {
@@ -155,7 +155,7 @@ export const sizesToPoint = (sizes: Sizes): Point => {
 }
 
 export const getWorldPoints = ({ sizes, state }: {
-  state: DragState
+  state: CameraState
   sizes: Sizes
 }) => ({
   sizes,

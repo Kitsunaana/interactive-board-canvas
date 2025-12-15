@@ -2,13 +2,6 @@
 
 @import "tailwindcss";
 
-/* * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: 'Roboto', sans-serif;
-} */
-
 body {
   overflow: hidden;
   font-family: 'Roboto', sans-serif;

@@ -1,4 +1,4 @@
-import type { Camera } from "./modules/camera/domain"
+import type { Camera } from "./modules/camera/core"
 import type { Point, Rect } from "./type"
 
 export const screenToCanvas = ({ point, camera }: { point: Point, camera: Camera }) => {

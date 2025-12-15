@@ -1,0 +1,52 @@
+import type { ObservedValueOf } from "rxjs"
+import { MINI_MAP_SIZES } from "./const"
+import { getMiniMapRenderLoop } from "./stream"
+import { context } from "./core"
+
+export type SubscribeToMiniMapRenderLoopParams = ObservedValueOf<
+    ReturnType<typeof getMiniMapRenderLoop>
+>
+
+export const subscribeToMiniMapRenderLoop = (params: SubscribeToMiniMapRenderLoopParams) => {
+    context.save()
+    context.clearRect(0, 0, MINI_MAP_SIZES.width, MINI_MAP_SIZES.height)
+
+    renderMiniMap({ ...params, context })
+
+    context.restore()
+}
+
+export const renderMiniMap = (params: SubscribeToMiniMapRenderLoopParams & {
+    context: CanvasRenderingContext2D
+}) => {
+    const { camera, context, limitMapPoints, miniMapSizes, unscaleMap, unscaledNodes } = params
+
+    context.beginPath()
+    context.fillStyle = "rgba(0, 0, 0, 0.6)"
+    context.rect(0, 0, miniMapSizes.width, miniMapSizes.height)
+    context.fill()
+
+    const scale = 1 / unscaleMap
+
+    context.scale(scale, scale)
+
+    unscaledNodes.forEach(({ x, y, width, height }) => {
+        context.beginPath()
+        context.fillStyle = "#fff8ac"
+        context.rect(x, y, width, height)
+        context.fill()
+    })
+
+    context.beginPath()
+    context.fillStyle = "rgba(255, 255, 255, 0.3)"
+
+    const viewWorldW = window.innerWidth / camera.scale
+    const viewWorldH = window.innerHeight / camera.scale
+    const viewWorldX = -camera.x / camera.scale
+    const viewWorldY = -camera.y / camera.scale
+    const finalX = viewWorldX - limitMapPoints.min.x
+    const finalY = viewWorldY - limitMapPoints.min.y
+
+    context.rect(finalX, finalY, viewWorldW, viewWorldH)
+    context.fill()
+}

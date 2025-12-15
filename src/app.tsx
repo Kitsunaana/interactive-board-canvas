@@ -2,9 +2,8 @@ import "./index.css";
 import "./render-loop";
 
 import { map } from "rxjs"
-import { useViewModel } from "./mobx"
 import { wheelCamera$, zoomTrigger$ } from "./modules/camera"
-import type { Camera, DragState } from "./modules/camera/domain"
+import type { Camera, CameraState } from "./modules/camera"
 import type { Rect } from "./type"
 import { bind } from "@react-rxjs/core";
 import { clsx } from "clsx"
@@ -84,7 +83,7 @@ const getActiveBoxDots = ({ rect, camera }: ActiveBoxDotsParams) => [
   },
 ]
 
-const toPercentage = (state: DragState) => `${Math.round(state.camera.scale * 100)}%`
+const toPercentage = (state: CameraState) => `${Math.round(state.camera.scale * 100)}%`
 
 const [useZoomValue] = bind(wheelCamera$.pipe(map(toPercentage)), "100%")
 
@@ -101,7 +100,6 @@ const zoomIn = () => {
 }
 
 export function App() {
-  const viewModel = useViewModel()
   const zoomValue = useZoomValue()
 
   return (
