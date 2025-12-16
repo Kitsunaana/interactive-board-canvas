@@ -1,8 +1,8 @@
 import type { Point } from "../../type"
 import type { Camera } from "./core"
 
-export const VELOCITY_SCALE = 0.05
-export const MIN_VELOCITY = 10
+export const VELOCITY_SCALE = 0.1
+export const MIN_VELOCITY = 5
 export const FRICTION = 0.9
 
 export const DEFAULT_POINT: Point = {

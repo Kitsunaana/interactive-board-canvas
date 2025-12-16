@@ -30,7 +30,12 @@ export const pan$ = pointerDown$.pipe(
 
     switchMap((dragState) => (
         pointerMove$.pipe(
-            map((moveEvent) => ({ moveEvent, dragState })),
+            map((moveEvent) => {
+                moveEvent.stopPropagation()
+                moveEvent.preventDefault()
+
+                return { moveEvent, dragState }
+            }),
             takeUntil(pointerUp$),
             map(toMovingPanState),
 

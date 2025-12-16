@@ -1,6 +1,6 @@
 import type { Node } from "../../type"
 
-export const MINI_MAP_UNSCALE = 3
+export const MINI_MAP_UNSCALE = 5
 
 export const NODES: Node[] = [
     {

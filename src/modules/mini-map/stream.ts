@@ -1,14 +1,15 @@
-import { BehaviorSubject, combineLatest, distinctUntilChanged, map, startWith, tap, withLatestFrom } from "rxjs"
+import { BehaviorSubject, combineLatest, distinctUntilChanged, map, Observable, startWith, tap, withLatestFrom } from "rxjs"
 import { renderLoop$ } from "../../render-loop"
 import { resize$ } from "../../setup"
 import { isNegative } from "../../utils"
 import { MINI_MAP_SIZES, NODES } from "./const"
 import { calculateUnscaleMap, canvas, findLimitMapPointsV2, updateMiniMapSizes } from "./core"
 import { isEqual } from "lodash"
+import type { Sizes } from "../../type"
 
 export const nodes$ = new BehaviorSubject(NODES)
 
-export const miniMapSizes$ = resize$.pipe(
+export const miniMapSizes$: Observable<Sizes> = resize$.pipe(
     map(updateMiniMapSizes),
     startWith(MINI_MAP_SIZES),
     distinctUntilChanged(isEqual),
@@ -44,11 +45,11 @@ export const computeUnscaleMap$ = movedUnscaleNodes$.pipe(
 export const getMiniMapRenderLoop = (renderLoop: typeof renderLoop$) => (
     renderLoop.pipe(
         withLatestFrom(computeUnscaleMap$, findLimitMapPoints$, movedUnscaleNodes$, miniMapSizes$),
-        map(([{ camera }, unscaleMap, limitMapPoints, unscaledNodes, miniMapSizes]) => ({
+        map(([cameraState, unscaleMap, limitMapPoints, unscaledNodes, miniMapSizes]) => ({
+            ...cameraState,
             limitMapPoints,
             unscaledNodes,
             miniMapSizes,
             unscaleMap,
-            camera,
         })))
 )

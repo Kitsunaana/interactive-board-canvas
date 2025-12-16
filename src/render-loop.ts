@@ -1,6 +1,5 @@
 import { animationFrames, combineLatest, map, startWith, tap, withLatestFrom } from "rxjs"
-import { cameraSubject$, gridTypeSubject$ } from "./modules/camera"
-import { getWorldPoints } from "./modules/camera"
+import { getWorldPoints, cameraSubject$, gridTypeSubject$ } from "./modules/camera"
 import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./modules/grid"
 import { getMiniMapRenderLoop, subscribeToMiniMapRenderLoop } from "./modules/mini-map"
 import { nodes$, type Node } from "./nodes"
