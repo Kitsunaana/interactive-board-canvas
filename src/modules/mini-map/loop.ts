@@ -18,7 +18,7 @@ export const subscribeToMiniMapRenderLoop = (params: SubscribeToMiniMapRenderLoo
 export const renderMiniMap = (params: SubscribeToMiniMapRenderLoopParams & {
     context: CanvasRenderingContext2D
 }) => {
-    const { camera, context, limitMapPoints, miniMapSizes, unscaleMap, unscaledNodes } = params
+    const { context, miniMapCameraRect, miniMapSizes, unscaleMap, unscaledNodes } = params
 
     context.beginPath()
     context.fillStyle = "rgba(0, 0, 0, 0.6)"
@@ -40,13 +40,12 @@ export const renderMiniMap = (params: SubscribeToMiniMapRenderLoopParams & {
     context.beginPath()
     context.fillStyle = "rgba(255, 255, 255, 0.3)"
 
-    const viewWorldW = window.innerWidth / camera.scale
-    const viewWorldH = window.innerHeight / camera.scale
-    const viewWorldX = -camera.x / camera.scale
-    const viewWorldY = -camera.y / camera.scale
-    const finalX = viewWorldX - limitMapPoints.min.x
-    const finalY = viewWorldY - limitMapPoints.min.y
+    context.rect(
+        miniMapCameraRect.x,
+        miniMapCameraRect.y,
+        miniMapCameraRect.width,
+        miniMapCameraRect.height,
+    )
 
-    context.rect(finalX, finalY, viewWorldW, viewWorldH)
     context.fill()
 }

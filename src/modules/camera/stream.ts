@@ -2,11 +2,12 @@ import { isEqual } from "lodash"
 import { animationFrames, BehaviorSubject, distinctUntilChanged, filter, finalize, fromEvent, map, merge, scan, shareReplay, startWith, Subject, switchMap, takeUntil, tap, withLatestFrom } from "rxjs"
 import { INITIAL_STATE } from "./const"
 import { canStartPan, inertiaCameraUpdate, mergeCameraWithUpdatedState, toMovingPanState, toStartPanState, wheelCameraUpdate, type ZoomEvent } from "./core"
+import { canvas } from "../../setup"
 
-const pointerDown$ = fromEvent<PointerEvent>(window, "pointerdown")
-const pointerMove$ = fromEvent<PointerEvent>(window, "pointermove")
-const pointerUp$ = fromEvent<PointerEvent>(window, "pointerup")
-const wheel$ = fromEvent<WheelEvent>(window, "wheel")
+const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
+const pointerMove$ = fromEvent<PointerEvent>(canvas, "pointermove")
+const pointerUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
+const wheel$ = fromEvent<WheelEvent>(canvas, "wheel")
 
 export const zoomTrigger$ = new Subject<ZoomEvent>()
 
@@ -30,12 +31,7 @@ export const pan$ = pointerDown$.pipe(
 
     switchMap((dragState) => (
         pointerMove$.pipe(
-            map((moveEvent) => {
-                moveEvent.stopPropagation()
-                moveEvent.preventDefault()
-
-                return { moveEvent, dragState }
-            }),
+            map((moveEvent) => ({ moveEvent, dragState })),
             takeUntil(pointerUp$),
             map(toMovingPanState),
 

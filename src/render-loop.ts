@@ -5,6 +5,7 @@ import { getMiniMapRenderLoop, subscribeToMiniMapRenderLoop } from "./modules/mi
 import { nodes$, type Node } from "./nodes"
 import { canvas, context, resize$ } from "./setup"
 import { getCanvasSizes, isNotNull } from "./utils"
+import { miniMapCameraSubject$ } from "./modules/mini-map/stream"
 
 export const canvasProperties$ = combineLatest([
     cameraSubject$,
@@ -26,10 +27,11 @@ export const gridProps$ = canvasProperties$.pipe(
 )
 
 export const renderLoop$ = animationFrames().pipe(
-    withLatestFrom(cameraSubject$, gridTypeSubject$, nodes$, gridProps$),
-    map(([_, cameraState, gridType, nodes, { canvasProperties, gridProps }]) => ({
+    withLatestFrom(cameraSubject$, gridTypeSubject$, nodes$, miniMapCameraSubject$, gridProps$),
+    map(([_, cameraState, gridType, nodes, miniMapCameraRect, { canvasProperties, gridProps }]) => ({
         ...cameraState,
         canvasSizes: canvasProperties.sizes,
+        miniMapCameraRect,
         gridProps,
         gridType,
         nodes,
@@ -50,7 +52,9 @@ renderLoop$.subscribe(({ canvasSizes, gridType, gridProps, camera, nodes }) => {
     context.restore()
 })
 
-getMiniMapRenderLoop(renderLoop$).subscribe(subscribeToMiniMapRenderLoop)
+const miniMapRenderLoop$ = getMiniMapRenderLoop(renderLoop$)
+
+miniMapRenderLoop$.subscribe(subscribeToMiniMapRenderLoop)
 
 function renderNodes(context: CanvasRenderingContext2D, nodes: Node[]) {
     nodes.forEach(({ x, y, width, height }) => {

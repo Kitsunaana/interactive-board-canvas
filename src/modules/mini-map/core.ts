@@ -1,10 +1,12 @@
+import { merge } from "lodash"
+import { isRectIntersection, screenToCanvas } from "../../point"
 import { initialCanvas } from "../../setup"
-import type { LimitMapPoints, Node, Sizes } from "../../type"
+import type { LimitMapPoints, Node, Point, Rect, Sizes } from "../../type"
 import { getCanvasSizes } from "../../utils"
-import { sizesToPoint } from "../camera"
+import { sizesToPoint, type Camera, type CameraState } from "../camera"
 import { MINI_MAP_SIZES, MINI_MAP_UNSCALE } from "./const"
 
-export const findLimitMapPointsV2 = ({ nodes, miniMapSizes }: {
+export const findLimitMapPoints = ({ nodes, miniMapSizes }: {
     miniMapSizes: Sizes
     nodes: Node[]
 }) => (
@@ -39,8 +41,8 @@ export const updateMiniMapSizes = () => {
 export const calculateUnscaleMap = ({
     miniMapSizes,
     nodes
-}: Parameters<typeof findLimitMapPointsV2>[0]) => {
-    const foundMapPoints = findLimitMapPointsV2({ miniMapSizes, nodes })
+}: Parameters<typeof findLimitMapPoints>[0]) => {
+    const foundMapPoints = findLimitMapPoints({ miniMapSizes, nodes })
     const { min, max } = foundMapPoints
 
     const maxPointX = Math.max(min.x, max.x)
@@ -56,3 +58,115 @@ export const [context, canvas] = initialCanvas({
     ...MINI_MAP_SIZES,
     canvasId: "map",
 })
+
+export const computeMiniMapCameraRect = ({ camera, limitMapPoints }: {
+    limitMapPoints: LimitMapPoints
+    camera: Camera
+}): Rect => {
+    const viewWorldW = window.innerWidth / camera.scale
+    const viewWorldH = window.innerHeight / camera.scale
+    
+    const viewWorldX = -camera.x / camera.scale
+    const viewWorldY = -camera.y / camera.scale
+    
+    const finalX = viewWorldX - limitMapPoints.min.x
+    const finalY = viewWorldY - limitMapPoints.min.y
+
+    return {
+        height: viewWorldH,
+        width: viewWorldW,
+        x: finalX,
+        y: finalY
+    }
+}
+
+export const getPointFromEvent = (event: PointerEvent): Point => ({
+    x: event.clientX,
+    y: event.clientY,
+})
+
+export const isHtmlElement = (node: unknown) => node instanceof HTMLElement
+
+export const getInitialClickedWorldPoint = ({ downEvent, unscaleMap, limitMapPoints }: {
+    limitMapPoints: LimitMapPoints
+    downEvent: PointerEvent
+    unscaleMap: number
+}): Point => {
+    const clientRect = (downEvent.target as HTMLElement).getBoundingClientRect()
+    const camera = merge(clientRect, { scale: 1 })
+    const initialPoint = getPointFromEvent(downEvent)
+
+    const initialPointInCanvas = screenToCanvas({ camera, point: initialPoint })
+
+    const initialWorldX = initialPointInCanvas.x * unscaleMap + limitMapPoints.min.x
+    const initialWorldY = initialPointInCanvas.y * unscaleMap + limitMapPoints.min.y
+
+    return {
+        x: initialWorldX,
+        y: initialWorldY,
+    }
+}
+
+export const fromMiniMapToCameraPoisiton = ({
+    initialClickedWorldPoint,
+    currentLimitMapPoints,
+    initialCameraState,
+    currentUnscaleMap,
+    moveEvent,
+}: {
+    currentLimitMapPoints: LimitMapPoints
+    initialClickedWorldPoint: Point
+    initialCameraState: CameraState
+    currentUnscaleMap: number
+    moveEvent: PointerEvent
+}) => {
+    const clientRect = (moveEvent.target as HTMLElement).getBoundingClientRect()
+    const camera = merge(clientRect, { scale: 1 })
+    const point = getPointFromEvent(moveEvent)
+
+    const pointInCanvas = screenToCanvas({
+        camera,
+        point,
+    })
+
+    const worldX = pointInCanvas.x * currentUnscaleMap + currentLimitMapPoints.min.x
+    const worldY = pointInCanvas.y * currentUnscaleMap + currentLimitMapPoints.min.y
+
+    const deltaWorldX = worldX - initialClickedWorldPoint.x
+    const deltaWorldY = worldY - initialClickedWorldPoint.y
+
+    return {
+        ...initialCameraState,
+        camera: {
+            ...initialCameraState.camera,
+            x: initialCameraState.camera.x - deltaWorldX * initialCameraState.camera.scale,
+            y: initialCameraState.camera.y - deltaWorldY * initialCameraState.camera.scale,
+        }
+    }
+}
+
+export const canMoveMiniMapViewportRect = ({ miniMapCamera, unscaleMap, downEvent }: {
+    downEvent: PointerEvent
+    miniMapCamera: Rect
+    unscaleMap: number
+}) => {
+    const unscaledMapViewportRect: Rect = {
+        x: miniMapCamera.x / unscaleMap,
+        y: miniMapCamera.y / unscaleMap,
+        width: miniMapCamera.width / unscaleMap,
+        height: miniMapCamera.height / unscaleMap,
+    }
+
+    const clientRect = (downEvent.target as HTMLElement).getBoundingClientRect()
+    const pointFromEvent = getPointFromEvent(downEvent)
+
+    return isRectIntersection({
+        rect: unscaledMapViewportRect,
+        point: pointFromEvent,
+        camera: {
+            x: clientRect.x,
+            y: clientRect.y,
+            scale: 1
+        },
+    })
+}

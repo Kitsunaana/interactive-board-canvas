@@ -17,7 +17,7 @@ canvas {
 #map {
   z-index: 100;
   position: absolute;
-  /* background-color: pink; */
+  background-color: white;
   bottom: 0px;
 }
 
