@@ -18,44 +18,44 @@ export const activityStart$ = merge(pointerDown$, wheel$, zoomTrigger$).pipe(map
 export const activityEnd$ = pointerUp$.pipe(map(() => false))
 
 export const userActivity$ = merge(activityStart$, activityEnd$).pipe(
-    startWith(false),
-    shareReplay(1)
+  startWith(false),
+  shareReplay(1)
 )
 
 export const pan$ = pointerDown$.pipe(
-    filter(canStartPan),
-    withLatestFrom(cameraSubject$),
-    map(([startEvent, dragState]) => toStartPanState({ startEvent, dragState })),
+  filter(canStartPan),
+  withLatestFrom(cameraSubject$),
+  map(([startEvent, dragState]) => toStartPanState({ startEvent, dragState })),
 
-    tap(() => document.documentElement.style.cursor = "grabbing"),
+  tap(() => document.documentElement.style.cursor = "grabbing"),
 
-    switchMap((dragState) => (
-        pointerMove$.pipe(
-            map((moveEvent) => ({ moveEvent, dragState })),
-            takeUntil(pointerUp$),
-            map(toMovingPanState),
+  switchMap((dragState) => (
+    pointerMove$.pipe(
+      map((moveEvent) => ({ moveEvent, dragState })),
+      takeUntil(pointerUp$),
+      map(toMovingPanState),
 
-            finalize(() => document.documentElement.style.cursor = "default")
-        )
-    ))
+      finalize(() => document.documentElement.style.cursor = "default")
+    )
+  ))
 )
 
 export const wheelCamera$ = merge(wheel$, zoomTrigger$).pipe(
-    withLatestFrom(cameraSubject$),
-    map(([event, cameraState]) => wheelCameraUpdate({ event, cameraState })),
-    shareReplay(1)
+  withLatestFrom(cameraSubject$),
+  map(([event, cameraState]) => wheelCameraUpdate({ event, cameraState })),
+  shareReplay(1)
 )
 
 export const camera$ = merge(wheelCamera$, pan$).pipe(
-    startWith(INITIAL_STATE),
-    scan(mergeCameraWithUpdatedState),
+  startWith(INITIAL_STATE),
+  scan(mergeCameraWithUpdatedState),
 ).subscribe(cameraSubject$)
 
 export const cameraWithInertia$ = animationFrames().pipe(
-    withLatestFrom(cameraSubject$, userActivity$),
-    scan(
-        (acc, [_, currentCamera, isActive]) => (isActive ? currentCamera : inertiaCameraUpdate(acc)),
-        INITIAL_STATE
-    ),
-    distinctUntilChanged(isEqual)
+  withLatestFrom(cameraSubject$, userActivity$),
+  scan(
+    (acc, [_, currentCamera, isActive]) => (isActive ? currentCamera : inertiaCameraUpdate(acc)),
+    INITIAL_STATE
+  ),
+  distinctUntilChanged(isEqual)
 ).subscribe(cameraSubject$)
