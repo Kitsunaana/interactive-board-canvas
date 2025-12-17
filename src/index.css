@@ -10,15 +10,8 @@ body {
   position: relative;
 }
 
-canvas {
-  /* position: absolute; */
-}
-
-#map {
-  z-index: 100;
-  position: absolute;
-  background-color: white;
-  bottom: 0px;
+#canvas {
+  background: #f2f2f2;
 }
 
 .zoom-indicator {

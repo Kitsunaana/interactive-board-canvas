@@ -1,11 +1,11 @@
 import { animationFrames, combineLatest, map, startWith, tap, withLatestFrom } from "rxjs"
-import { getWorldPoints, cameraSubject$, gridTypeSubject$ } from "./modules/camera"
+import { cameraSubject$, getWorldPoints, gridTypeSubject$ } from "./modules/camera"
 import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./modules/grid"
 import { getMiniMapRenderLoop, subscribeToMiniMapRenderLoop } from "./modules/mini-map"
+import { miniMapCameraSubject$ } from "./modules/mini-map/stream"
 import { nodes$, type Node } from "./nodes"
 import { canvas, context, resize$ } from "./setup"
 import { getCanvasSizes, isNotNull } from "./utils"
-import { miniMapCameraSubject$ } from "./modules/mini-map/stream"
 
 export const canvasProperties$ = combineLatest([
     cameraSubject$,

@@ -1,12 +1,11 @@
 import type { ObservedValueOf } from "rxjs"
-import { context } from "./core"
 import { getMiniMapRenderLoop } from "./stream"
 
 export type SubscribeToMiniMapRenderLoopParams = ObservedValueOf<
     ReturnType<typeof getMiniMapRenderLoop>
 >
 
-export const subscribeToMiniMapRenderLoop = (params: SubscribeToMiniMapRenderLoopParams) => {
+export const subscribeToMiniMapRenderLoop = ({ context, ...params }: SubscribeToMiniMapRenderLoopParams) => {
     context.save()
     context.clearRect(0, 0, params.canvasSizes.width, params.canvasSizes.height)
 
@@ -21,7 +20,7 @@ export const renderMiniMap = (params: SubscribeToMiniMapRenderLoopParams & {
     const { context, miniMapCameraRect, miniMapSizes, unscaleMap, unscaledNodes } = params
 
     context.beginPath()
-    context.fillStyle = "rgba(0, 0, 0, 0.6)"
+    context.fillStyle = "white"
     context.rect(0, 0, miniMapSizes.width, miniMapSizes.height)
     context.closePath()
     context.fill()
@@ -32,13 +31,13 @@ export const renderMiniMap = (params: SubscribeToMiniMapRenderLoopParams & {
 
     unscaledNodes.forEach(({ x, y, width, height }) => {
         context.beginPath()
-        context.fillStyle = "#fff8ac"
+        context.fillStyle = "#ffe870"
         context.rect(x, y, width, height)
         context.fill()
     })
 
     context.beginPath()
-    context.fillStyle = "rgba(255, 255, 255, 0.3)"
+    context.fillStyle = "rgba(0, 0, 0, 0.3)"
 
     context.rect(
         miniMapCameraRect.x,

@@ -54,10 +54,10 @@ export const calculateUnscaleMap = ({
     return unscaleX > unscaleY ? unscaleX : unscaleY
 }
 
-export const [context, canvas] = initialCanvas({
-    ...MINI_MAP_SIZES,
-    canvasId: "map",
-})
+// export const [context, canvas] = initialCanvas({
+//     ...MINI_MAP_SIZES,
+//     canvasId: "map",
+// })
 
 export const computeMiniMapCameraRect = ({ camera, limitMapPoints }: {
     limitMapPoints: LimitMapPoints

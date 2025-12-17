@@ -1,7 +1,7 @@
 import type { Point } from "../type"
 import type { Camera } from "./camera"
 
-export const BASE_GRID_SIZE = 8
+export const BASE_GRID_SIZE = 12
 export const COLOR = "#e6e6e6"
 
 export type Level = {

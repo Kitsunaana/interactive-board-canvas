@@ -7,6 +7,9 @@ import type { Camera, CameraState } from "./modules/camera"
 import type { Rect } from "./type"
 import { bind } from "@react-rxjs/core";
 import { clsx } from "clsx"
+import { miniMapProperties$, readyMiniMapSubject$ } from "./modules/mini-map/stream";
+import { useCallback, type RefCallback } from "react";
+import { isNil } from "lodash";
 
 const PADDING = 7
 
@@ -99,11 +102,34 @@ const zoomIn = () => {
   })
 }
 
+const useReadyMiniMap = () => {
+  const readyMiniMap: RefCallback<HTMLCanvasElement> = useCallback((instance) => {
+    if (!isNil(instance)) {
+      miniMapProperties$.next({
+        context: instance.getContext("2d"),
+        canvas: instance,
+        canView: true,
+      })
+    }
+  }, [])
+
+  return {
+    readyMiniMap
+  }
+}
+
 export function App() {
   const zoomValue = useZoomValue()
+  const { readyMiniMap } = useReadyMiniMap()
 
   return (
     <>
+      <canvas
+        id="map"
+        ref={readyMiniMap}
+        className="absolute bottom-4 left-4 bg-white shadow-xl p-1 rounded-md"
+      />
+
       <div className="flex items-center gap-2 absolute bottom-4 right-4 bg-white shadow-xl p-1 rounded-md text-sm text-gray-800 font-bold">
         <button
           onClick={zoomOut}
