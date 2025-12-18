@@ -1,23 +1,25 @@
 import { isEqual, isNull } from "lodash"
 import {
+  animationFrames,
   BehaviorSubject,
   combineLatest,
   distinctUntilChanged,
   filter,
   fromEvent,
   map,
+  merge,
   startWith,
   switchMap,
   takeUntil,
   tap,
   withLatestFrom
 } from "rxjs"
+import { nodes$ } from "../../nodes"
 import { renderLoop$ } from "../../render-loop"
 import { resize$ } from "../../setup"
 import type { Rect } from "../../type"
 import { isNegative } from "../../utils"
 import { cameraSubject$ } from "../camera"
-import { NODES } from "./const"
 import {
   calculateUnscaleMap,
   canMoveMiniMapViewportRect,
@@ -25,11 +27,11 @@ import {
   findLimitMapPoints,
   fromMiniMapToCameraPoisiton,
   getInitialClickedWorldPoint,
-  isHtmlElement,
+  getPointInMiniMap,
+  moveCameraToClickedPoint,
+  updateCameraWitnAnimation,
   updateMiniMapSizes
 } from "./core"
-
-export const nodes$ = new BehaviorSubject(NODES)
 
 export const miniMapCameraSubject$ = new BehaviorSubject<Rect>({
   height: 0,
@@ -98,7 +100,9 @@ export const computeUnscaleMap$ = movedUnscaleNodes$.pipe(
 
 export const getMiniMapRenderLoop = (renderLoop: typeof renderLoop$) => (
   renderLoop.pipe(
-    withLatestFrom(computeUnscaleMap$, findLimitMapPoints$, movedUnscaleNodes$, miniMapSizes$, readyMiniMapSubject$),
+    withLatestFrom(
+      computeUnscaleMap$, findLimitMapPoints$, movedUnscaleNodes$, miniMapSizes$, readyMiniMapSubject$
+    ),
     map(([cameraState, unscaleMap, limitMapPoints, unscaledNodes, miniMapSizes, readyMiniMap]) => {
       return ({
         ...readyMiniMap,
@@ -118,45 +122,84 @@ combineLatest([cameraSubject$, findLimitMapPoints$]).pipe(
   })))
   .subscribe(miniMapCameraSubject$)
 
-readyMiniMapSubject$.pipe(
-  switchMap(({ canvas }) => {
-    const mouseDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
-    const mouseMove$ = fromEvent<PointerEvent>(canvas, "pointermove")
-    const mouseUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
+readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
+  const pointerLeave$ = fromEvent<PointerEvent>(canvas, "pointerleave")
+  const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
+  const pointerMove$ = fromEvent<PointerEvent>(canvas, "pointermove")
+  const pointerUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
 
-    return mouseDown$.pipe(
-      withLatestFrom(computeUnscaleMap$, miniMapCameraSubject$, cameraSubject$, findLimitMapPoints$),
-      filter(([downEvent, unscaleMap, miniMapCamera]) => canMoveMiniMapViewportRect({
-        miniMapCamera,
+  return pointerDown$.pipe(
+    filter((downEvent) => downEvent.button !== 0),
+    withLatestFrom(computeUnscaleMap$, miniMapCameraSubject$, cameraSubject$, findLimitMapPoints$),
+    filter(([downEvent, unscaleMap, miniMapCamera]) => canMoveMiniMapViewportRect({
+      miniMapCamera,
+      unscaleMap,
+      downEvent,
+    })),
+    switchMap(([downEvent, unscaleMap, _, initialCameraState, limitMapPoints]) => {
+      const initialClickedWorldPoint = getInitialClickedWorldPoint({
+        limitMapPoints,
         unscaleMap,
         downEvent,
-      })),
-      switchMap(([downEvent, unscaleMap, _, initialCameraState, limitMapPoints]) => {
-        if (!isHtmlElement(downEvent.target)) return []
-
-        const initialClickedWorldPoint = getInitialClickedWorldPoint({
-          limitMapPoints,
-          unscaleMap,
-          downEvent,
-        })
-
-        return mouseMove$.pipe(
-          withLatestFrom(computeUnscaleMap$, findLimitMapPoints$),
-          map(([moveEvent, currentUnscaleMap, currentLimitMapPoints]) => {
-            if (!isHtmlElement(moveEvent.target)) return initialCameraState
-
-            return fromMiniMapToCameraPoisiton({
-              initialClickedWorldPoint,
-              currentLimitMapPoints,
-              initialCameraState,
-              currentUnscaleMap,
-              moveEvent
-            })
-          }),
-          takeUntil(mouseUp$)
-        )
       })
-    )
-  })
-).subscribe(cameraSubject$)
 
+      return pointerMove$.pipe(
+        withLatestFrom(computeUnscaleMap$, findLimitMapPoints$),
+        takeUntil(merge(pointerUp$, pointerLeave$)),
+        map(([moveEvent, currentUnscaleMap, currentLimitMapPoints]) => (
+          fromMiniMapToCameraPoisiton({
+            initialClickedWorldPoint,
+            currentLimitMapPoints,
+            initialCameraState,
+            currentUnscaleMap,
+            moveEvent
+          })
+        )),
+      )
+    })
+  )
+})).subscribe(cameraSubject$)
+
+readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
+  const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
+  const pointerUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
+
+  return pointerDown$.pipe(
+    filter((downEvent) => downEvent.button !== 1),
+    withLatestFrom(miniMapCameraSubject$, computeUnscaleMap$),
+    switchMap(([downEvent, miniMapCamera, unscaleMap]) => {
+      const { pointInRect, pointInMiniMap } = getPointInMiniMap({ downEvent, unscaleMap, miniMapCamera })
+
+      if (pointInRect) return []
+
+      return animationFrames().pipe(
+        takeUntil(pointerUp$),
+        withLatestFrom(cameraSubject$, miniMapCameraSubject$, computeUnscaleMap$),
+        map(([{ elapsed }, cameraState, miniMapCamera, unscaleMap]) => (
+          updateCameraWitnAnimation({
+            pointInMiniMap,
+            miniMapCamera,
+            cameraState,
+            unscaleMap,
+            elapsed,
+          })
+        ))
+      )
+    }))
+})).subscribe(cameraSubject$)
+
+readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
+  const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
+
+  return pointerDown$.pipe(
+    filter((downEvent) => downEvent.ctrlKey && downEvent.button === 0),
+    withLatestFrom(miniMapCameraSubject$, computeUnscaleMap$, cameraSubject$),
+    map(([downEvent, miniMapCamera, unscaleMap, cameraState]) => (
+      moveCameraToClickedPoint({
+        miniMapCamera,
+        cameraState,
+        unscaleMap,
+        downEvent,
+      })
+    )))
+})).subscribe(cameraSubject$)

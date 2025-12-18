@@ -1,9 +1,16 @@
-import { merge } from "lodash"
-import { isRectIntersection, screenToCanvas } from "../../point"
+import { inRange, merge } from "lodash"
+import { centerPointFromRect, isRectIntersection, screenToCanvas, subtractPoint } from "../../point"
 import type { LimitMapPoints, Node, Point, Rect, Sizes } from "../../type"
-import { getCanvasSizes } from "../../utils"
+import { getBoundingClientRect, getCanvasSizes } from "../../utils"
 import { sizesToPoint, type Camera, type CameraState } from "../camera"
 import { MINI_MAP_UNSCALE } from "./const"
+
+export const scaleRect = (rect: Rect, scale: number): Rect => ({
+  height: rect.height / scale,
+  width: rect.width / scale,
+  y: rect.y / scale,
+  x: rect.x / scale,
+})
 
 export const findLimitMapPoints = ({ nodes, miniMapSizes }: {
   miniMapSizes: Sizes
@@ -74,7 +81,7 @@ export const computeMiniMapCameraRect = ({ camera, limitMapPoints }: {
   }
 }
 
-export const getPointFromEvent = (event: PointerEvent): Point => ({
+export const getPointFromEvent = (event: PointerEvent | MouseEvent): Point => ({
   x: event.clientX,
   y: event.clientY,
 })
@@ -163,4 +170,89 @@ export const canMoveMiniMapViewportRect = ({ miniMapCamera, unscaleMap, downEven
       scale: 1
     },
   })
+}
+
+export const moveCameraToClickedPoint = ({ downEvent, miniMapCamera, cameraState, unscaleMap }: {
+  cameraState: CameraState
+  downEvent: PointerEvent
+  miniMapCamera: Rect
+  unscaleMap: number
+}) => {
+  const pointInMiniMap = screenToCanvas({
+    camera: getBoundingClientRect(downEvent),
+    point: getPointFromEvent(downEvent),
+  })
+
+  const viewportRect = scaleRect(miniMapCamera, unscaleMap)
+  const { camera } = cameraState
+
+  const subtractedDistance: Point = {
+    y: (pointInMiniMap.y - viewportRect.y - viewportRect.height / 2) * unscaleMap * camera.scale,
+    x: (pointInMiniMap.x - viewportRect.x - viewportRect.width / 2) * unscaleMap * camera.scale,
+  }
+
+  const distanceMoveToPoint: Point = {
+    x: cameraState.camera.x - subtractedDistance.x,
+    y: cameraState.camera.y - subtractedDistance.y,
+  }
+
+  return {
+    ...cameraState,
+    camera: {
+      ...cameraState.camera,
+      ...distanceMoveToPoint,
+    }
+  }
+}
+
+export const getPointInMiniMap = ({ downEvent, unscaleMap, miniMapCamera }: {
+  downEvent: PointerEvent
+  miniMapCamera: Rect
+  unscaleMap: number
+}) => {
+  const pointInMiniMap = screenToCanvas({
+    camera: getBoundingClientRect(downEvent),
+    point: getPointFromEvent(downEvent),
+  })
+
+  const viewportRect = scaleRect(miniMapCamera, unscaleMap)
+  const pointInViewportRect = isRectIntersection({
+    point: pointInMiniMap,
+    rect: viewportRect,
+    camera: {
+      x: 0,
+      y: 0
+    },
+  })
+
+  return {
+    pointInMiniMap,
+    pointInRect: pointInViewportRect,
+  }
+}
+
+export const updateCameraWitnAnimation = ({ elapsed, unscaleMap, cameraState, pointInMiniMap, miniMapCamera }: {
+  cameraState: CameraState
+  pointInMiniMap: Point
+  miniMapCamera: Rect
+  unscaleMap: number
+  elapsed: number
+}) => {
+  const viewportRectToCenter = centerPointFromRect(scaleRect(miniMapCamera, unscaleMap))
+
+  const displacement = subtractPoint(viewportRectToCenter, pointInMiniMap)
+  if (inRange(displacement.x, -3, 3) && inRange(displacement.y, -3, 3)) return cameraState
+
+  const angle = Math.atan2(displacement.y, displacement.x)
+  const tx = -Math.cos(angle) * 10
+  const ty = -Math.sin(angle) * 10
+
+  return {
+    ...cameraState,
+    camera: {
+      ...cameraState.camera,
+      x: cameraState.camera.x + tx * (elapsed / 100),
+      y: cameraState.camera.y + ty * (elapsed / 100),
+    }
+  }
 }

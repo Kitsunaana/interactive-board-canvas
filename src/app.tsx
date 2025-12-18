@@ -1,15 +1,14 @@
 import "./index.css";
 import "./render-loop";
 
-import { map } from "rxjs"
-import { wheelCamera$, zoomTrigger$ } from "./modules/camera"
-import type { Camera, CameraState } from "./modules/camera"
-import type { Rect } from "./type"
 import { bind } from "@react-rxjs/core";
-import { clsx } from "clsx"
-import { miniMapProperties$, readyMiniMapSubject$ } from "./modules/mini-map/stream";
-import { useCallback, type RefCallback } from "react";
+import { clsx } from "clsx";
 import { isNil } from "lodash";
+import { map } from "rxjs";
+import type { Camera, CameraState } from "./modules/camera";
+import { wheelCamera$, zoomTrigger$ } from "./modules/camera";
+import { miniMapProperties$ } from "./modules/mini-map/stream";
+import type { Rect } from "./type";
 
 const PADDING = 7
 
@@ -102,25 +101,18 @@ const zoomIn = () => {
   })
 }
 
-const useReadyMiniMap = () => {
-  const readyMiniMap: RefCallback<HTMLCanvasElement> = useCallback((instance) => {
-    if (!isNil(instance)) {
-      miniMapProperties$.next({
-        context: instance.getContext("2d"),
-        canvas: instance,
-        canView: true,
-      })
-    }
-  }, [])
-
-  return {
-    readyMiniMap
+const readyMiniMap = (instance: HTMLCanvasElement | null) => {
+  if (!isNil(instance)) {
+    miniMapProperties$.next({
+      context: instance.getContext("2d"),
+      canvas: instance,
+      canView: true,
+    })
   }
 }
 
 export function App() {
   const zoomValue = useZoomValue()
-  const { readyMiniMap } = useReadyMiniMap()
 
   return (
     <>

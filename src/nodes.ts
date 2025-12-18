@@ -8,7 +8,7 @@ export type Node = {
   height: number
 }
 
-const nodes: Node[] = [
+export const nodes: Node[] = [
   {
     id: "1",
     x: -200,
@@ -34,6 +34,13 @@ const nodes: Node[] = [
     id: "2",
     x: 320,
     y: 2000,
+    width: 100,
+    height: 70,
+  },
+  {
+    id: "2",
+    x: 3200,
+    y: 400,
     width: 100,
     height: 70,
   }

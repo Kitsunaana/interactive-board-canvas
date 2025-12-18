@@ -4,6 +4,7 @@ import { INITIAL_STATE } from "./const"
 import { canStartPan, inertiaCameraUpdate, mergeCameraWithUpdatedState, toMovingPanState, toStartPanState, wheelCameraUpdate, type ZoomEvent } from "./core"
 import { canvas } from "../../setup"
 
+const pointerLeave$ = fromEvent<PointerEvent>(canvas, "pointerleave")
 const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
 const pointerMove$ = fromEvent<PointerEvent>(canvas, "pointermove")
 const pointerUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
@@ -32,7 +33,7 @@ export const pan$ = pointerDown$.pipe(
   switchMap((dragState) => (
     pointerMove$.pipe(
       map((moveEvent) => ({ moveEvent, dragState })),
-      takeUntil(pointerUp$),
+      takeUntil(merge(pointerUp$, pointerLeave$)),
       map(toMovingPanState),
 
       finalize(() => document.documentElement.style.cursor = "default")

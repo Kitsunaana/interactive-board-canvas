@@ -6,3 +6,7 @@ export const getCanvasSizes = () => ({
   height: window.innerHeight,
   width: window.innerWidth,
 })
+
+export const getBoundingClientRect = (event: PointerEvent) => (
+  (event.target as HTMLElement).getBoundingClientRect()
+)
