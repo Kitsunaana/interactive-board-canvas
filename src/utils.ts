@@ -10,3 +10,5 @@ export const getCanvasSizes = () => ({
 export const getBoundingClientRect = (event: PointerEvent) => (
   (event.target as HTMLElement).getBoundingClientRect()
 )
+
+export const isHtmlElement = (node: unknown) => node instanceof HTMLElement

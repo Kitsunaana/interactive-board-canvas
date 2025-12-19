@@ -14,7 +14,10 @@ export const canvasProperties$ = combineLatest([
     startWith(getCanvasSizes()),
     tap((canvasSizes) => Object.assign(canvas, canvasSizes)),
   )
-]).pipe(map(([state, sizes]) => getWorldPoints({ sizes, state })))
+]).pipe(map(([state, sizes]) => getWorldPoints({
+  camera: state.camera,
+  sizes,
+})))
 
 export const gridProps$ = canvasProperties$.pipe(
   withLatestFrom(cameraSubject$),

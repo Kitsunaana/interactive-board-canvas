@@ -1,5 +1,5 @@
 import { defaultTo } from "lodash"
-import type { Point, Rect } from "./type"
+import type { Point, Rect, Sizes } from "./type"
 
 type Camera = {
   scale?: number
@@ -10,12 +10,25 @@ type Camera = {
 export const screenToCanvas = ({ point, camera }: {
   camera: Camera
   point: Point,
-}) => {
-  return {
-    x: (point.x - camera.x) / defaultTo(camera.scale, 1),
-    y: (point.y - camera.y) / defaultTo(camera.scale, 1),
-  }
-}
+}) => ({
+  x: (point.x - camera.x) / defaultTo(camera.scale, 1),
+  y: (point.y - camera.y) / defaultTo(camera.scale, 1),
+})
+
+export const sizesToPoint = (sizes: Sizes): Point => ({
+  y: sizes.height,
+  x: sizes.width,
+})
+
+export const subtractPoint = (point1: Point, point2: Point): Point => ({
+  x: point2.x - point1.x,
+  y: point2.y - point1.y,
+})
+
+export const centerPointFromRect = (rect: Rect): Point => ({
+  y: rect.y + rect.height / 2,
+  x: rect.x + rect.width / 2,
+})
 
 export const isRectIntersection = ({ camera, rect, point }: {
   camera: Camera
@@ -30,12 +43,7 @@ export const isRectIntersection = ({ camera, rect, point }: {
   )
 }
 
-export const subtractPoint = (point1: Point, point2: Point): Point => ({
-  x: point2.x - point1.x,
-  y: point2.y - point1.y,
-})
-
-export const centerPointFromRect = (rect: Rect): Point => ({
-  y: rect.y + rect.height / 2,
-  x: rect.x + rect.width / 2,
+export const getPointFromEvent = (event: PointerEvent): Point => ({
+  x: event.clientX,
+  y: event.clientY,
 })

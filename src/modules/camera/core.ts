@@ -1,23 +1,5 @@
-import { screenToCanvas } from "../../point"
-import type { Point, Sizes } from "../../type"
-import { VELOCITY_SCALE, ZOOM, INITIAL_STATE, MIN_VELOCITY, FRICTION, ZOOM_MAX_SCALE, ZOOM_INTENSITY, ZOOM_MIN_SCALE, START_POINT } from "./const"
-
-export type Camera = {
-  scale: number
-  x: number
-  y: number
-}
-
-export type CameraState = {
-  lastPosition: Point
-  panOffset: Point
-  velocity: Point
-  camera: Camera
-}
-
-export type ZoomEvent = {
-  __event: "zoomIn" | "zoomOut"
-}
+import { FRICTION, INITIAL_STATE, MIN_VELOCITY, VELOCITY_SCALE, ZOOM, ZOOM_INTENSITY, ZOOM_MAX_SCALE, ZOOM_MIN_SCALE } from "./const";
+import type { Camera, CameraState, ZoomEvent } from "./domain";
 
 export const toMovingPanState = ({ moveEvent, dragState }: {
   moveEvent: PointerEvent;
@@ -146,25 +128,3 @@ export const zoomOut = (camera: Camera) => {
     scale: camera.scale * (1 - ZOOM_INTENSITY)
   }
 }
-
-export const sizesToPoint = (sizes: Sizes): Point => {
-  return {
-    y: sizes.height,
-    x: sizes.width,
-  }
-}
-
-export const getWorldPoints = ({ sizes, state }: {
-  state: CameraState
-  sizes: Sizes
-}) => ({
-  sizes,
-  startWorld: screenToCanvas({
-    camera: state.camera,
-    point: START_POINT,
-  }),
-  endWorld: screenToCanvas({
-    point: sizesToPoint(sizes),
-    camera: state.camera,
-  }),
-})
