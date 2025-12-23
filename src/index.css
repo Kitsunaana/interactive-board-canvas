@@ -26,3 +26,10 @@ body {
   font-weight: bold;
   color: #333;
 }
+
+#helper {
+  /* position: absolute; */
+  /* background: #000; */
+  /* top: 0px; */
+  /* right: 0px; */
+}

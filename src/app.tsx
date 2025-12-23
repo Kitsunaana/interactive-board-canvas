@@ -1,89 +1,14 @@
 import "./index.css";
 import "./render-loop";
+import "./modules/helper/stream"
 
 import { bind } from "@react-rxjs/core";
 import { clsx } from "clsx";
 import { isNil } from "lodash";
 import { map } from "rxjs";
-import type { Camera, CameraState } from "./modules/camera";
+import type { CameraState } from "./modules/camera";
 import { wheelCamera$, zoomTrigger$ } from "./modules/camera";
 import { miniMapProperties$ } from "./modules/mini-map/stream";
-import type { Rect } from "./type";
-
-const PADDING = 7
-
-export const drawActiveBox = ({ context, rect, camera, activeBoxDots }: {
-  activeBoxDots: ReturnType<typeof getActiveBoxDots>
-  context: CanvasRenderingContext2D
-  camera: Camera
-  rect: Rect
-}) => {
-  const padding = 7
-
-  context.beginPath()
-  context.strokeStyle = "#314cd9"
-  context.lineWidth = 0.2
-  context.moveTo(rect.x - padding, rect.y - padding)
-  context.lineTo(rect.x + rect.width + padding, rect.y - padding)
-  context.lineTo(rect.x + rect.width + padding, rect.y + rect.height + padding)
-  context.lineTo(rect.x - padding, rect.y + rect.height + padding)
-  context.lineTo(rect.x - padding, rect.y - padding)
-  context.closePath()
-  context.stroke()
-
-  const baseLineWidth = 0.45
-  const scalePower = 0.75
-  const baseRadius = 5
-
-  const dotLineWidth = baseLineWidth / Math.pow(camera.scale, scalePower)
-  const dotRadius = baseRadius / Math.pow(camera.scale, scalePower)
-
-  context.save()
-  context.fillStyle = "#ffffff"
-  context.strokeStyle = "#aaaaaa"
-
-  activeBoxDots.forEach((dot) => {
-    context.beginPath()
-    context.lineWidth = dotLineWidth
-    context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)
-    context.fill()
-    context.stroke()
-    context.closePath()
-  })
-
-  context.restore()
-}
-
-const BASE_RADIUS = 5
-const SCALE_POWER = 0.75
-
-type ActiveBoxDotsParams = {
-  camera: Camera
-  rect: Rect
-}
-
-const getActiveBoxDots = ({ rect, camera }: ActiveBoxDotsParams) => [
-  {
-    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
-    x: rect.x - PADDING,
-    y: rect.y - PADDING,
-  },
-  {
-    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
-    x: rect.x + rect.width + PADDING,
-    y: rect.y - PADDING,
-  },
-  {
-    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
-    x: rect.x + rect.width + PADDING,
-    y: rect.y + rect.height + PADDING,
-  },
-  {
-    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
-    x: rect.x - PADDING,
-    y: rect.y + rect.height + PADDING,
-  },
-]
 
 const toPercentage = (state: CameraState) => `${Math.round(state.camera.scale * 100)}%`
 

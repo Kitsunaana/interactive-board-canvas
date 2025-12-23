@@ -219,7 +219,7 @@ export const updateCameraWitnAnimation = ({ elapsed, unscaleMap, cameraState, po
   const viewportRectToCenter = centerPointFromRect(scaleRect(miniMapCamera, unscaleMap))
   const displacement = subtractPoint(viewportRectToCenter, pointInMiniMap)
 
-  const range = 3
+  const range = 30
   
   if (inRange(displacement.x, -range, range) && inRange(displacement.y, -range, range)) return cameraState
 
