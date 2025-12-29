@@ -91,7 +91,7 @@ export const getInitialClickedWorldPoint = ({ downEvent, unscaleMap, limitMapPoi
   }
 }
 
-export const fromMiniMapToCameraPoisiton = ({
+export const fromMiniMapToCameraPosition = ({
   initialClickedWorldPoint,
   currentLimitMapPoints,
   initialCameraState,
@@ -209,20 +209,11 @@ export const moveCameraToClickedPoint = ({
   }
 }
 
-export const updateCameraWitnAnimation = ({ elapsed, unscaleMap, cameraState, pointInMiniMap, miniMapCamera }: {
+export const updateCameraWithAnimation = ({ elapsed, cameraState, displacement }: {
   cameraState: CameraState
-  pointInMiniMap: Point
-  miniMapCamera: Rect
-  unscaleMap: number
+  displacement: Point
   elapsed: number
 }) => {
-  const viewportRectToCenter = centerPointFromRect(scaleRect(miniMapCamera, unscaleMap))
-  const displacement = subtractPoint(viewportRectToCenter, pointInMiniMap)
-
-  const range = 30
-  
-  if (inRange(displacement.x, -range, range) && inRange(displacement.y, -range, range)) return cameraState
-
   const angle = Math.atan2(displacement.y, displacement.x)
   const tx = -Math.cos(angle) * 10
   const ty = -Math.sin(angle) * 10

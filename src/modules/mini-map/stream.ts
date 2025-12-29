@@ -16,24 +16,25 @@ import {
   withLatestFrom
 } from "rxjs"
 import { nodes$ } from "../../nodes"
+import { centerPointFromRect, subtractPoint } from "../../point"
 import { renderLoop$ } from "../../render-loop"
 import { resize$ } from "../../setup"
 import type { Rect } from "../../type"
-import { isNegative } from "../../utils"
+import { _u, isNegative } from "../../utils"
 import { cameraSubject$ } from "../camera"
 import {
   calculateUnscaleMap,
   canMoveMiniMapViewportRect,
   computeMiniMapCameraRect,
   findLimitMapPoints,
-  fromMiniMapToCameraPoisiton,
+  fromMiniMapToCameraPosition,
   getInitialClickedWorldPoint,
   getMiniMapPointerContext,
   moveCameraToClickedPoint,
-  updateCameraWitnAnimation,
+  updateCameraWithAnimation,
   updateMiniMapSizes
 } from "./core"
-import type { MiniMapState, MiniMapStateReady } from "./domain"
+import { scaleRect, type MiniMapState, type MiniMapStateReady } from "./domain"
 
 export const miniMapCameraSubject$ = new BehaviorSubject<Rect>({
   height: 0,
@@ -50,7 +51,9 @@ export const miniMapProperties$ = new BehaviorSubject<MiniMapState>({
 
 export const readyMiniMapSubject$ = miniMapProperties$.pipe(
   filter((state): state is MiniMapStateReady => !isNull(state.canvas) || !isNull(state.context) || state.canView),
-  distinctUntilChanged((prev, current) => prev.canvas === current.canvas),
+  distinctUntilChanged(
+    (prev, current) => prev.canvas === current.canvas
+  ),
 )
 
 export const miniMapSizes$ = combineLatest([
@@ -58,10 +61,18 @@ export const miniMapSizes$ = combineLatest([
   readyMiniMapSubject$
 ]).pipe(
   map(([sizes, readyMap]) => ({ sizes, readyMap })),
-  distinctUntilChanged((prev, current) => isEqual(prev, current)),
-  tap(({ readyMap, sizes }) => Object.assign(readyMap.canvas, sizes)),
+  distinctUntilChanged(
+    (prev, current) => isEqual(prev.sizes, current.sizes)
+  ),
   map(({ sizes }) => sizes),
 )
+
+miniMapSizes$.pipe(
+  withLatestFrom(readyMiniMapSubject$),
+  tap(([sizes, { canvas }]) => {
+    Object.assign(canvas, sizes)
+  })
+).subscribe()
 
 export const findLimitMapPoints$ = combineLatest([miniMapSizes$, nodes$]).pipe(
   map(([miniMapSizes, nodes]) => findLimitMapPoints({
@@ -138,7 +149,7 @@ readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
         withLatestFrom(computeUnscaleMap$, findLimitMapPoints$),
         takeUntil(merge(pointerUp$, pointerLeave$)),
         map(([moveEvent, currentUnscaleMap, currentLimitMapPoints]) => (
-          fromMiniMapToCameraPoisiton({
+          fromMiniMapToCameraPosition({
             initialClickedWorldPoint,
             currentLimitMapPoints,
             initialCameraState,
@@ -165,7 +176,6 @@ readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
       pointerEvent,
       unscaleMap,
     })),
-    filter((state) => !state.pointInViewportRect),
     switchMap((miniMapDownPointerContext) => {
       const miniMapPointerContext$ = pointerMove$.pipe(
         withLatestFrom(miniMapCameraSubject$, computeUnscaleMap$),
@@ -181,15 +191,25 @@ readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
       return animationFrames().pipe(
         takeUntil(merge(pointerUp$, pointerLeave$)),
         withLatestFrom(cameraSubject$, miniMapCameraSubject$, computeUnscaleMap$, miniMapPointerContext$),
-        map(([{ elapsed }, cameraState, miniMapCamera, unscaleMap, { pointInMiniMap }]) => (
-          updateCameraWitnAnimation({
-            pointInMiniMap,
-            miniMapCamera,
-            cameraState,
-            unscaleMap,
-            elapsed,
-          })
-        ))
+        map(([{ elapsed }, cameraState, miniMapCamera, unscaleMap, { pointInMiniMap }]) => ({
+          pointInMiniMap,
+          miniMapCamera,
+          cameraState,
+          unscaleMap,
+          elapsed,
+        })),
+
+        map((params) => {
+          const viewportRectToCenter = centerPointFromRect(scaleRect(params.miniMapCamera, params.unscaleMap))
+          const displacement = subtractPoint(viewportRectToCenter, params.pointInMiniMap)
+          const speed = params.elapsed / 100
+
+          return _u.merge(params, { displacement, speed })
+        }),
+
+        takeWhile(({ speed, displacement }) => !(speed > Math.abs(displacement.x) && speed > Math.abs(displacement.y))),
+
+        map(updateCameraWithAnimation)
       )
     })
   )

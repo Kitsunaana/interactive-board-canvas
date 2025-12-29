@@ -33,7 +33,7 @@ export const nodes: Node[] = [
     x: -200,
     y: -200,
     width: 100,
-    height: 70,
+    height: 100,
     colorId: generateRandomColor(),
   },
   {
@@ -42,7 +42,7 @@ export const nodes: Node[] = [
     x: -150,
     y: -150,
     width: 100,
-    height: 70,
+    height: 100,
     colorId: generateRandomColor()
   },
   {
@@ -51,7 +51,7 @@ export const nodes: Node[] = [
     x: 200,
     y: 200,
     width: 100,
-    height: 70,
+    height: 100,
     colorId: generateRandomColor()
   },
   {
@@ -60,7 +60,7 @@ export const nodes: Node[] = [
     x: 250,
     y: 300,
     width: 100,
-    height: 70,
+    height: 100,
     colorId: generateRandomColor()
   },
   {

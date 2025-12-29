@@ -51,7 +51,7 @@ renderLoop$.subscribe(({ canvasSizes, gridType, gridProps, camera, nodes }) => {
 
   gridTypeVariants[gridType]({ gridProps, context })
   renderNodes(context, nodes, camera)
-
+  
   context.restore()
 })
 
