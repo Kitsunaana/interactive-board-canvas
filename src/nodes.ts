@@ -30,8 +30,8 @@ export const nodes: Node[] = [
   {
     type: "sticker",
     id: "1",
-    x: -200,
-    y: -200,
+    x: 200,
+    y: 200,
     width: 100,
     height: 100,
     colorId: generateRandomColor(),
@@ -39,8 +39,8 @@ export const nodes: Node[] = [
   {
     type: "sticker",
     id: "2",
-    x: -150,
-    y: -150,
+    x: 150,
+    y: 150,
     width: 100,
     height: 100,
     colorId: generateRandomColor()
@@ -48,8 +48,8 @@ export const nodes: Node[] = [
   {
     type: "sticker",
     id: "3",
-    x: 200,
-    y: 200,
+    x: -200,
+    y: -200,
     width: 100,
     height: 100,
     colorId: generateRandomColor()
@@ -57,8 +57,8 @@ export const nodes: Node[] = [
   {
     type: "sticker",
     id: "4",
-    x: 250,
-    y: 300,
+    x: -250,
+    y: -300,
     width: 100,
     height: 100,
     colorId: generateRandomColor()

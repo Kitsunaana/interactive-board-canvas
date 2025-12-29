@@ -51,9 +51,7 @@ export const miniMapProperties$ = new BehaviorSubject<MiniMapState>({
 
 export const readyMiniMapSubject$ = miniMapProperties$.pipe(
   filter((state): state is MiniMapStateReady => !isNull(state.canvas) || !isNull(state.context) || state.canView),
-  distinctUntilChanged(
-    (prev, current) => prev.canvas === current.canvas
-  ),
+  distinctUntilChanged((prev, current) => prev.canvas === current.canvas),
 )
 
 export const miniMapSizes$ = combineLatest([
@@ -61,24 +59,20 @@ export const miniMapSizes$ = combineLatest([
   readyMiniMapSubject$
 ]).pipe(
   map(([sizes, readyMap]) => ({ sizes, readyMap })),
-  distinctUntilChanged(
-    (prev, current) => isEqual(prev.sizes, current.sizes)
-  ),
+  distinctUntilChanged((prev, current) => isEqual(prev.sizes, current.sizes)),
   map(({ sizes }) => sizes),
 )
 
 miniMapSizes$.pipe(
   withLatestFrom(readyMiniMapSubject$),
-  tap(([sizes, { canvas }]) => {
-    Object.assign(canvas, sizes)
-  })
+  tap(([sizes, { canvas }]) => Object.assign(canvas, sizes))
 ).subscribe()
 
 export const findLimitMapPoints$ = combineLatest([miniMapSizes$, nodes$]).pipe(
   map(([miniMapSizes, nodes]) => findLimitMapPoints({
     miniMapSizes,
     nodes,
-  }))
+  })),
 )
 
 export const movedUnscaleNodes$ = findLimitMapPoints$.pipe(
@@ -86,8 +80,8 @@ export const movedUnscaleNodes$ = findLimitMapPoints$.pipe(
   map(([{ min }, nodes]) => (
     nodes.map((node) => ({
       ...node,
-      x: isNegative(min.x) ? node.x + Math.abs(min.x) : node.x - min.x,
-      y: isNegative(min.y) ? node.y + Math.abs(min.y) : node.y - min.y,
+      x: isNegative(min.x) ? node.x + Math.abs(min.x) + node.width : node.x,
+      y: isNegative(min.y) ? node.y + Math.abs(min.y) + node.height : node.y,
     }))
   ))
 )

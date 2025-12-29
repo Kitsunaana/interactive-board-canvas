@@ -31,8 +31,8 @@ export const findLimitMapPoints = ({ nodes, miniMapSizes }: {
     {
       max: sizesToPoint(miniMapSizes),
       min: {
-        x: nodes[0].x,
-        y: nodes[0].y
+        x: nodes[0].x + nodes[0].width,
+        y: nodes[0].y + nodes[0].width
       },
     } as LimitMapPoints
   )
@@ -61,15 +61,15 @@ export const computeMiniMapCameraRect = ({ camera, limitMapPoints }: {
   const viewWorldW = window.innerWidth / camera.scale
   const viewWorldH = window.innerHeight / camera.scale
 
-  const viewWorldX = -camera.x / camera.scale
+  const viewWorldX = -camera.x / camera.scale 
   const viewWorldY = -camera.y / camera.scale
 
-  const finalX = viewWorldX - limitMapPoints.min.x
-  const finalY = viewWorldY - limitMapPoints.min.y
+  const finalX = viewWorldX + Math.abs(limitMapPoints.min.x)
+  const finalY = viewWorldY + Math.abs(limitMapPoints.min.y)
 
   return {
-    height: viewWorldH,
-    width: viewWorldW,
+    height: viewWorldH + Math.abs(limitMapPoints.min.y),
+    width: viewWorldW + Math.abs(limitMapPoints.min.x),
     x: finalX,
     y: finalY
   }
