@@ -1,95 +1,140 @@
-import { BehaviorSubject, combineLatest, EMPTY, filter, fromEvent, map, pipe, scan, switchMap, takeUntil, tap, withLatestFrom } from "rxjs";
-import { nodes$, nodesToView$, toRRB, type Node } from "../../nodes";
-import { getPointFromEvent, screenToCanvas, subtractPoint } from "../../point";
-import { canvas, initialCanvas } from "../../setup";
-import { cameraSubject$, type Camera } from "../camera";
-import { selectItems, viewModelState$, type SelectionModifier } from "../view-model";
+import {isNil} from "lodash";
+import {
+  filter,
+  finalize,
+  fromEvent,
+  ignoreElements,
+  map,
+  merge,
+  Observable,
+  share,
+  skip,
+  switchMap,
+  take,
+  takeUntil,
+  tap,
+  withLatestFrom
+} from "rxjs";
+import {type Node, nodes$, nodesToView$, type NodeToView} from "../../nodes";
+import {canvas, initialCanvas} from "../../setup";
+import {type Camera, cameraSubject$} from "../camera";
+import {viewModelState$} from "../view-model";
+import {findNodeByColorId, moveSelectedNodes, nodesSelection} from "./core";
+import type {Point} from "../../type.ts";
 
-const replaceNodeById = <T>(list: T[], index: number, node: T | undefined): T[] => {
-  if (index === -1) return list
-
-  const prev = list.slice(0, index)
-  const next = list.slice(index + 1, list.length)
-
-  if (node === undefined) return prev.concat(next)
-  return prev.concat(node, next)
-}
-
-const [helperContext] = initialCanvas({
+const [context] = initialCanvas({
   height: window.innerHeight,
   width: window.innerWidth,
   canvasId: "helper",
 })
 
-const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
 const pointerMove$ = fromEvent<PointerEvent>(canvas, "pointermove")
+const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
 const pointerUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
+const wheel$ = fromEvent<WheelEvent>(canvas, "wheel")
 
-combineLatest([pointerDown$, cameraSubject$])
-  .pipe(
-    filter(([downEvent]) => downEvent.button === 0),
-    withLatestFrom(nodesToView$, viewModelState$),
-    switchMap(([[downEvent, { camera }], nodes, viewModelState]) => {
-      renderHelperNodes(helperContext, camera, nodes)
+const createPointerNodePick$ = (pointer$: Observable<PointerEvent>) =>
+  pointer$.pipe(
+    withLatestFrom(nodesToView$, cameraSubject$),
+    map(([event, nodes, { camera }]) => ({ event, nodes, camera, context })),
+    tap((params) => renderHelperNodes(params)),
+    map(findNodeByColorId),
+    filter(({ node }) => !isNil(node)),
+  )
 
-      const pointerDownScreenPoint = getPointFromEvent(downEvent)
-      const pointerDownWorldPoint = screenToCanvas({
-        point: pointerDownScreenPoint,
-        camera
-      })
+export const mouseDown$ = createPointerNodePick$(pointerDown$)
+export const mouseMove$ = createPointerNodePick$(pointerMove$)
+export const mouseUp$ = createPointerNodePick$(pointerUp$)
 
-      const pixelData = helperContext.getImageData(pointerDownScreenPoint.x, pointerDownScreenPoint.y, 1, 1)
-      const [red, green, blue] = pixelData.data
-      const pickedColorId = toRRB(red, green, blue)
+const selection$ = mouseUp$.pipe(
+  filter(({ event }) => event.button === 0),
+  withLatestFrom(viewModelState$),
+  map(([{ event, node }, viewModelState]) => {
+    if (isNil(node)) return viewModelState
 
-      const pickedNode = nodes.find((node) => node.colorId === pickedColorId)
-      if (pickedNode === undefined) return EMPTY
+    return ({
+      sticker: () => nodesSelection({ viewModelState, event, node })
+    })[node.type]()
+  }),
+)
 
-      const modif: SelectionModifier = downEvent.ctrlKey || downEvent.shiftKey
-        ? "toggle"
-        : "replace"
+merge(selection$).subscribe(viewModelState$)
 
-      viewModelState$.next({
-        ...viewModelState,
-        selectedIds: selectItems({
-          initialSelected: viewModelState.selectedIds,
-          ids: [pickedNode.id],
-          modif,
-        })
-      })
+const startMoveOneNode = ({ event, node, nodes, point }: {
+  event: PointerEvent
+  nodes: NodeToView[]
+  node?: NodeToView
+  point: Point
+}) => {
+  const currentState = viewModelState$.getValue()
+  const hasPressedKeys = event.ctrlKey || event.shiftKey
 
-      return pointerMove$.pipe(
-        map((moveEvent) => {
-          return nodes.map((node) => {
-            if (node.id === pickedNode.id) {
-              const pointerMoveWorldPoint = screenToCanvas({
-                point: getPointFromEvent(moveEvent),
-                camera,
-              })
+  if (!currentState.selectedIds.has(node!.id) && !hasPressedKeys) {
+    viewModelState$.next({
+      ...currentState,
+      mouseDown: point,
+      selectedIds: new Set(node!.id),
+    })
+  }
 
-              const delta = subtractPoint(pointerDownWorldPoint, pointerMoveWorldPoint)
+  return nodes
+}
 
-              return {
-                ...node,
-                x: node.x + delta.x,
-                y: node.y + delta.y,
-              }
-            }
+const movingOneNode = ({ nodes, camera, point, event }: {
+  event: PointerEvent
+  nodes: NodeToView[]
+  camera: Camera
+  point: Point
+}) => {
+  const currentState = viewModelState$.getValue()
+  const selectedIds = currentState.selectedIds
 
-            return node
-          })
-        }),
-        takeUntil(pointerUp$),
-        tap(value => nodes$.next(value)),
-      )
-    }),
-  ).subscribe()
+  return moveSelectedNodes({ selectedIds, camera, point, nodes, event })
+}
 
-export function renderHelperNodes(
-  context: CanvasRenderingContext2D,
-  camera: Camera,
-  nodes: Node[],
-) {
+const endMoveOneNode = ({ nodes }: { nodes: NodeToView[] }) => {
+  const currentState = viewModelState$.getValue()
+
+  if (!isNil(currentState.mouseDown)) {
+    viewModelState$.next({
+      ...currentState,
+      mouseDown: undefined,
+      selectedIds: new Set()
+    })
+  }
+
+  return nodes
+}
+
+mouseDown$.pipe(
+  filter(({ event }) => event.button === 0),
+  withLatestFrom(nodesToView$, viewModelState$, cameraSubject$),
+  switchMap(([{ point, node, event }, nodes, _, { camera }]) => {
+    const sharedMove$ = pointerMove$.pipe(share())
+
+    return merge(
+      sharedMove$.pipe(take(1), map(() => startMoveOneNode({ event, node, point, nodes }))),
+
+      sharedMove$.pipe(
+        skip(1),
+        map((event) => movingOneNode({ event, point, nodes, camera })),
+        takeUntil(merge(pointerUp$, wheel$))
+      ),
+
+      sharedMove$.pipe(
+        takeUntil(merge(pointerUp$, wheel$)),
+        ignoreElements(),
+        finalize(() => endMoveOneNode({ nodes }))
+      ),
+    )
+  })
+).subscribe(nodes$)
+
+export function renderHelperNodes({ context, camera, nodes }: {
+  context: CanvasRenderingContext2D
+  camera: Camera
+  nodes: Node[]
+}) {
   context.save()
 
   context.clearRect(0, 0, window.innerWidth / 2, window.innerHeight)

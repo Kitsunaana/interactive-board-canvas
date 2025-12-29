@@ -12,3 +12,7 @@ export const getBoundingClientRect = (event: PointerEvent) => (
 )
 
 export const isHtmlElement = (node: unknown) => node instanceof HTMLElement
+
+export const merge = <A extends object, B extends object>(a: A, b: B) => ({ ...a, ...b })
+
+export const _u = { merge }

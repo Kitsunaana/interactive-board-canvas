@@ -17,7 +17,9 @@ export const initialCanvas = ({ width, height, canvasId }: InitialCanvasParams) 
   canvas.height = height
   canvas.width = width
 
-  canvas.oncontextmenu = () => {}
+  canvas.oncontextmenu = (event) => {
+    event.preventDefault()
+  }
 
   return [context, canvas] as const
 }

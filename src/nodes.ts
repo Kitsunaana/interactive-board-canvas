@@ -1,11 +1,10 @@
-import { BehaviorSubject, combineLatest, map, withLatestFrom } from "rxjs";
+import { BehaviorSubject, combineLatest, map } from "rxjs";
 import type { Camera } from "./modules/camera";
-import type { Rect } from "./type";
 import { viewModelState$ } from "./modules/view-model";
+import type { Rect } from "./type";
 
-export const toRRB = (red: number, green: number, blue: number) => {
+export const toRGB = (red: number, green: number, blue: number) => {
   return `rgb(${red},${green},${blue})`
-
 }
 
 const generateRandomColor = () => {
@@ -13,10 +12,12 @@ const generateRandomColor = () => {
   const green = Math.trunc(Math.random() * 255)
   const blue = Math.trunc(Math.random() * 255)
 
-  return toRRB(red, green, blue)
+  return toRGB(red, green, blue)
 }
 
 export type Node = {
+  type: "sticker"
+
   x: number
   y: number
   id: string
@@ -27,6 +28,7 @@ export type Node = {
 
 export const nodes: Node[] = [
   {
+    type: "sticker",
     id: "1",
     x: -200,
     y: -200,
@@ -35,6 +37,7 @@ export const nodes: Node[] = [
     colorId: generateRandomColor(),
   },
   {
+    type: "sticker",
     id: "2",
     x: -150,
     y: -150,
@@ -43,6 +46,7 @@ export const nodes: Node[] = [
     colorId: generateRandomColor()
   },
   {
+    type: "sticker",
     id: "3",
     x: 200,
     y: 200,
@@ -50,22 +54,33 @@ export const nodes: Node[] = [
     height: 70,
     colorId: generateRandomColor()
   },
-  // {
-  //   id: "4",
-  //   x: 320,
-  //   y: 2000,
-  //   width: 100,
-  //   height: 70,
-  //   colorId: generateRandomColor()
-  // },
-  // {
-  //   id: "5",
-  //   x: 3200,
-  //   y: 400,
-  //   width: 100,
-  //   height: 70,
-  //   colorId: generateRandomColor()
-  // }
+  {
+    type: "sticker",
+    id: "4",
+    x: 250,
+    y: 300,
+    width: 100,
+    height: 70,
+    colorId: generateRandomColor()
+  },
+  {
+    type: "sticker",
+    id: "5",
+    x: 320,
+    y: 2000,
+    width: 100,
+    height: 70,
+    colorId: generateRandomColor()
+  },
+  {
+    type: "sticker",
+    id: "6",
+    x: 3200,
+    y: 400,
+    width: 100,
+    height: 70,
+    colorId: generateRandomColor()
+  }
 ]
 
 export type NodeToView = Node & {

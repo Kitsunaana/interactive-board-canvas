@@ -20,6 +20,11 @@ export const sizesToPoint = (sizes: Sizes): Point => ({
   x: sizes.width,
 })
 
+export const addPoint = (point1: Point, point2: Point): Point => ({
+  x: point2.x + point1.x,
+  y: point2.y + point1.y,
+})
+
 export const subtractPoint = (point1: Point, point2: Point): Point => ({
   x: point2.x - point1.x,
   y: point2.y - point1.y,

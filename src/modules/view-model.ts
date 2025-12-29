@@ -1,7 +1,9 @@
-import { BehaviorSubject } from "rxjs"
+import {BehaviorSubject} from "rxjs"
+import type {Point} from "../type.ts";
 
 export type IdleViewState = {
   selectedIds: Set<string>
+  mouseDown?: Point
   type: "idle"
 }
 
