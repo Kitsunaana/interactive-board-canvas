@@ -1,10 +1,10 @@
-import { inRange, merge } from "lodash"
-import { centerPointFromRect, getPointFromEvent, isRectIntersection, screenToCanvas, sizesToPoint, subtractPoint } from "../../point"
-import type { LimitMapPoints, Node, Point, Rect, Sizes } from "../../type"
-import { getCanvasSizes } from "../../utils"
-import type { Camera, CameraState } from "../camera"
-import { MINI_MAP_UNSCALE } from "./const"
-import { getPointInMiniMap, scaleRect } from "./domain"
+import {merge} from "lodash"
+import {getPointFromEvent, isRectIntersection, screenToCanvas, sizesToPoint} from "../../point"
+import type {LimitMapPoints, Node, Point, Rect, Sizes} from "../../type"
+import {getCanvasSizes} from "../../utils"
+import type {Camera, CameraState} from "../camera"
+import {MINI_MAP_UNSCALE} from "./const"
+import {getPointInMiniMap, scaleRect} from "./domain"
 
 export const updateMiniMapSizes = () => {
   const canvasSizes = getCanvasSizes()

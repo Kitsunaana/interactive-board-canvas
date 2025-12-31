@@ -1,11 +1,12 @@
-import {animationFrames, combineLatest, map, startWith, tap, withLatestFrom} from "rxjs"
-import {type Camera, cameraSubject$, getWorldPoints, gridTypeSubject$} from "./modules/camera"
-import {gridTypeVariants, LEVELS, toDrawOneLevel} from "./modules/grid"
-import {getMiniMapRenderLoop, subscribeToMiniMapRenderLoop} from "./modules/mini-map"
-import {miniMapCameraSubject$} from "./modules/mini-map/stream"
-import {drawActiveBox, getActiveBoxDots, nodesToView$, type NodeToView} from "./nodes"
-import {canvas, context, resize$} from "./setup"
-import {getCanvasSizes, isNotNull} from "./utils"
+import { animationFrames, combineLatest, map, startWith, tap, withLatestFrom } from "rxjs"
+import { type Camera, cameraSubject$, getWorldPoints, gridTypeSubject$ } from "./modules/camera"
+import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./modules/grid"
+import { getMiniMapRenderLoop, subscribeToMiniMapRenderLoop } from "./modules/mini-map"
+import { miniMapCameraSubject$ } from "./modules/mini-map/stream"
+import { drawSticker } from "./modules/node/draw"
+import { drawActiveBox, getActiveBoxDots, nodesToView$, type NodeToView } from "./nodes"
+import { canvas, context, resize$ } from "./setup"
+import { getCanvasSizes, isNotNull } from "./utils"
 
 export const canvasProperties$ = combineLatest([
   cameraSubject$,
@@ -50,8 +51,9 @@ renderLoop$.subscribe(({ canvasSizes, gridType, gridProps, camera, nodes }) => {
   context.scale(camera.scale, camera.scale)
 
   gridTypeVariants[gridType]({ gridProps, context })
+
   renderNodes(context, nodes, camera)
-  
+
   context.restore()
 })
 
@@ -65,26 +67,12 @@ export function renderNodes(
   camera: Camera
 ) {
   nodes.forEach((rect) => {
-    const { x, y, width, height } = rect
-
-    context.save()
-    context.shadowColor = 'rgba(0, 0, 0, 0.2)'
-    context.shadowOffsetX = 2
-    context.shadowOffsetY = 2
-    context.shadowBlur = 11
-    
-    context.fillStyle = '#4f46e5'
-
-    context.beginPath()
-    context.fillStyle = "#fff8ac"
-    context.rect(x, y, width, height)
-    context.fill()
-    context.restore()
+    drawSticker.variant[rect.variant](rect as any)
 
     context.font = "16px Arial"
     context.textAlign = "center"
     context.textBaseline = "middle"
-    context.fillText("Hello World", x + width / 2, y + height / 2);
+    context.fillText("Hello World", rect.x + rect.width / 2, rect.y + rect.height / 2);
 
     if (rect.isSelected) {
       context.save()

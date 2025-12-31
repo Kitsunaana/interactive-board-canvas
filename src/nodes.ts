@@ -1,7 +1,10 @@
-import { BehaviorSubject, combineLatest, map } from "rxjs";
+import { times } from "lodash";
+import { BehaviorSubject, combineLatest, map, shareReplay } from "rxjs";
 import type { Camera } from "./modules/camera";
+import { generateHachureLines, generateLayerOffsets, generateSketchyOutline, getRectBasePoints } from "./modules/node/generate";
 import { viewModelState$ } from "./modules/view-model";
-import type { Rect } from "./type";
+import type { Point, Rect } from "./type";
+import { CONFIG } from "./modules/node/persist";
 
 export const toRGB = (red: number, green: number, blue: number) => {
   return `rgb(${red},${green},${blue})`
@@ -17,6 +20,7 @@ const generateRandomColor = () => {
 
 export type Node = {
   type: "sticker"
+  variant: "sketch" | "default",
 
   x: number
   y: number
@@ -28,74 +32,131 @@ export type Node = {
 
 export const nodes: Node[] = [
   {
-    type: "sticker",
     id: "1",
-    x: 200,
-    y: 200,
-    width: 100,
-    height: 100,
+    x: 250,
+    y: 250,
+    width: 250,
+    height: 125,
+    type: "sticker",
+    variant: "sketch",
     colorId: generateRandomColor(),
   },
   {
-    type: "sticker",
     id: "2",
-    x: 150,
-    y: 150,
+    x: 120,
+    y: 120,
     width: 100,
     height: 100,
+    type: "sticker",
+    variant: "default",
     colorId: generateRandomColor()
   },
   {
-    type: "sticker",
     id: "3",
     x: -200,
     y: -200,
     width: 100,
     height: 100,
+    type: "sticker",
+    variant: "default",
     colorId: generateRandomColor()
   },
   {
-    type: "sticker",
     id: "4",
     x: -250,
     y: -300,
     width: 100,
     height: 100,
+    type: "sticker",
+    variant: "default",
     colorId: generateRandomColor()
   },
   {
-    type: "sticker",
     id: "5",
     x: 320,
     y: 2000,
     width: 100,
     height: 70,
+    type: "sticker",
+    variant: "default",
     colorId: generateRandomColor()
   },
   {
-    type: "sticker",
     id: "6",
     x: 3200,
     y: 400,
     width: 100,
     height: 70,
+    type: "sticker",
+    variant: "default",
     colorId: generateRandomColor()
   }
 ]
 
-export type NodeToView = Node & {
+export type NodeRenderSketchVariant = {
+  variant: "sketch"
+
+  hachureLines: Point[][]
+  layerOffsets: Point[]
+  hachureFill: boolean
+  strokeColor: string
+  outlines: Point[][]
+}
+
+export type NodeRenderDefaultVariant = {
+  variant: "default"
+}
+
+export type NodeRenderVariant = NodeRenderSketchVariant | NodeRenderDefaultVariant
+
+export type NodeToView = Node & NodeRenderVariant & {
   isSelected: boolean
 }
 
 export const nodes$ = new BehaviorSubject(nodes)
 
-export const nodesToView$ = combineLatest([nodes$, viewModelState$]).pipe(
-  map(([nodes, viewModelState]) => {
-    return nodes.map((node): NodeToView => ({
-      ...node,
-      isSelected: viewModelState.selectedIds.has(node.id),
-    }))
+const generateNodeSketchProps = (node: Node) => {
+  const points = getRectBasePoints(node.x, node.y, node.width, node.height)
+  const outlines = times(CONFIG.layers).map((index) => generateSketchyOutline(points, index))
+
+  const layerOffsets = generateLayerOffsets(0)
+  const hachureLines = generateHachureLines({
+    outlinePoints: outlines[0],
+    offsetX: layerOffsets[0].x,
+    offsetY: layerOffsets[0].y
   })
+
+  return {
+    outlines,
+    layerOffsets,
+    hachureFill: true,
+    strokeColor: '#8b5cf6',
+    hachureLines: hachureLines,
+  }
+}
+
+export const nodesToView$ = combineLatest([nodes$, viewModelState$]).pipe(
+  map(([nodes, viewModelState]) => ({ viewModelState, nodes })),
+  map(({ nodes, viewModelState }) => {
+    return nodes.map((node) => {
+      return ({
+        default: (): NodeToView => ({
+          ...node,
+          variant: "default",
+          isSelected: viewModelState.selectedIds.has(node.id),
+        }),
+        sketch: (): NodeToView => {
+          return {
+            ...node,
+            variant: "sketch",
+            ...generateNodeSketchProps(node),
+            isSelected: viewModelState.selectedIds.has(node.id),
+          }
+        }
+      })[node.variant]()
+    })
+  }),
+  shareReplay({ bufferSize: 1, refCount: true })
 )
 
 const PADDING = 7
@@ -141,7 +202,7 @@ export const drawActiveBox = ({ context, rect, camera, activeBoxDots }: {
 
   context.beginPath()
   context.strokeStyle = "#314cd9"
-  context.lineWidth = 0.2
+  context.lineWidth = 0.4
   context.moveTo(rect.x - padding, rect.y - padding)
   context.lineTo(rect.x + rect.width + padding, rect.y - padding)
   context.lineTo(rect.x + rect.width + padding, rect.y + rect.height + padding)
