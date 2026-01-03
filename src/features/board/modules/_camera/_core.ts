@@ -1,6 +1,6 @@
+import { _u } from "@/shared/lib/utils";
 import {
   FRICTION,
-  INITIAL_STATE,
   MIN_VELOCITY,
   VELOCITY_SCALE,
   ZOOM,
@@ -8,18 +8,36 @@ import {
   ZOOM_MAX_SCALE,
   ZOOM_MIN_SCALE
 } from "./_const";
-import type { Camera, CameraState, ZoomEvent } from "./_domain";
+import type { Camera, CameraState } from "./_domain";
+
+export const canStartPan = (event: PointerEvent) => {
+  return event.button === 1 || (event.button === 0 && event.shiftKey)
+}
+
+export const zoomIn = (camera: Camera) => {
+  if (camera.scale >= ZOOM_MAX_SCALE) return camera
+
+  return _u.merge(camera, {
+    scale: camera.scale * (1 + ZOOM_INTENSITY)
+  })
+}
+
+export const zoomOut = (camera: Camera) => {
+  if (camera.scale <= ZOOM_MIN_SCALE) return camera
+
+  return _u.merge(camera, {
+    scale: camera.scale * (1 - ZOOM_INTENSITY)
+  })
+}
 
 export const toMovingPanState = ({ moveEvent, dragState }: {
   moveEvent: PointerEvent;
   dragState: CameraState
-}) => ({
-  ...dragState,
-  camera: {
-    ...dragState.camera,
+}) => _u.merge(dragState, {
+  camera: _u.merge(dragState.camera, {
     x: moveEvent.offsetX - dragState.panOffset.x,
     y: moveEvent.offsetY - dragState.panOffset.y,
-  },
+  }),
   pointerPosition: {
     x: moveEvent.offsetX,
     y: moveEvent.offsetY,
@@ -69,71 +87,33 @@ export const changeZoom = (camera: Camera, event: WheelEvent) => {
   }
 }
 
-export const mergeCameraWithUpdatedState = (camera: CameraState, updated: CameraState) => ({
-  ...camera,
-  ...updated,
-  camera: {
-    ...camera.camera,
-    ...updated.camera,
-  }
-})
-
 export const wheelCameraUpdate = ({ cameraState, event }: {
-  event: WheelEvent | ZoomEvent
   cameraState: CameraState
-}) => ({
-  ...INITIAL_STATE,
-  camera: event instanceof WheelEvent
-    ? changeZoom(cameraState.camera, event)
-    : ({ zoomIn, zoomOut })[event.__event](cameraState.camera)
+  event: WheelEvent
+}) => _u.merge(cameraState, {
+  camera: changeZoom(cameraState.camera, event)
 })
 
 export const inertiaCameraUpdate = (cameraState: CameraState) => {
   const velocityMagnitude = Math.hypot(cameraState.velocity.x, cameraState.velocity.y)
 
   if (velocityMagnitude > MIN_VELOCITY) {
-    return {
-      ...cameraState,
-      camera: {
-        ...cameraState.camera,
+    return _u.merge(cameraState, {
+      camera: _u.merge(cameraState.camera, {
         x: cameraState.camera.x + cameraState.velocity.x,
         y: cameraState.camera.y + cameraState.velocity.y,
-      },
-      velocity: {
-        ...cameraState.velocity,
+      }),
+      velocity: _u.merge(cameraState.velocity, {
         x: cameraState.velocity.x * FRICTION,
         y: cameraState.velocity.y * FRICTION,
-      }
-    }
+      })
+    })
   }
 
-  return {
-    ...cameraState,
+  return _u.merge(cameraState, {
     velocity: {
       x: 0,
       y: 0,
     }
-  }
-}
-
-export const canStartPan = (event: PointerEvent) => {
-  return event.button === 1 || (event.button === 0 && event.shiftKey)
-}
-
-export const zoomIn = (camera: Camera) => {
-  if (camera.scale >= ZOOM_MAX_SCALE) return camera
-
-  return {
-    ...camera,
-    scale: camera.scale * (1 + ZOOM_INTENSITY)
-  }
-}
-
-export const zoomOut = (camera: Camera) => {
-  if (camera.scale <= ZOOM_MIN_SCALE) return camera
-
-  return {
-    ...camera,
-    scale: camera.scale * (1 - ZOOM_INTENSITY)
-  }
+  })
 }

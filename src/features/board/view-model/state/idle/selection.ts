@@ -1,4 +1,9 @@
-﻿import type { IdleViewState } from "../type.ts";
+﻿import { addPoint, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point.ts";
+import { _u } from "@/shared/lib/utils.ts";
+import type { Point } from "@/shared/type/shared.ts";
+import type { Sticker, StickerToView } from "../../../domain/sticker.ts";
+import type { Camera } from "../../../modules/_camera";
+import type { IdleViewState } from "../type.ts";
 
 export type SelectionModifier = "replace" | "add" | "toggle"
 export type Selection = Set<string>
@@ -24,11 +29,11 @@ export const selectItems = ({ ids, modif, initialSelected }: {
   return initialSelected
 }
 
-export const moveSelectedNodes = ({ camera, nodes, point, event, selectedIds }: {
+export const moveSelectedNodes = ({ camera, stickers, point, event, selectedIds }: {
   selectedIds: Set<string>
   event: PointerEvent
+  stickers: Sticker[]
   camera: Camera
-  nodes: Node[]
   point: Point
 }) => {
   const pointerMoveWorldPoint = screenToCanvas({
@@ -36,7 +41,7 @@ export const moveSelectedNodes = ({ camera, nodes, point, event, selectedIds }: 
     camera,
   })
 
-  return nodes.map((node) => (
+  return stickers.map((node) => (
     selectedIds.has(node.id)
       ? _u.merge(node, addPoint(node, subtractPoint(point, pointerMoveWorldPoint)))
       : node

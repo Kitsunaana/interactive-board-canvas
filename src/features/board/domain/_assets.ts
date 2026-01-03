@@ -1,7 +1,7 @@
 ﻿import { generateRandomColor } from "../modules/_pick-node";
-import type { Node } from "./node.ts";
+import type { Sticker } from "./sticker.ts";
 
-export const nodes: Node[] = [
+export const nodes: Sticker[] = [
   {
     id: "1",
     x: 250,

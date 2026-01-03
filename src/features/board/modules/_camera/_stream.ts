@@ -1,4 +1,5 @@
 ﻿import { canvas } from "@/shared/lib/initial-canvas"
+import { _u } from "@/shared/lib/utils"
 import { isEqual } from "lodash"
 import {
   animationFrames,
@@ -22,10 +23,11 @@ import { INITIAL_STATE } from "./_const"
 import {
   canStartPan,
   inertiaCameraUpdate,
-  mergeCameraWithUpdatedState,
   toMovingPanState,
   toStartPanState,
-  wheelCameraUpdate
+  wheelCameraUpdate,
+  zoomIn,
+  zoomOut
 } from "./_core"
 import type { ZoomEvent } from "./_domain"
 
@@ -66,26 +68,36 @@ export const pan$ = pointerDown$.pipe(
   ))
 )
 
-export const wheelCamera$ = merge(wheel$, zoomTrigger$).pipe(
-  withLatestFrom(cameraSubject$),
-  map(([event, cameraState]) => wheelCameraUpdate({ event, cameraState })),
-  shareReplay(1)
+export const wheelCamera$ = merge(
+  wheel$.pipe(
+    withLatestFrom(cameraSubject$),
+    map(([event, cameraState]) => wheelCameraUpdate({ event, cameraState })),
+    shareReplay(1)
+  ),
+  zoomTrigger$.pipe(
+    withLatestFrom(cameraSubject$),
+    map(([{ __event }, cameraState]) => _u.merge(cameraState, {
+      camera: ({ zoomIn, zoomOut })[__event](cameraState.camera)
+    }))
+  )
 )
 
-export const camera$ = merge(wheelCamera$, pan$).pipe(
+export const cameraState$ = merge(wheelCamera$, pan$).pipe(
   startWith(INITIAL_STATE),
-  scan(mergeCameraWithUpdatedState),
-).subscribe(cameraSubject$)
+  scan((camera, updated) => (
+    _u.merge(_u.merge(camera, updated), {
+      camera: _u.merge(camera.camera, updated.camera)
+    })
+  )),
+)
+
+export const camera$ = cameraState$.pipe(map(({ camera }) => camera))
 
 export const cameraWithInertia$ = animationFrames().pipe(
   withLatestFrom(cameraSubject$, userActivity$),
-  scan(
-    (acc, [_, currentCamera, isActive]) => (
-      isActive
-        ? currentCamera
-        : inertiaCameraUpdate(acc)
-    ),
-    INITIAL_STATE
-  ),
+  scan((acc, [_, cameraState, isActive]) => isActive ? cameraState : inertiaCameraUpdate(acc), INITIAL_STATE),
   distinctUntilChanged(isEqual)
-).subscribe(cameraSubject$)
+)
+
+cameraState$.subscribe(cameraSubject$)
+cameraWithInertia$.subscribe(cameraSubject$)

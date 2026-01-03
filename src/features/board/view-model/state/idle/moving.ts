@@ -1,52 +1,59 @@
-﻿import type { Point } from "@/shared/type/shared.ts";
+﻿import { match } from "@/shared/lib/match.ts";
+import type { Point } from "@/shared/type/shared.ts";
 import { isNil } from "lodash";
-import type { Node } from "../../../domain/node.ts";
+import type { Sticker } from "../../../domain/sticker.ts";
 import type { Camera } from "../../../modules/_camera";
 import { viewModelState$ } from "../index.ts";
-import type { IdleViewState } from "../type.ts";
 import { moveSelectedNodes } from "./selection.ts";
+import type { IdleViewState } from "../type.ts";
 
-export const startMoveOneNode = ({ event, node, nodes, point }: {
-  event: PointerEvent
-  nodes: Node[]
-  point: Point
-  node: Node
-}) => {
-  const currentState = viewModelState$.getValue() as IdleViewState
+type StartStickerMove = (params: { event: PointerEvent; sticker: Sticker; point: Point }) => IdleViewState
 
-  if (!currentState.selectedIds.has(node.id) && !event.ctrlKey) {
-    viewModelState$.next({
-      ...currentState,
-      mouseDown: point,
-      selectedIds: new Set(node.id),
-    })
-  }
+type MovingSticker = (params: { event: PointerEvent; stickers: Sticker[]; camera: Camera; point: Point }) => Sticker[]
 
-  return nodes
-}
+export const startStickerMove: StartStickerMove = ({ event, point, sticker }) => (
+  match(viewModelState$.getValue(), {
+    __other: (state) => state,
+    idle: (idleState) => {
+      const hasPressedKey = event.ctrlKey || event.shiftKey
 
-export const movingOneNode = ({ nodes, camera, point, event }: {
-  event: PointerEvent
-  camera: Camera
-  nodes: Node[]
-  point: Point
-}) => {
-  const currentState = viewModelState$.getValue() as IdleViewState
-  const selectedIds = currentState.selectedIds
+      if (idleState.selectedIds.has(sticker.id) || hasPressedKey) return idleState
 
-  return moveSelectedNodes({ selectedIds, camera, point, nodes, event })
-}
+      return {
+        ...idleState,
+        mouseDown: point,
+        selectedIds: new Set(sticker.id),
+      }
+    }
+  })
+)
 
-export const endMoveOneNode = ({ nodes }: { nodes: Node[] }) => {
-  const currentState = viewModelState$.getValue() as IdleViewState
+export const movingSticker: MovingSticker = ({ stickers, camera, point, event }) => (
+  match(viewModelState$.getValue(), {
+    __other: () => stickers,
+    idle: ({ selectedIds }) => (
+      moveSelectedNodes({
+        selectedIds,
+        stickers,
+        camera,
+        point,
+        event
+      })
+    )
+  })
+)
 
-  if (!isNil(currentState.mouseDown)) {
-    viewModelState$.next({
-      ...currentState,
-      mouseDown: undefined,
-      selectedIds: new Set()
-    })
-  }
+export const endMoveSticker = () => (
+  match(viewModelState$.getValue(), {
+    __other: (state) => state,
+    idle: (idleState) => {
+      if (isNil(idleState.mouseDown)) return idleState
 
-  return nodes
-}
+      return {
+        ...idleState,
+        mouseDown: undefined,
+        selectedIds: new Set<string>()
+      }
+    }
+  })
+)
