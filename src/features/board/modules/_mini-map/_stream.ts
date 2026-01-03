@@ -1,5 +1,5 @@
 ﻿import { resize$ } from "@/shared/lib/initial-canvas";
-import { centerPointFromRect, subtractPoint } from "@/shared/lib/point";
+import { subtractPoint } from "@/shared/lib/point";
 import { _u, isNegative, isNotNull } from "@/shared/lib/utils";
 import type { Rect } from "@/shared/type/shared";
 import { isEqual } from "lodash";
@@ -34,7 +34,8 @@ import {
   updateCameraWithAnimation,
   updateMiniMapSizes
 } from "./_core";
-import { scaleRect, type MiniMapState, type MiniMapStateReady } from "./_domain";
+import type { MiniMapState, MiniMapStateReady } from "./_domain";
+import { centerPointFromRect, unscaleRect } from "@/shared/lib/rect";
 
 export const miniMapCameraSubject$ = new BehaviorSubject<Rect>({
   height: 0,
@@ -193,7 +194,7 @@ readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
         })),
 
         map((params) => {
-          const viewportRectToCenter = centerPointFromRect(scaleRect(params.miniMapCamera, params.unscaleMap))
+          const viewportRectToCenter = centerPointFromRect(unscaleRect(params.miniMapCamera, params.unscaleMap))
           const displacement = subtractPoint(viewportRectToCenter, params.pointInMiniMap)
           const speed = params.elapsed / 100
 

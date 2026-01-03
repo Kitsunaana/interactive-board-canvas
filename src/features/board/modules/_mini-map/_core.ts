@@ -1,11 +1,12 @@
-﻿import { getPointFromEvent, isRectIntersection, screenToCanvas, sizesToPoint } from "@/shared/lib/point"
+﻿import { getPointFromEvent, screenToCanvas, sizesToPoint, subtractPoint } from "@/shared/lib/point"
 import { _u, getBoundingClientRect, getCanvasSizes } from "@/shared/lib/utils"
 import type { LimitMapPoints, Point, Rect, Sizes } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
 import type { Node } from "../../domain/node"
 import type { Camera, CameraState } from "../_camera"
 import { MINI_MAP_UNSCALE } from "./_const"
-import { getPointInMiniMap, scaleRect } from "./_domain"
+import { getPointInMiniMap } from "./_domain"
+import { isRectIntersection, unscaleRect } from "@/shared/lib/rect"
 
 export const updateMiniMapSizes = () => {
   const canvasSizes = getCanvasSizes()
@@ -67,8 +68,8 @@ export const calculateUnscaleMap = ({ miniMapSizes, nodes }: {
   miniMapSizes: Sizes
   nodes: Node[]
 }) => {
-  const foundMapPoints = findLimitMapPoints({ miniMapSizes, nodes })
-  const { min, max } = foundMapPoints
+  const mapPoints = findLimitMapPoints({ miniMapSizes, nodes })
+  const { min, max } = mapPoints
 
   const maxPointX = Math.max(min.x, max.x)
   const maxPointY = Math.max(min.y, max.y)
@@ -84,10 +85,10 @@ export const getInitialClickedWorldPoint = ({ downEvent, unscaleMap, limitMapPoi
   downEvent: PointerEvent
   unscaleMap: number
 }): Point => {
-  const pointInMiniMap = getPointInMiniMap(downEvent)
+  const point = getPointInMiniMap(downEvent)
 
-  const initialWorldX = pointInMiniMap.x * unscaleMap + limitMapPoints.min.x
-  const initialWorldY = pointInMiniMap.y * unscaleMap + limitMapPoints.min.y
+  const initialWorldX = point.x * unscaleMap + limitMapPoints.min.x
+  const initialWorldY = point.y * unscaleMap + limitMapPoints.min.y
 
   return {
     x: initialWorldX,
@@ -120,14 +121,12 @@ export const fromMiniMapToCameraPosition = ({
   const deltaWorldX = worldX - initialClickedWorldPoint.x
   const deltaWorldY = worldY - initialClickedWorldPoint.y
 
-  return {
-    ...initialCameraState,
-    camera: {
-      ...initialCameraState.camera,
+  return _u.merge(initialCameraState, {
+    camera: _u.merge(initialCameraState.camera, {
       x: initialCameraState.camera.x - deltaWorldX * initialCameraState.camera.scale,
       y: initialCameraState.camera.y - deltaWorldY * initialCameraState.camera.scale,
-    }
-  }
+    })
+  })
 }
 
 export const canMoveMiniMapViewportRect = ({ miniMapCamera, unscaleMap, downEvent }: {
@@ -135,12 +134,7 @@ export const canMoveMiniMapViewportRect = ({ miniMapCamera, unscaleMap, downEven
   miniMapCamera: Rect
   unscaleMap: number
 }) => {
-  const unscaledMapViewportRect: Rect = {
-    x: miniMapCamera.x / unscaleMap,
-    y: miniMapCamera.y / unscaleMap,
-    width: miniMapCamera.width / unscaleMap,
-    height: miniMapCamera.height / unscaleMap,
-  }
+  const unscaledMapViewportRect = unscaleRect(miniMapCamera, unscaleMap)
 
   const clientRect = (downEvent.target as HTMLElement).getBoundingClientRect()
   const pointFromEvent = getPointFromEvent(downEvent)
@@ -163,7 +157,7 @@ export const getMiniMapPointerContext = ({ pointerEvent, unscaleMap, miniMapCame
 }) => {
   const pointInMiniMap = getPointInMiniMap(pointerEvent)
 
-  const viewportRect = scaleRect(miniMapCamera, unscaleMap)
+  const viewportRect = unscaleRect(miniMapCamera, unscaleMap)
   const pointInViewportRect = isRectIntersection({
     point: pointInMiniMap,
     rect: viewportRect,
@@ -196,18 +190,11 @@ export const moveCameraToClickedPoint = ({
     x: (pointInMiniMap.x - viewportRect.x - viewportRect.width / 2) * unscaleMap * cameraState.camera.scale,
   }
 
-  const distanceMoveToPoint: Point = {
-    x: cameraState.camera.x - subtractedDistance.x,
-    y: cameraState.camera.y - subtractedDistance.y,
-  }
+  const distanceMoveToPoint = subtractPoint(subtractedDistance, cameraState.camera)
 
-  return {
-    ...cameraState,
-    camera: {
-      ...cameraState.camera,
-      ...distanceMoveToPoint,
-    }
-  }
+  return _u.merge(cameraState, {
+    camera: _u.merge(cameraState.camera, distanceMoveToPoint)
+  })
 }
 
 export const updateCameraWithAnimation = ({ elapsed, cameraState, displacement }: {
@@ -219,12 +206,10 @@ export const updateCameraWithAnimation = ({ elapsed, cameraState, displacement }
   const tx = -Math.cos(angle) * 10
   const ty = -Math.sin(angle) * 10
 
-  return {
-    ...cameraState,
-    camera: {
-      ...cameraState.camera,
+  return _u.merge(cameraState, {
+    camera: _u.merge(cameraState.camera, {
       x: cameraState.camera.x + tx * (elapsed / 100),
       y: cameraState.camera.y + ty * (elapsed / 100),
-    }
-  }
+    })
+  })
 }

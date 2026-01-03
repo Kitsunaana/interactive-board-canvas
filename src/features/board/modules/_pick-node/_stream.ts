@@ -2,7 +2,8 @@ import { initialCanvas } from "@/shared/lib/initial-canvas.ts";
 import { defer, fromEvent, map, Observable, shareReplay, tap, withLatestFrom } from "rxjs";
 import { nodes$ } from "../../domain/node.ts";
 import { cameraSubject$ } from "../_camera";
-import { context, findNodeByColorId, renderHelperNodes } from "./_core.ts";
+import { context, findNodeByColorId } from "./_core.ts";
+import { renderHelperNodes } from "./loop.ts";
 
 export const [_, canvas] = initialCanvas({
   height: window.innerHeight / 2,

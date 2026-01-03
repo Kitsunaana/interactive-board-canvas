@@ -1,6 +1,5 @@
 import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
 import { getBoundingClientRect } from "@/shared/lib/utils"
-import type { Rect } from "@/shared/type/shared"
 
 export type MiniMapState = {
   context: CanvasRenderingContext2D | null
@@ -11,13 +10,6 @@ export type MiniMapStateReady = MiniMapState & {
   context: CanvasRenderingContext2D
   canvas: HTMLCanvasElement
 }
-
-export const scaleRect = (rect: Rect, scale: number): Rect => ({
-  height: rect.height / scale,
-  width: rect.width / scale,
-  y: rect.y / scale,
-  x: rect.x / scale,
-})
 
 export const getPointInMiniMap = (downEvent: PointerEvent) => {
   return screenToCanvas({

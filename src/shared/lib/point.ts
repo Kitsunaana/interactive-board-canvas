@@ -1,7 +1,7 @@
 import { defaultTo } from "lodash"
-import type { Point, Rect, Sizes } from "../type/shared"
+import type { Point, Sizes } from "../type/shared"
 
-type Camera = {
+export type Camera = {
   scale?: number
   x: number
   y: number
@@ -32,20 +32,3 @@ export const getPointFromEvent = (event: PointerEvent): Point => ({
   y: event.clientY,
 })
 
-export const centerPointFromRect = (rect: Rect): Point => ({
-  y: rect.y + rect.height / 2,
-  x: rect.x + rect.width / 2,
-})
-
-export const isRectIntersection = ({ camera, rect, point }: {
-  camera: Camera
-  point: Point
-  rect: Rect
-}) => {
-  const worldPosition = screenToCanvas({ point, camera })
-
-  return (
-    worldPosition.x >= rect.x && worldPosition.x <= rect.x + rect.width &&
-    worldPosition.y >= rect.y && worldPosition.y <= rect.y + rect.height
-  )
-}
