@@ -1,5 +1,5 @@
-﻿import {generateRandomColor} from "../view-model";
-import type {Node} from "./node.ts";
+﻿import { generateRandomColor } from "../modules/_pick-node";
+import type { Node } from "./node.ts";
 
 export const nodes: Node[] = [
   {

@@ -1,5 +1,5 @@
+import type { Point, Rect } from "@/shared/type/shared";
 import React from "react";
-import type {Point, Rect} from "../../../../shared/type/shared.ts";
 
 export type IdleViewState = {
   selectedIds: Set<string>

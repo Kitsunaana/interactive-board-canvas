@@ -1,5 +1,5 @@
 import type { ObservedValueOf } from "rxjs"
-import type {getMiniMapRenderLoop} from "../stream/mini-map.ts";
+import type { getMiniMapRenderLoop } from "../modules/_mini-map/_stream"
 
 export type SubscribeToMiniMapRenderLoopParams = ObservedValueOf<
   ReturnType<typeof getMiniMapRenderLoop>

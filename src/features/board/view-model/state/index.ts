@@ -1,3 +1,4 @@
+import { match } from "@/shared/lib/match.ts";
 import {
   BehaviorSubject,
   combineLatest,
@@ -15,14 +16,13 @@ import {
   takeUntil,
   withLatestFrom
 } from "rxjs";
-import {goToIdle, type ViewModel, type ViewModelState} from "./type.ts";
-import {nodes$} from "../../domain/node.ts";
-import {match} from "../../../../shared/lib/match.ts";
-import type {StickerToView} from "../../domain/sticker.ts";
-import {mouseDown$, mouseUp$, pointerMove$, pointerUp$, wheel$} from "../pick-node-by-color/stream.ts";
-import {stickerSelection} from "./idle/selection.ts";
-import {cameraSubject$} from "../../stream/camera.ts";
-import {endMoveOneNode, movingOneNode, startMoveOneNode} from "./idle/moving.ts";
+import { nodes$ } from "../../domain/node.ts";
+import type { StickerToView } from "../../domain/sticker.ts";
+import { cameraSubject$ } from "../../modules/_camera/";
+import { mouseDown$, mouseUp$, pointerMove$, pointerUp$, wheel$ } from "../../modules/_pick-node";
+import { endMoveOneNode, movingOneNode, startMoveOneNode } from "./idle/moving.ts";
+import { stickerSelection } from "./idle/selection.ts";
+import { goToIdle, type ViewModel, type ViewModelState } from "./type.ts";
 
 export const viewModelState$ = new BehaviorSubject<ViewModelState>(goToIdle())
 

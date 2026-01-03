@@ -1,5 +1,5 @@
-import type {Point} from "../../../../../shared/type/shared.ts";
-import {isNil} from "lodash";
+import type { Point } from "@/shared/type/shared";
+import { isNil } from "lodash";
 
 export const CONFIG = {
   baseOpacity: 0.8,

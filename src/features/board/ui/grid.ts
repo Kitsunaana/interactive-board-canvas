@@ -1,5 +1,5 @@
-import type {Camera} from "../domain/camera.ts";
-import type {Point} from "../../../shared/type/shared.ts";
+import type { Point } from "@/shared/type/shared.ts";
+import type { Camera } from "../modules/_camera/_domain.ts";
 
 export const BASE_GRID_SIZE = 12
 export const COLOR = "#e6e6e6"

@@ -1,13 +1,13 @@
-import "./index.css";
 import "../render-loop";
+import "./index.css";
 
 import { bind } from "@react-rxjs/core";
 import { clsx } from "clsx";
 import { isNil } from "lodash";
 import { map } from "rxjs";
-import {miniMapProperties$} from "../features/board/stream/mini-map.ts";
-import type {CameraState} from "../features/board/domain/camera.ts";
-import {wheelCamera$, zoomTrigger$} from "../features/board/stream/camera.ts";
+import type { CameraState } from "../features/board/modules/_camera/_domain";
+import { wheelCamera$, zoomTrigger$ } from "../features/board/modules/_camera/_stream";
+import { miniMapProperties$ } from "../features/board/modules/_mini-map/_stream";
 
 const toPercentage = (state: CameraState) => `${Math.round(state.camera.scale * 100)}%`
 

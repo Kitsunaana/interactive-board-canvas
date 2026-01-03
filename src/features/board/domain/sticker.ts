@@ -1,14 +1,14 @@
-﻿import {
+﻿import type { Point, Rect } from "@/shared/type/shared.ts";
+import { times } from "lodash";
+import type { Camera } from "../modules/_camera";
+import {
   generateHachureLines,
   generateLayerOffsets,
   generateSketchyOutline,
   getRectBasePoints
 } from "../ui/sketch/sticker/generate.ts";
-import {CONFIG} from "../ui/sketch/sticker/persist.ts";
-import {times} from "lodash";
-import type {Point, Rect} from "../../../shared/type/shared.ts";
-import type {Camera} from "./camera.ts";
-import type {BaseNode} from "./node.ts";
+import { CONFIG } from "../ui/sketch/sticker/persist.ts";
+import type { BaseNode } from "./node.ts";
 
 export type StickerSketchVariant = {
   variant: "sketch"

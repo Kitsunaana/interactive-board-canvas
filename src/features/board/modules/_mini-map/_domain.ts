@@ -1,6 +1,6 @@
-import type {Rect} from "../../../shared/type/shared.ts";
-import {getPointFromEvent, screenToCanvas} from "../../../shared/lib/point.ts";
-import {getBoundingClientRect} from "../../../shared/lib/utils.ts";
+import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
+import { getBoundingClientRect } from "@/shared/lib/utils"
+import type { Rect } from "@/shared/type/shared"
 
 export type MiniMapState = {
   context: CanvasRenderingContext2D | null

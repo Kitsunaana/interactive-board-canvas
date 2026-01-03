@@ -1,8 +1,8 @@
-import {getPointFromEvent, screenToCanvas} from "../../../../shared/lib/point.ts";
-import type {Camera} from "../../../../modules/camera";
-import {initialCanvas} from "../../../../shared/lib/initial-canvas.ts";
-import type {Node} from "../../domain/node.ts";
-import type {Sticker} from "../../domain/sticker.ts";
+import { initialCanvas } from "@/shared/lib/initial-canvas"
+import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
+import type { Node } from "../../domain/node"
+import type { Sticker } from "../../domain/sticker"
+import type { Camera } from "../_camera"
 
 export const [context] = initialCanvas({
   height: window.innerHeight,

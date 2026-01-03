@@ -1,15 +1,15 @@
-import { animationFrames, combineLatest, map, startWith, tap, withLatestFrom } from "rxjs"
-import {canvas, context, resize$} from "./shared/lib/initial-canvas.ts";
-import {getCanvasSizes, isNotNull} from "./shared/lib/utils.ts";
-import {getActiveBoxDots, type StickerToView} from "./features/board/domain/sticker.ts";
-import {drawActiveBox} from "./features/board/ui/active-box.ts";
-import {getMiniMapRenderLoop, miniMapCameraSubject$} from "./features/board/stream/mini-map.ts";
-import {subscribeToMiniMapRenderLoop} from "./features/board/ui/mini-map.ts";
-import {cameraSubject$, gridTypeSubject$} from "./features/board/stream/camera.ts";
-import {type Camera, getWorldPoints} from "./features/board/domain/camera.ts";
-import {drawSticker} from "./features/board/ui/sketch/sticker/draw.ts";
-import {viewModel$} from "./features/board/view-model/state";
-import {gridTypeVariants, LEVELS, toDrawOneLevel} from "./features/board/ui/grid.ts";
+import { animationFrames, combineLatest, map, startWith, tap, withLatestFrom } from "rxjs";
+import { getActiveBoxDots, type StickerToView } from "./features/board/domain/sticker.ts";
+import { getWorldPoints, type Camera } from "./features/board/modules/_camera/_domain.ts";
+import { cameraSubject$, gridTypeSubject$ } from "./features/board/modules/_camera/_stream.ts";
+import { getMiniMapRenderLoop, miniMapCameraSubject$ } from "./features/board/modules/_mini-map/_stream.ts";
+import { drawActiveBox } from "./features/board/ui/active-box.ts";
+import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./features/board/ui/grid.ts";
+import { subscribeToMiniMapRenderLoop } from "./features/board/ui/mini-map.ts";
+import { drawSticker } from "./features/board/ui/sketch/sticker/draw.ts";
+import { viewModel$ } from "./features/board/view-model/state";
+import { canvas, context, resize$ } from "./shared/lib/initial-canvas.ts";
+import { getCanvasSizes, isNotNull } from "./shared/lib/utils.ts";
 
 export const canvasProperties$ = combineLatest([
   cameraSubject$,

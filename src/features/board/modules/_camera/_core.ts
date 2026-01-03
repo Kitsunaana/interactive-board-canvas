@@ -7,10 +7,10 @@ import {
   ZOOM_INTENSITY,
   ZOOM_MAX_SCALE,
   ZOOM_MIN_SCALE
-} from "../const/camera.ts";
-import type {Camera, CameraState, ZoomEvent} from "../domain/camera.ts";
+} from "./_const";
+import type { Camera, CameraState, ZoomEvent } from "./_domain";
 
-export const toMovingPanState = ({moveEvent, dragState}: {
+export const toMovingPanState = ({ moveEvent, dragState }: {
   moveEvent: PointerEvent;
   dragState: CameraState
 }) => ({
@@ -34,7 +34,7 @@ export const toMovingPanState = ({moveEvent, dragState}: {
   },
 })
 
-export const toStartPanState = ({dragState, startEvent}: {
+export const toStartPanState = ({ dragState, startEvent }: {
   startEvent: PointerEvent
   dragState: CameraState
 }): CameraState => ({
@@ -78,14 +78,14 @@ export const mergeCameraWithUpdatedState = (camera: CameraState, updated: Camera
   }
 })
 
-export const wheelCameraUpdate = ({cameraState, event}: {
+export const wheelCameraUpdate = ({ cameraState, event }: {
   event: WheelEvent | ZoomEvent
   cameraState: CameraState
 }) => ({
   ...INITIAL_STATE,
   camera: event instanceof WheelEvent
     ? changeZoom(cameraState.camera, event)
-    : ({zoomIn, zoomOut})[event.__event](cameraState.camera)
+    : ({ zoomIn, zoomOut })[event.__event](cameraState.camera)
 })
 
 export const inertiaCameraUpdate = (cameraState: CameraState) => {

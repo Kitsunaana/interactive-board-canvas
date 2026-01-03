@@ -1,6 +1,6 @@
-﻿import { BehaviorSubject } from "rxjs"
-import {nodes} from "./_assets.ts";
-import type {Sticker} from "./sticker.ts";
+﻿import { BehaviorSubject } from "rxjs";
+import { nodes } from "./_assets.ts";
+import type { Sticker } from "./sticker.ts";
 
 export type BaseNode = {
   id: string

@@ -1,5 +1,5 @@
-import type {Point} from "../../../shared/type/shared.ts";
-import type {Camera} from "../../../modules/camera";
+import type { Point } from "@/shared/type/shared"
+import type { Camera } from "./_domain"
 
 export const VELOCITY_SCALE = 0.1
 export const MIN_VELOCITY = 5

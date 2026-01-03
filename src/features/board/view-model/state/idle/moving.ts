@@ -1,10 +1,10 @@
-﻿import type {Point} from "../../../../../shared/type/shared.ts";
-import type {Node} from "../../../domain/node.ts";
-import {moveSelectedNodes} from "./selection.ts";
-import {isNil} from "lodash";
-import {viewModelState$} from "../index.ts";
-import type {IdleViewState} from "../type.ts";
-import type {Camera} from "../../../domain/camera.ts";
+﻿import type { Point } from "@/shared/type/shared.ts";
+import { isNil } from "lodash";
+import type { Node } from "../../../domain/node.ts";
+import type { Camera } from "../../../modules/_camera";
+import { viewModelState$ } from "../index.ts";
+import type { IdleViewState } from "../type.ts";
+import { moveSelectedNodes } from "./selection.ts";
 
 export const startMoveOneNode = ({ event, node, nodes, point }: {
   event: PointerEvent

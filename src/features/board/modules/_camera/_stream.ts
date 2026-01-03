@@ -1,4 +1,5 @@
-﻿import {isEqual} from "lodash"
+﻿import { canvas } from "@/shared/lib/initial-canvas"
+import { isEqual } from "lodash"
 import {
   animationFrames,
   BehaviorSubject,
@@ -17,16 +18,16 @@ import {
   tap,
   withLatestFrom
 } from "rxjs"
-import {canvas} from "../../../shared/lib/initial-canvas.ts";
-import type {ZoomEvent} from "../domain/camera.ts";
-import {INITIAL_STATE} from "../const/camera.ts";
+import { INITIAL_STATE } from "./_const"
 import {
-  canStartPan, inertiaCameraUpdate,
+  canStartPan,
+  inertiaCameraUpdate,
   mergeCameraWithUpdatedState,
   toMovingPanState,
   toStartPanState,
   wheelCameraUpdate
-} from "../model/camera.ts";
+} from "./_core"
+import type { ZoomEvent } from "./_domain"
 
 const pointerLeave$ = fromEvent<PointerEvent>(canvas, "pointerleave")
 const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
@@ -50,13 +51,13 @@ export const userActivity$ = merge(activityStart$, activityEnd$).pipe(
 export const pan$ = pointerDown$.pipe(
   filter(canStartPan),
   withLatestFrom(cameraSubject$),
-  map(([startEvent, dragState]) => toStartPanState({startEvent, dragState})),
+  map(([startEvent, dragState]) => toStartPanState({ startEvent, dragState })),
 
   tap(() => document.documentElement.style.cursor = "grabbing"),
 
   switchMap((dragState) => (
     pointerMove$.pipe(
-      map((moveEvent) => ({moveEvent, dragState})),
+      map((moveEvent) => ({ moveEvent, dragState })),
       takeUntil(merge(pointerUp$, pointerLeave$)),
       map(toMovingPanState),
 
@@ -67,7 +68,7 @@ export const pan$ = pointerDown$.pipe(
 
 export const wheelCamera$ = merge(wheel$, zoomTrigger$).pipe(
   withLatestFrom(cameraSubject$),
-  map(([event, cameraState]) => wheelCameraUpdate({event, cameraState})),
+  map(([event, cameraState]) => wheelCameraUpdate({ event, cameraState })),
   shareReplay(1)
 )
 

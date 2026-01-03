@@ -1,6 +1,6 @@
-import {CONFIG, persist} from "./persist.ts";
-import type {Point} from "../../../../../shared/type/shared.ts";
-import {times} from "lodash";
+import type { Point } from "@/shared/type/shared.ts";
+import { times } from "lodash";
+import { CONFIG, persist } from "./persist.ts";
 
 export const generateWobblyLinePoints = ({ x1, y1, x2, y2, layer, index }: {
   layer: number

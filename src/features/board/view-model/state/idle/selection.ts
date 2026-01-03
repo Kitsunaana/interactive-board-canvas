@@ -1,10 +1,4 @@
-﻿import type {Node} from "../../../domain/node.ts";
-import type {Point} from "../../../../../shared/type/shared.ts";
-import {_u} from "../../../../../shared/lib/utils.ts";
-import {addPoint, getPointFromEvent, screenToCanvas, subtractPoint} from "../../../../../shared/lib/point.ts";
-import type {IdleViewState} from "../../../../../modules/view-model/domain/type.ts";
-import type {StickerToView} from "../../../domain/sticker.ts";
-import type {Camera} from "../../../domain/camera.ts";
+﻿import type { IdleViewState } from "../type.ts";
 
 export type SelectionModifier = "replace" | "add" | "toggle"
 export type Selection = Set<string>

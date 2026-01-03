@@ -1,6 +1,6 @@
-import type {Point, Sizes} from "../../../shared/type/shared.ts";
-import {screenToCanvas, sizesToPoint} from "../../../shared/lib/point.ts";
-import {START_POINT} from "../const/camera.ts";
+import { screenToCanvas, sizesToPoint } from "@/shared/lib/point"
+import type { Point, Sizes } from "@/shared/type/shared"
+import { START_POINT } from "./_const"
 
 export type Camera = {
   scale: number

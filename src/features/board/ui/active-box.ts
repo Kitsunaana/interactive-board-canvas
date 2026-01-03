@@ -1,6 +1,6 @@
-﻿import type {Camera} from "../../../modules/camera";
-import type {Rect} from "../../../shared/type/shared.ts";
-import type {getActiveBoxDots} from "../domain/sticker.ts";
+﻿import type { Rect } from "@/shared/type/shared.ts";
+import type { getActiveBoxDots } from "../domain/sticker.ts";
+import type { Camera } from "../modules/_camera/_domain.ts";
 
 export const drawActiveBox = ({ context, rect, camera, activeBoxDots }: {
   activeBoxDots: ReturnType<typeof getActiveBoxDots>

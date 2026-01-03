@@ -1,4 +1,9 @@
-﻿import {
+﻿import { resize$ } from "@/shared/lib/initial-canvas";
+import { centerPointFromRect, subtractPoint } from "@/shared/lib/point";
+import { _u, isNegative, isNotNull } from "@/shared/lib/utils";
+import type { Rect } from "@/shared/type/shared";
+import { isEqual } from "lodash";
+import {
   animationFrames,
   BehaviorSubject,
   combineLatest,
@@ -14,23 +19,22 @@
   tap,
   withLatestFrom
 } from "rxjs";
-import type {Rect} from "../../../shared/type/shared.ts";
-import {isEqual} from "lodash";
-import {_u, isNegative, isNotNull} from "../../../shared/lib/utils.ts";
+import type { renderLoop$ } from "src/render-loop";
+import { nodes$ } from "../../domain/node";
+import { cameraSubject$ } from "../_camera";
 import {
-  calculateUnscaleMap, canMoveMiniMapViewportRect,
+  calculateUnscaleMap,
+  canMoveMiniMapViewportRect,
   computeMiniMapCameraRect,
-  findLimitMapPoints, fromMiniMapToCameraPosition, getInitialClickedWorldPoint, getMiniMapPointerContext,
+  findLimitMapPoints,
+  fromMiniMapToCameraPosition,
+  getInitialClickedWorldPoint,
+  getMiniMapPointerContext,
   moveCameraToClickedPoint,
   updateCameraWithAnimation,
   updateMiniMapSizes
-} from "../model/mini-map.ts";
-import {resize$} from "../../../shared/lib/initial-canvas.ts";
-import {nodes$} from "../domain/node.ts";
-import type {renderLoop$} from "../../../render-loop.ts";
-import {centerPointFromRect, subtractPoint} from "../../../shared/lib/point.ts";
-import {type MiniMapState, type MiniMapStateReady, scaleRect} from "../domain/mini-map.ts";
-import {cameraSubject$} from "./camera.ts";
+} from "./_core";
+import { scaleRect, type MiniMapState, type MiniMapStateReady } from "./_domain";
 
 export const miniMapCameraSubject$ = new BehaviorSubject<Rect>({
   height: 0,
@@ -54,9 +58,7 @@ export const miniMapSizes$ = combineLatest([
   readyMiniMapSubject$
 ]).pipe(
   map(([sizes, readyMap]) => ({ sizes, readyMap })),
-  distinctUntilChanged((prev, current) => (
-    isEqual(prev.sizes, current.sizes)
-  )),
+  distinctUntilChanged((prev, current) => isEqual(prev.sizes, current.sizes)),
   map(({ sizes }) => sizes),
 )
 
