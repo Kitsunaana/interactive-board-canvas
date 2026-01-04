@@ -1,10 +1,9 @@
 import type { Point } from "@/shared/type/shared.ts";
 import { times } from "lodash";
-import { CONFIG, persist } from "./persist.ts";
+import { CONFIG } from "./sticker/config";
 
-export const generateWobblyLinePoints = ({ x1, y1, x2, y2, layer, index }: {
-  layer: number
-  index: number
+export const generateWobblyLinePoints = ({ x1, y1, x2, y2, rand, }: {
+  rand: () => number
   x1: number
   y1: number
   x2: number
@@ -26,18 +25,16 @@ export const generateWobblyLinePoints = ({ x1, y1, x2, y2, layer, index }: {
     const dy = y2 - y1
     const len = Math.hypot(dx, dy)
 
-    const randomLine = persist.wobblyLine.addOrGetWobblyLine({ segment, line: layer, step: index })
-
     if (len > 0) {
       const nx = -dy / len
       const ny = dx / len
 
-      x += nx * (randomLine.one.x - 0.5) * roughness * 2
-      y += ny * (randomLine.one.y - 0.5) * roughness * 2
+      x += nx * (rand() - 0.5) * roughness * 2
+      y += ny * (rand() - 0.5) * roughness * 2
     }
 
-    x += (randomLine.two.x - 0.5) * roughness * 0.8
-    y += (randomLine.two.y - 0.5) * roughness * 0.8
+    x += (rand() - 0.5) * roughness * 0.8
+    y += (rand() - 0.5) * roughness * 0.8
 
     points.push({ x, y })
   }
@@ -47,8 +44,9 @@ export const generateWobblyLinePoints = ({ x1, y1, x2, y2, layer, index }: {
   return points
 }
 
-export const generateHachureLines = ({ outlinePoints, offsetX = 0, offsetY = 0 }: {
+export const generateHachureLines = ({ rand, outlinePoints, offsetX = 0, offsetY = 0 }: {
   outlinePoints: Point[]
+  rand: () => number
   offsetX: number
   offsetY: number
 }) => {
@@ -93,15 +91,12 @@ export const generateHachureLines = ({ outlinePoints, offsetX = 0, offsetY = 0 }
       const startX = minX + perpDx * (index + offset / hachureGap)
       const startY = minY + perpDy * (index + offset / hachureGap)
 
-      persist.wobblyLine.addHachureLines({ line: layer, step: index })
-
       const linePoints = generateWobblyLinePoints({
         x2: startX + dx,
         y2: startY + dy,
         x1: startX,
         y1: startY,
-        layer,
-        index,
+        rand,
       })
 
       allLines.push(linePoints)
@@ -111,15 +106,14 @@ export const generateHachureLines = ({ outlinePoints, offsetX = 0, offsetY = 0 }
   return allLines
 }
 
-export const generateSketchyOutline = (basePoints: Point[], outline: number) => {
-  persist.sketchOutline.addOutline({ outline })
-
-  return basePoints.map((point, index) => {
-    const randomPoints = persist.sketchOutline.addOrGetPoints({ outline, index })
-
+export const generateSketchyOutline = ({ basePoints, rand }: {
+  basePoints: Point[]
+  rand: () => number
+}) => {
+  return basePoints.map((point) => {
     return {
-      x: point.x + (randomPoints.x - 0.5) * CONFIG.roughness,
-      y: point.y + (randomPoints.y - 0.5) * CONFIG.roughness * 0.6,
+      x: point.x + (rand() - 0.5) * CONFIG.roughness,
+      y: point.y + (rand() - 0.5) * CONFIG.roughness * 0.6,
     }
   })
 }
@@ -154,15 +148,11 @@ export const getEllipseBasePoints = (cx: number, cy: number, rx: number, ry: num
   return points
 }
 
-export const generateLayerOffsets = (layerOffset: number) => {
-  persist.layerOffsets.addLayerOffsets({ layerOffset })
-
-  return times(CONFIG.layers).map((index) => {
-    const offset = persist.layerOffsets.addOrGetLayerOffset({ layerOffset, index })
-
+export const generateLayerOffsets = ({ rand }: { rand: () => number }) => {
+  return times(CONFIG.layers).map(() => {
     return {
-      x: (offset.x - 0.5) * CONFIG.maxOffset,
-      y: (offset.y - 0.5) * CONFIG.maxOffset,
+      x: (rand() - 0.5) * CONFIG.maxOffset,
+      y: (rand() - 0.5) * CONFIG.maxOffset,
     }
   })
 }

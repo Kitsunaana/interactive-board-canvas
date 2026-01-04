@@ -1,14 +1,21 @@
 ﻿import type { Point, Rect } from "@/shared/type/shared.ts";
 import { times } from "lodash";
 import type { Camera } from "../modules/_camera";
+// import {
+//   generateHachureLines,
+//   generateLayerOffsets,
+//   generateSketchyOutline,
+//   getRectBasePoints
+// } from "../ui/sketch/sticker/generate.ts";
 import {
   generateHachureLines,
   generateLayerOffsets,
   generateSketchyOutline,
   getRectBasePoints
-} from "../ui/sketch/sticker/generate.ts";
-import { CONFIG } from "../ui/sketch/sticker/persist.ts";
+} from "../ui/sketch/generate-v2.ts";
+import { CONFIG } from "../ui/sketch/sticker/config.ts";
 import type { BaseNode } from "./node.ts";
+import { getRandFromId } from "@/shared/lib/seed.ts";
 
 export type StickerSketchVariant = {
   variant: "sketch"
@@ -48,15 +55,21 @@ export type ActiveBoxDotsParams = {
   rect: Rect
 }
 
-export const generateRectSketchProps = (rect: Rect) => {
-  const points = getRectBasePoints(rect.x, rect.y, rect.width, rect.height)
-  const outlines = times(CONFIG.layers).map((index) => generateSketchyOutline(points, index))
+export const generateRectSketchProps = ({ id, ...rect }: Rect & { id: string }) => {
+  const rand = getRandFromId(id)
 
-  const layerOffsets = generateLayerOffsets(0)
+  const basePoints = getRectBasePoints(rect.x, rect.y, rect.width, rect.height)
+  const outlines = times(CONFIG.layers).map(() => generateSketchyOutline({
+    basePoints,
+    rand,
+  }))
+
+  const layerOffsets = generateLayerOffsets({ rand })
   const hachureLines = generateHachureLines({
     outlinePoints: outlines[0],
     offsetX: layerOffsets[0].x,
-    offsetY: layerOffsets[0].y
+    offsetY: layerOffsets[0].y,
+    rand,
   })
 
   return {

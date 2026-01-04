@@ -12,6 +12,7 @@ export const nodes: Sticker[] = [
     variant: "sketch",
     colorId: generateRandomColor(),
     ...generateRectSketchProps({
+      id: "1",
       height: 125,
       width: 250,
       x: 250,
@@ -28,6 +29,7 @@ export const nodes: Sticker[] = [
     variant: "sketch",
     colorId: generateRandomColor(),
     ...generateRectSketchProps({
+      id: "2",
       height: 100,
       width: 100,
       x: 120,

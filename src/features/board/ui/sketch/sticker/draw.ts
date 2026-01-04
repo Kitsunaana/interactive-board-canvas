@@ -1,7 +1,7 @@
 import { context } from "@/shared/lib/initial-canvas.ts";
 import type { Point } from "@/shared/type/shared.ts";
 import type { Sticker } from "../../../domain/sticker.ts";
-import { CONFIG } from "./persist.ts";
+import { CONFIG } from "./config.ts";
 
 export const drawSmoothPath = (points: Point[], offsetX: number, offsetY: number) => {
   if (points.length < 3) return

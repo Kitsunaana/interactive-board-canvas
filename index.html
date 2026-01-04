@@ -20,3 +20,676 @@
 </body>
 
 </html>
+
+<!-- <!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Многосегментные стрелки на Canvas — правильная кривая как в draw.io</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    canvas { border: 1px solid #ccc; background: #f9f9f9; display: block; }
+    .controls { margin: 15px 0; }
+    button { margin-right: 10px; padding: 8px 12px; font-size: 14px; }
+    button.active { background: #007bff; color: white; }
+    button#clear { background: #dc3545; color: white; }
+  </style>
+</head>
+<body>
+
+<h2>Стрелки на Canvas — правильная плавная кривая (как в draw.io)</h2>
+
+<div class="controls">
+  <button id="mode1" class="active">1. Прямая (ломаная)</button>
+  <button id="mode2">2. Кривая (плавная)</button>
+  <button id="mode3">3. Угловая</button>
+  <button id="clear">Очистить</button>
+</div>
+
+<canvas id="canvas" width="900" height="600"></canvas>
+
+<p>Кликайте по канвасу, чтобы добавлять точки. В режиме "Кривая" используется Catmull-Rom сплайн — одна гладкая линия через все точки.</p>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let points = [];
+let mode = 1;
+
+// Управление
+document.getElementById('mode1').onclick = () => setMode(1);
+document.getElementById('mode2').onclick = () => setMode(2);
+document.getElementById('mode3').onclick = () => setMode(3);
+document.getElementById('clear').onclick = () => { points = []; draw(); };
+
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.controls button:not(#clear)').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode' + m).classList.add('active');
+  draw();
+}
+
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  points.push({x, y});
+  draw();
+});
+
+// Наконечник стрелки
+function drawArrowhead(fromX, fromY, toX, toY, radius = 12) {
+  const angle = Math.atan2(toY - fromY, toX - fromX);
+  const arrowAngle = Math.PI / 6;
+
+  ctx.beginPath();
+  ctx.moveTo(toX, toY);
+  ctx.lineTo(toX - radius * Math.cos(angle - arrowAngle), toY - radius * Math.sin(angle - arrowAngle));
+  ctx.lineTo(toX - radius * Math.cos(angle + arrowAngle), toY - radius * Math.sin(angle + arrowAngle));
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Правильная реализация Catmull-Rom сплайна через quadraticCurveTo
+function drawCatmullRomCurve(points) {
+  if (points.length < 2) return;
+
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(i - 1, 0)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(i + 2, points.length - 1)];
+
+    // Контрольная точка для quadraticCurveTo
+    const cpX = p1.x + (p2.x - p0.x) / 6;
+    const cpY = p1.y + (p2.y - p0.y) / 6;
+
+    ctx.quadraticCurveTo(cpX, cpY, p2.x, p2.y);
+  }
+
+  ctx.stroke();
+}
+
+// Основная функция отрисовки
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Рисуем точки
+  points.forEach((p, i) => {
+    ctx.fillStyle = i === 0 ? 'red' : (i === points.length - 1 ? 'blue' : 'cyan');
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke(); // белая обводка для красоты
+
+    ctx.fillStyle = 'black';
+    ctx.font = '12px Arial';
+    ctx.fillText(i === 0 ? 'Start' : (i === points.length - 1 ? 'End' : i), p.x + 10, p.y - 10);
+  });
+
+  if (points.length < 2) return;
+
+  ctx.strokeStyle = '#d2691e'; // цвет как в draw.io
+  ctx.lineWidth = 4;
+  ctx.fillStyle = '#d2691e';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (mode === 1) {
+    // 1. Ломаная линия
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+
+    const last = points[points.length - 1];
+    const prev = points[points.length - 2];
+    drawArrowhead(prev.x, prev.y, last.x, last.y);
+
+  } else if (mode === 2) {
+    // 2. Плавная кривая — правильный Catmull-Rom
+    drawCatmullRomCurve(points);
+
+    // Наконечник: берём направление от предпоследней к последней точке
+    const n = points.length;
+    const pLast = points[n - 1];
+    const pPrev = points[n - 2];
+    const pPrev2 = points[Math.max(n - 3, 0)];
+
+    // Более точное направление: контрольная точка перед концом
+    const cpX = pPrev.x + (pLast.x - pPrev2.x) / 6;
+    const cpY = pPrev.y + (pLast.y - pPrev2.y) / 6;
+
+    drawArrowhead(cpX, cpY, pLast.x, pLast.y);
+
+  } else if (mode === 3) {
+    // 3. Угловая маршрутизация
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      if (i % 2 === 1) {
+        ctx.lineTo(curr.x, prev.y);
+      } else {
+        ctx.lineTo(prev.x, curr.y);
+      }
+      ctx.lineTo(curr.x, curr.y);
+    }
+    ctx.stroke();
+
+    const last = points[points.length - 1];
+    const prev = points[points.length - 2];
+    const fromX = (points.length % 2 === 0) ? prev.x : last.x;
+    const fromY = (points.length % 2 === 0) ? last.y : prev.y;
+    drawArrowhead(fromX, fromY, last.x, last.y);
+  }
+}
+
+draw();
+</script>
+
+</body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Curve Line Editor</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      /* background: #111; */
+    }
+    canvas {
+      display: block;
+      /* background: #1e1e1e; */
+      cursor: crosshair;
+    }
+  </style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+
+<script>
+/* ===================== setup ===================== */
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+/* ===================== state ===================== */
+
+const POINT_RADIUS = 6;
+
+let points = [
+  { x: 200, y: 300 }, // start
+  { x: 500, y: 150 }, // control (middle)
+  { x: 800, y: 300 }, // end
+];
+
+let draggingPoint = null;
+
+/* ===================== utils ===================== */
+
+function dist(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function midpoint(a, b) {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
+}
+
+function getMousePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top,
+  };
+}
+
+function findPoint(pos) {
+  return points.find(p => dist(p, pos) <= POINT_RADIUS + 2);
+}
+
+/* ===================== curve logic ===================== */
+// ============ ROUGH.JS ALGORITHM (exact implementation) ============
+
+// Configuration object for sketch style
+const SKETCH_CONFIG = {
+  roughness: 0.4,           // 0 = perfect, higher = more rough (0-3 recommended)
+  bowing: 1,              // Amount of curve bowing (0-3 recommended)
+  curveSteps: 5,         // Number of points to sample along the curve
+  strokeCount: 2,         // Number of strokes (1 = single, 2 = double like rough.js)
+  maxOffset: 6,           // Maximum randomness offset in pixels
+  seed: 234,            // Random seed for consistent results
+  strokeColor: "#364f6b", // Stroke color
+  strokeWidth: 1,         // Stroke width in pixels
+  curveTightness: 0,      // 0 = smooth curves, 1 = straight lines
+};
+
+// ============ ROUGH.JS ALGORITHM (exact implementation) ============
+
+// Seeded random number generator
+const seededRandom = (seed) => {
+  let _seed = seed;
+  return () => {
+    const x = Math.sin(_seed++) * 10000;
+    return x - Math.floor(x);
+  };
+};
+
+// Helper: Calculate offset
+function _offset(min, max, roughness, rng) {
+  return roughness * ((rng() * (max - min)) + min);
+}
+
+function _offsetOpt(x, roughness, rng) {
+  return _offset(-x, x, roughness, rng);
+}
+
+// Helper: Core rough.js line logic
+function _line(x1, y1, x2, y2, context) {
+  const { roughness, bowing, maxOffset, rng } = context;
+  
+  const lengthSq = Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2);
+  const length = Math.sqrt(lengthSq);
+  
+  let roughnessGain = 1;
+  if (length < 200) {
+    roughnessGain = 1;
+  } else if (length > 500) {
+    roughnessGain = 0.4;
+  } else {
+    roughnessGain = (-0.0016668) * length + 1.233334;
+  }
+
+  let offset = maxOffset;
+  if ((offset * offset * 100) > lengthSq) {
+    offset = length / 10;
+  }
+  const halfOffset = offset / 2;
+  
+  const divergePoint = 0.2 + rng() * 0.2;
+  
+  let midDispX = bowing * maxOffset * (y2 - y1) / 200;
+  let midDispY = bowing * maxOffset * (x1 - x2) / 200;
+  midDispX = _offsetOpt(midDispX, roughnessGain, rng);
+  midDispY = _offsetOpt(midDispY, roughnessGain, rng);
+  
+  const randomHalf = () => _offsetOpt(halfOffset, roughnessGain, rng);
+  const randomFull = () => _offsetOpt(offset, roughnessGain, rng);
+  
+  return {
+    midDispX, midDispY, divergePoint, randomHalf, randomFull
+  };
+}
+
+function _generateLineOps(x1, y1, x2, y2, context, move, overlay) {
+  const { midDispX, midDispY, divergePoint, randomHalf, randomFull } = _line(x1, y1, x2, y2, context);
+  const ops = [];
+  
+  if (move) {
+    const r = overlay ? randomHalf : randomFull;
+    ops.push({ op: 'move', data: [x1 + r(), y1 + r()] });
+  }
+  
+  const r = overlay ? randomHalf : randomFull;
+  
+  ops.push({
+    op: 'bcurveTo',
+    data: [
+      midDispX + x1 + (x2 - x1) * divergePoint + r(),
+      midDispY + y1 + (y2 - y1) * divergePoint + r(),
+      midDispX + x1 + 2 * (x2 - x1) * divergePoint + r(),
+      midDispY + y1 + 2 * (y2 - y1) * divergePoint + r(),
+      x2 + r(),
+      y2 + r(),
+    ],
+  });
+  
+  return ops;
+}
+
+// Generate curve ops with offset
+function _curveWithOffset(pts, offset, context) {
+  const { roughness, rng } = context;
+  const ps = [];
+  const lastIdx = pts.length - 1;
+  
+  ps.push([pts[0].x, pts[0].y]);
+  ps.push([pts[0].x, pts[0].y]);
+  
+  for (let i = 1; i < pts.length; i++) {
+    if (i === lastIdx) {
+      ps.push([pts[i].x, pts[i].y]);
+      ps.push([pts[i].x, pts[i].y]);
+    } else {
+      ps.push([
+        pts[i].x + _offsetOpt(offset, roughness, rng), 
+        pts[i].y + _offsetOpt(offset, roughness, rng)
+      ]);
+    }
+  }
+  return _curve(ps, context);
+}
+
+// Convert points to Bezier ops
+function _curve(pts, context) {
+  const { curveTightness } = context;
+  const len = pts.length;
+  const ops = [];
+  
+  if (len > 3) {
+    const s = 1 - curveTightness;
+    ops.push({ op: 'move', data: [pts[1][0], pts[1][1]] });
+    
+    for (let i = 1; (i + 2) < len; i++) {
+      const cachedVertArray = pts[i];
+      const b1 = [
+        cachedVertArray[0] + (s * pts[i + 1][0] - s * pts[i - 1][0]) / 6,
+        cachedVertArray[1] + (s * pts[i + 1][1] - s * pts[i - 1][1]) / 6
+      ];
+      const b2 = [
+        pts[i + 1][0] + (s * pts[i][0] - s * pts[i + 2][0]) / 6,
+        pts[i + 1][1] + (s * pts[i][1] - s * pts[i + 2][1]) / 6
+      ];
+      const b3 = [pts[i + 1][0], pts[i + 1][1]];
+      
+      ops.push({ op: 'bcurveTo', data: [b1[0], b1[1], b2[0], b2[1], b3[0], b3[1]] });
+    }
+  }
+  return ops;
+}
+
+// Main generation functions
+function generateSketchOps(points, config) {
+  if (points.length < 2) return [];
+  
+  const { roughness, curveSteps, strokeCount, maxOffset, seed } = config;
+  const rng = seededRandom(seed);
+  
+  // Create context for helpers
+  const context = { ...config, rng };
+  
+  const curvePoints = [];
+  for (let i = 0; i <= curveSteps; i++) {
+    curvePoints.push(getPointOnCurve(points, i / curveSteps));
+  }
+  
+  const allOps = [];
+  for (let stroke = 0; stroke < strokeCount; stroke++) {
+    const strokeOffset = maxOffset * (1 + stroke * 0.3);
+    const ops = _curveWithOffset(curvePoints, strokeOffset, context);
+    allOps.push(...ops);
+  }
+  
+  return allOps;
+}
+
+function generateArrowOps(points, config) {
+  if (points.length < 2) return null;
+  
+  const { roughness, maxOffset, strokeCount, seed } = config;
+  const rng = seededRandom(seed + 1000); // Different seed from line
+  
+  const arrowLength = 18;
+  const arrowWidth = 12;
+  
+  const endPoint = points[points.length - 1];
+  const prevPoint = getPointOnCurve(points, 0.92);
+  
+  const angle = Math.atan2(endPoint.y - prevPoint.y, endPoint.x - prevPoint.x);
+  
+  const baseCenter = {
+    x: endPoint.x - arrowLength * Math.cos(angle),
+    y: endPoint.y - arrowLength * Math.sin(angle)
+  };
+  
+  const perpX = -Math.sin(angle);
+  const perpY = Math.cos(angle);
+  
+  const tip = endPoint;
+  const corner1 = {
+    x: baseCenter.x + perpX * arrowWidth / 2,
+    y: baseCenter.y + perpY * arrowWidth / 2
+  };
+  const corner2 = {
+    x: baseCenter.x - perpX * arrowWidth / 2,
+    y: baseCenter.y - perpY * arrowWidth / 2
+  };
+  
+  const strokes = [];
+  const wobble = maxOffset * 0.2;
+  
+  for (let stroke = 0; stroke < strokeCount; stroke++) {
+    const trianglePoints = [];
+    trianglePoints.push({ x: tip.x, y: tip.y });
+    trianglePoints.push({
+      x: corner1.x + _offsetOpt(wobble, roughness, rng),
+      y: corner1.y + _offsetOpt(wobble, roughness, rng)
+    });
+    trianglePoints.push({
+      x: corner2.x + _offsetOpt(wobble, roughness, rng),
+      y: corner2.y + _offsetOpt(wobble, roughness, rng)
+    });
+    trianglePoints.push({ x: tip.x, y: tip.y });
+    strokes.push(trianglePoints);
+  }
+  
+  return {
+    strokes,
+    fill: { tip, corner1, corner2 }
+  };
+}
+
+// Cache state
+let sketchCache = null;
+let arrowCache = null;
+let cacheHash = null;
+
+function getHash(points, config) {
+  return points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('|') + JSON.stringify(config);
+}
+
+function drawCurve() {
+  if (points.length < 2) return;
+
+  const hash = getHash(points, SKETCH_CONFIG);
+  if (hash !== cacheHash) {
+    sketchCache = generateSketchOps(points, SKETCH_CONFIG);
+    arrowCache = generateArrowOps(points, SKETCH_CONFIG);
+    cacheHash = hash;
+  }
+  
+  if (!sketchCache || sketchCache.length === 0) return;
+  
+  ctx.strokeStyle = SKETCH_CONFIG.strokeColor;
+  ctx.lineWidth = SKETCH_CONFIG.strokeWidth;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  
+  ctx.beginPath();
+  for (const op of sketchCache) {
+    if (op.op === 'move') {
+      ctx.moveTo(op.data[0], op.data[1]);
+    } else if (op.op === 'bcurveTo') {
+      ctx.bezierCurveTo(op.data[0], op.data[1], op.data[2], op.data[3], op.data[4], op.data[5]);
+    }
+  }
+  ctx.stroke();
+  
+  drawSketchArrowhead(ctx, arrowCache, SKETCH_CONFIG);
+}
+
+function drawSketchArrowhead(ctx, arrowCache, config) {
+  if (!arrowCache) return;
+  
+  ctx.strokeStyle = config.strokeColor;
+  ctx.fillStyle = config.strokeColor;
+  ctx.lineWidth = config.strokeWidth;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  
+  const { tip, corner1, corner2 } = arrowCache.fill;
+  ctx.beginPath();
+  ctx.moveTo(tip.x, tip.y);
+  ctx.lineTo(corner1.x, corner1.y);
+  ctx.lineTo(corner2.x, corner2.y);
+  ctx.closePath();
+  ctx.fill();
+  
+  for (const stroke of arrowCache.strokes) {
+    ctx.beginPath();
+    ctx.moveTo(stroke[0].x, stroke[0].y);
+    for (let i = 1; i < stroke.length; i++) {
+      ctx.lineTo(stroke[i].x, stroke[i].y);
+    }
+    ctx.stroke();
+  }
+}
+
+// Get point on the curve at parameter t (0 to 1)
+function getPointOnCurve(points, t) {
+  if (points.length === 2) {
+    return {
+      x: points[0].x + (points[1].x - points[0].x) * t,
+      y: points[0].y + (points[1].y - points[0].y) * t
+    };
+  }
+  
+  const segments = [];
+  segments.push({ start: points[0], cp: points[1], end: midpoint(points[1], points[2]) });
+  
+  for (let i = 1; i < points.length - 2; i++) {
+    const start = midpoint(points[i], points[i + 1]);
+    const cp = points[i + 1];
+    const end = midpoint(points[i + 1], points[i + 2]);
+    segments.push({ start, cp, end });
+  }
+  
+  const lastMid = midpoint(points[points.length - 2], points[points.length - 1]);
+  segments.push({ 
+    start: lastMid, 
+    cp: points[points.length - 1], 
+    end: points[points.length - 1],
+    isLine: true 
+  });
+  
+  const totalSegments = segments.length;
+  const segmentT = t * totalSegments;
+  const segmentIndex = Math.min(Math.floor(segmentT), totalSegments - 1);
+  const localT = segmentT - segmentIndex;
+  const seg = segments[segmentIndex];
+  
+  if (seg.isLine) {
+    return {
+      x: seg.start.x + (seg.end.x - seg.start.x) * localT,
+      y: seg.start.y + (seg.end.y - seg.start.y) * localT
+    };
+  }
+  
+  const mt = 1 - localT;
+  return {
+    x: mt * mt * seg.start.x + 2 * mt * localT * seg.cp.x + localT * localT * seg.end.x,
+    y: mt * mt * seg.start.y + 2 * mt * localT * seg.cp.y + localT * localT * seg.end.y
+  };
+}
+
+/* ===================== rendering ===================== */
+
+function drawPoints() {
+  for (let i = 0; i < points.length; i++) {
+    ctx.beginPath();
+    ctx.arc(points[i].x, points[i].y, POINT_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = i === 0 || i === points.length - 1
+      ? "#ffca28"
+      : "#ff5252";
+    ctx.fill();
+  }
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawCurve();
+  drawPoints();
+  requestAnimationFrame(render);
+}
+
+render();
+
+/* ===================== interaction ===================== */
+
+canvas.addEventListener("mousedown", e => {
+  const pos = getMousePos(e);
+  const p = findPoint(pos);
+  if (p) {
+    draggingPoint = p;
+  }
+});
+
+canvas.addEventListener("mousemove", e => {
+  if (!draggingPoint) return;
+  const pos = getMousePos(e);
+  draggingPoint.x = pos.x;
+  draggingPoint.y = pos.y;
+});
+
+canvas.addEventListener("mouseup", () => {
+  draggingPoint = null;
+});
+
+canvas.addEventListener("mouseleave", () => {
+  draggingPoint = null;
+});
+
+/* ===================== splitting logic ===================== */
+/*
+  Клик по промежуточной точке:
+  добавляет две новые точки:
+  - между предыдущей и текущей
+  - между текущей и следующей
+*/
+
+canvas.addEventListener("dblclick", e => {
+  const pos = getMousePos(e);
+  const p = findPoint(pos);
+  if (!p) return;
+
+  const index = points.indexOf(p);
+  if (index <= 0 || index >= points.length - 1) return;
+
+  const prev = points[index - 1];
+  const next = points[index + 1];
+
+  const leftMid = midpoint(prev, p);
+  const rightMid = midpoint(p, next);
+
+  points.splice(index, 1, leftMid, p, rightMid);
+});
+</script>
+</body>
+</html> -->
+
