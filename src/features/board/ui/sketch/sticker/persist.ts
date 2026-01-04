@@ -3,8 +3,8 @@ import { isNil } from "lodash";
 
 export const CONFIG = {
   baseOpacity: 0.8,
-  roughness: 4,
-  maxOffset: 4,
+  roughness: 3,
+  maxOffset: 5,
   layers: 2,
 
   hachureRoughness: 4,

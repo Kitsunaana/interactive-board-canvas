@@ -48,8 +48,8 @@ export type ActiveBoxDotsParams = {
   rect: Rect
 }
 
-export const generateNodeSketchProps = (node: Rect) => {
-  const points = getRectBasePoints(node.x, node.y, node.width, node.height)
+export const generateRectSketchProps = (rect: Rect) => {
+  const points = getRectBasePoints(rect.x, rect.y, rect.width, rect.height)
   const outlines = times(CONFIG.layers).map((index) => generateSketchyOutline(points, index))
 
   const layerOffsets = generateLayerOffsets(0)

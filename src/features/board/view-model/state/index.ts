@@ -15,6 +15,7 @@ import {
   take,
   takeUntil,
   tap,
+  takeWhile,
   withLatestFrom
 } from "rxjs";
 import { nodes$ } from "../../domain/node.ts";
@@ -64,7 +65,7 @@ mouseDown$.pipe(
   switchMap(({ camera, event, node, stickers, point, state }) => match(state, {
     __other: () => EMPTY,
     idle: () => {
-      const sharedMove$ = pointerMove$.pipe(share())
+      const sharedMove$ = pointerMove$.pipe(share(), takeWhile((event) => !event.shiftKey))
 
       return merge(
         sharedMove$.pipe(

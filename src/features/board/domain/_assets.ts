@@ -1,5 +1,5 @@
 ﻿import { generateRandomColor } from "../modules/_pick-node";
-import type { Sticker } from "./sticker.ts";
+import { generateRectSketchProps, type Sticker } from "./sticker.ts";
 
 export const nodes: Sticker[] = [
   {
@@ -9,8 +9,14 @@ export const nodes: Sticker[] = [
     width: 250,
     height: 125,
     type: "sticker",
-    variant: "default",
+    variant: "sketch",
     colorId: generateRandomColor(),
+    ...generateRectSketchProps({
+      height: 125,
+      width: 250,
+      x: 250,
+      y: 250,
+    })
   },
   {
     id: "2",
@@ -19,8 +25,14 @@ export const nodes: Sticker[] = [
     width: 100,
     height: 100,
     type: "sticker",
-    variant: "default",
-    colorId: generateRandomColor()
+    variant: "sketch",
+    colorId: generateRandomColor(),
+    ...generateRectSketchProps({
+      height: 100,
+      width: 100,
+      x: 120,
+      y: 120,
+    })
   },
   {
     id: "3",
@@ -63,3 +75,4 @@ export const nodes: Sticker[] = [
     colorId: generateRandomColor()
   }
 ]
+

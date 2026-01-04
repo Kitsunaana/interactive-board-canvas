@@ -15,6 +15,13 @@ export const scaleRect = (rect: Rect, scale: number): Rect => ({
   x: rect.x * scale,
 })
 
+export const inferRect = <T extends Rect>(value: T): Rect => ({
+  height: value.height,
+  width: value.width,
+  x: value.x,
+  y: value.y,
+})
+
 export const isRectIntersection = ({ camera, rect, point }: {
   camera: Camera
   point: Point

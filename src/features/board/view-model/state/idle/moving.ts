@@ -4,7 +4,7 @@ import { isNil } from "lodash";
 import type { Sticker } from "../../../domain/sticker.ts";
 import type { Camera } from "../../../modules/_camera";
 import { viewModelState$ } from "../index.ts";
-import { moveSelectedNodes } from "./selection.ts";
+import { moveSelectedStickers } from "./selection.ts";
 import type { IdleViewState } from "../type.ts";
 
 type StartStickerMove = (params: { event: PointerEvent; sticker: Sticker; point: Point }) => IdleViewState
@@ -32,7 +32,7 @@ export const movingSticker: MovingSticker = ({ stickers, camera, point, event })
   match(viewModelState$.getValue(), {
     __other: () => stickers,
     idle: ({ selectedIds }) => (
-      moveSelectedNodes({
+      moveSelectedStickers({
         selectedIds,
         stickers,
         camera,

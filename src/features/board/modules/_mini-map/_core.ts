@@ -1,7 +1,7 @@
 ﻿import { getPointFromEvent, screenToCanvas, sizesToPoint, subtractPoint } from "@/shared/lib/point"
 import { _u, getBoundingClientRect, getCanvasSizes } from "@/shared/lib/utils"
 import type { LimitMapPoints, Point, Rect, Sizes } from "@/shared/type/shared"
-import { defaultTo } from "lodash"
+import { defaultTo, first } from "lodash"
 import type { Node } from "../../domain/node"
 import type { Camera, CameraState } from "../_camera"
 import { MINI_MAP_UNSCALE } from "./_const"
@@ -23,8 +23,8 @@ export const findLimitMapPoints = ({ nodes, miniMapSizes }: {
 }) => (
   nodes.reduce(
     (foundPoints, node) => {
-      foundPoints.min.x = Math.min(foundPoints.min.x, node.x + node.width)
-      foundPoints.min.y = Math.min(foundPoints.min.y, node.y + node.height)
+      foundPoints.min.x = Math.min(foundPoints.min.x, node.x )
+      foundPoints.min.y = Math.min(foundPoints.min.y, node.y )
       foundPoints.max.x = Math.max(foundPoints.max.x, node.x + node.width)
       foundPoints.max.y = Math.max(foundPoints.max.y, node.y + node.height)
 
@@ -33,8 +33,8 @@ export const findLimitMapPoints = ({ nodes, miniMapSizes }: {
     {
       max: sizesToPoint(miniMapSizes),
       min: {
-        x: defaultTo(nodes[0]?.x, 0),
-        y: defaultTo(nodes[0]?.y, 0),
+        x: defaultTo(first(nodes)?.x, 0),
+        y: defaultTo(first(nodes)?.y, 0),
       },
     } as LimitMapPoints
   )

@@ -1,17 +1,26 @@
-export type AnyState = { type: string }
+export type AnyState<K extends PropertyKey = "type"> = {
+  [P in K]: PropertyKey
+}
 
-export type MatchHandlers<State extends AnyState> = {
-  [Key in State["type"]]?: (state: Extract<State, { type: Key }>) => any
+export type MatchHandlers<State, Discriminant extends keyof State> = {
+  [Key in State[Discriminant] & PropertyKey]?: (state: Extract<State, { [P in Discriminant]: Key }>) => any
 } & {
   __other?: (state: State) => any
 }
 
 export type MatchReturn<MatchMap> = MatchMap[keyof MatchMap] extends (...args: any) => infer R ? R : never
 
-export const match = <State extends AnyState, MatchMap extends MatchHandlers<State>>(
-  state: State,
-  map: MatchMap
-): MatchReturn<MatchMap> => {
-  const handler = map[state.type as keyof MatchMap] ?? map.__other
-  return handler?.(state as any)
+export function match<
+  State extends { type: PropertyKey },
+  Map extends MatchHandlers<State, "type">
+>(state: State, map: Map): MatchReturn<Map>
+export function match<
+  State,
+  Discriminant extends keyof State,
+  Map extends MatchHandlers<State, Discriminant>
+>(state: State, map: Map, discriminant: Discriminant): MatchReturn<Map>
+export function match(state: any, map: any, discriminant: PropertyKey = "type") {
+  const key = state[discriminant]
+  const handler = map[key] ?? map.__other
+  return handler?.(state)
 }

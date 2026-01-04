@@ -10,6 +10,7 @@ import {
   distinctUntilChanged,
   filter,
   fromEvent,
+  interval,
   map,
   merge,
   startWith,
@@ -46,12 +47,21 @@ export const miniMapCameraSubject$ = new BehaviorSubject<Rect>({
 
 export const miniMapProperties$ = new BehaviorSubject<MiniMapState>({
   context: null,
-  canvas: null
+  canvas: null,
+  isShow: true,
 })
+
+export const toggleShowMiniMap = () => {
+  const current = miniMapProperties$.getValue()
+
+  miniMapProperties$.next({
+    ...current,
+    isShow: !current.isShow,
+  })
+}
 
 export const readyMiniMapSubject$ = miniMapProperties$.pipe(
   filter((state): state is MiniMapStateReady => isNotNull(state.canvas) || isNotNull(state.context)),
-  distinctUntilChanged((prev, current) => prev.canvas === current.canvas),
 )
 
 export const miniMapSizes$ = combineLatest([
@@ -59,7 +69,7 @@ export const miniMapSizes$ = combineLatest([
   readyMiniMapSubject$
 ]).pipe(
   map(([sizes, readyMap]) => ({ sizes, readyMap })),
-  distinctUntilChanged((prev, current) => isEqual(prev.sizes, current.sizes)),
+  distinctUntilChanged(isEqual),
   map(({ sizes }) => sizes),
 )
 
@@ -163,7 +173,7 @@ readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
   const pointerUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
 
   return pointerDown$.pipe(
-    filter((downEvent) => downEvent.button !== 1),
+    filter((downEvent) => downEvent.button !== 1 && downEvent.button !== 2),
     withLatestFrom(miniMapCameraSubject$, computeUnscaleMap$),
     map(([pointerEvent, miniMapCamera, unscaleMap]) => getMiniMapPointerContext({
       miniMapCamera,

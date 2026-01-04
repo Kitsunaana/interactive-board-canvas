@@ -9,12 +9,12 @@
 </head>
 
 <body>
-  <div id="app"></div>
-
-  <div style="display: flex;">
-    <canvas id="canvas" className="bg-[#f2f2f2]"></canvas>
+  <div style="display: flex;" className="">
+    <canvas id="canvas" className="bg-[#f2f2f2] absolute top-0 bottom-0 z-[100]"></canvas>
     <canvas id="helper" className="bg-red-500"></canvas>
   </div>
+
+  <div id="app"></div>
 
   <script type="module" src="/src/index.tsx"></script>
 </body>

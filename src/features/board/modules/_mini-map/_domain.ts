@@ -4,6 +4,7 @@ import { getBoundingClientRect } from "@/shared/lib/utils"
 export type MiniMapState = {
   context: CanvasRenderingContext2D | null
   canvas: HTMLCanvasElement | null
+  isShow: boolean
 }
 
 export type MiniMapStateReady = MiniMapState & {
