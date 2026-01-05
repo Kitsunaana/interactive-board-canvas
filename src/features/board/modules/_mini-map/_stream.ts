@@ -27,7 +27,7 @@ import {
   calculateUnscaleMap,
   canMoveMiniMapViewportRect,
   computeMiniMapCameraRect,
-  findLimitMapPoints,
+  computeLimitPoints,
   fromMiniMapToCameraPosition,
   getInitialClickedWorldPoint,
   getMiniMapPointerContext,
@@ -79,9 +79,9 @@ miniMapSizes$.pipe(
 ).subscribe()
 
 export const findLimitMapPoints$ = combineLatest([miniMapSizes$, nodes$]).pipe(
-  map(([miniMapSizes, nodes]) => findLimitMapPoints({
-    miniMapSizes,
-    nodes,
+  map(([miniMapSizes, nodes]) => computeLimitPoints({
+    maxSizes: miniMapSizes,
+    rects: nodes,
   })),
 )
 

@@ -1,6 +1,6 @@
 ﻿import { getPointFromEvent, screenToCanvas, sizesToPoint, subtractPoint } from "@/shared/lib/point"
 import { _u, getBoundingClientRect, getCanvasSizes } from "@/shared/lib/utils"
-import type { LimitMapPoints, Point, Rect, Sizes } from "@/shared/type/shared"
+import type { LimitPoints, Point, Rect, Sizes } from "@/shared/type/shared"
 import { defaultTo, first } from "lodash"
 import type { Node } from "../../domain/node"
 import type { Camera, CameraState } from "../_camera"
@@ -17,11 +17,11 @@ export const updateMiniMapSizes = () => {
   }
 }
 
-export const findLimitMapPoints = ({ nodes, miniMapSizes }: {
-  miniMapSizes: Sizes
-  nodes: Node[]
+export const computeLimitPoints = ({ rects, maxSizes }: {
+  maxSizes: Sizes
+  rects: Rect[]
 }) => (
-  nodes.reduce(
+  rects.reduce(
     (foundPoints, node) => {
       foundPoints.min.x = Math.min(foundPoints.min.x, node.x )
       foundPoints.min.y = Math.min(foundPoints.min.y, node.y )
@@ -31,17 +31,17 @@ export const findLimitMapPoints = ({ nodes, miniMapSizes }: {
       return foundPoints
     },
     {
-      max: sizesToPoint(miniMapSizes),
+      max: sizesToPoint(maxSizes),
       min: {
-        x: defaultTo(first(nodes)?.x, 0),
-        y: defaultTo(first(nodes)?.y, 0),
+        x: defaultTo(first(rects)?.x, 0),
+        y: defaultTo(first(rects)?.y, 0),
       },
-    } as LimitMapPoints
+    } as LimitPoints
   )
 )
 
 export const computeMiniMapCameraRect = ({ camera, limitMapPoints }: {
-  limitMapPoints: LimitMapPoints
+  limitMapPoints: LimitPoints
   camera: Camera
 }): Rect => {
   const minX = Math.abs(limitMapPoints.min.x)
@@ -68,7 +68,7 @@ export const calculateUnscaleMap = ({ miniMapSizes, nodes }: {
   miniMapSizes: Sizes
   nodes: Node[]
 }) => {
-  const mapPoints = findLimitMapPoints({ miniMapSizes, nodes })
+  const mapPoints = computeLimitPoints({ maxSizes: miniMapSizes, rects: nodes })
   const { min, max } = mapPoints
 
   const maxPointX = Math.max(min.x, max.x)
@@ -81,7 +81,7 @@ export const calculateUnscaleMap = ({ miniMapSizes, nodes }: {
 }
 
 export const getInitialClickedWorldPoint = ({ downEvent, unscaleMap, limitMapPoints }: {
-  limitMapPoints: LimitMapPoints
+  limitMapPoints: LimitPoints
   downEvent: PointerEvent
   unscaleMap: number
 }): Point => {
@@ -103,7 +103,7 @@ export const fromMiniMapToCameraPosition = ({
   currentUnscaleMap,
   moveEvent,
 }: {
-  currentLimitMapPoints: LimitMapPoints
+  currentLimitMapPoints: LimitPoints
   initialClickedWorldPoint: Point
   initialCameraState: CameraState
   currentUnscaleMap: number

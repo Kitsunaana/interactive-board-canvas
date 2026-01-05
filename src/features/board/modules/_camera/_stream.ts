@@ -91,7 +91,7 @@ export const cameraState$ = merge(wheelCamera$, pan$).pipe(
   )),
 )
 
-export const camera$ = cameraState$.pipe(map(({ camera }) => camera))
+export const camera$ = cameraSubject$.pipe(map(({ camera }) => camera))
 
 export const cameraWithInertia$ = animationFrames().pipe(
   withLatestFrom(cameraSubject$, userActivity$),

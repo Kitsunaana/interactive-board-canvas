@@ -5,6 +5,8 @@ import { generateRectSketchProps, type Sticker, type StickerToView } from "../..
 import type { Camera } from "../../../modules/_camera";
 import type { IdleViewState } from "../type.ts";
 import { match } from "@/shared/lib/match.ts";
+import { left, right } from "@/shared/lib/either.ts";
+import { computeLimitPoints } from "@/features/board/modules/_mini-map/_core.ts";
 
 export type SelectionModifier = "replace" | "add" | "toggle"
 export type Selection = Set<string>
@@ -54,6 +56,7 @@ export const moveSelectedStickers = ({ camera, stickers, point, event, selectedI
             _u.merge(endPoint, {
               height: sticker.height,
               width: sticker.width,
+              id: sticker.id,
             })
           ))
         },
@@ -80,4 +83,41 @@ export const stickerSelection = ({ event, node, idleState }: {
       ids: [node.id],
     })
   }
+}
+
+export const getRectBySelectedNodes = ({ nodes, selectedIds }: {
+  selectedIds: Set<string>
+  nodes: Sticker[]
+}) => {
+  if (selectedIds.size === 1) {
+    const rect = nodes.find(node => selectedIds.has(node.id))
+    if (rect === undefined) return left(null)
+
+    return right({
+      height: rect.height,
+      width: rect.width,
+      x: rect.x,
+      y: rect.y,
+    })
+  }
+
+  if (selectedIds.size > 1) {
+    const rects = nodes.filter(node => selectedIds.has(node.id))
+
+    const limitPoints = computeLimitPoints({
+      maxSizes: { height: 0, width: 0 },
+      rects,
+    })
+
+    return right({
+      height: limitPoints.max.y - limitPoints.min.y,
+      width: limitPoints.max.x - limitPoints.min.x,
+      // height: limitPoints.max.y,
+      // width: limitPoints.max.x,
+      x: limitPoints.min.x,
+      y: limitPoints.min.y,
+    })
+  }
+
+  return left(null)
 }

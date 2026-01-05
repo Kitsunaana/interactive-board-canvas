@@ -15,7 +15,7 @@ export type Sizes = {
   width: number
 }
 
-export type LimitMapPoints = {
+export type LimitPoints = {
   min: Point
   max: Point
 }

@@ -1,4 +1,6 @@
+import { matchEither } from "@/shared/lib/either.ts";
 import { match } from "@/shared/lib/match.ts";
+import { isRectIntersectionV2 } from "@/shared/lib/rect.ts";
 import {
   BehaviorSubject,
   combineLatest,
@@ -14,16 +16,16 @@ import {
   switchMap,
   take,
   takeUntil,
-  tap,
   takeWhile,
+  tap,
   withLatestFrom
 } from "rxjs";
 import { nodes$ } from "../../domain/node.ts";
 import type { StickerToView } from "../../domain/sticker.ts";
-import { cameraSubject$ } from "../../modules/_camera";
+import { camera$ } from "../../modules/_camera/_stream.ts";
 import { mouseDown$, mouseUp$, pointerMove$, pointerUp$, wheel$ } from "../../modules/_pick-node";
 import { endMoveSticker, movingSticker, startStickerMove } from "./idle/moving.ts";
-import { stickerSelection } from "./idle/selection.ts";
+import { getRectBySelectedNodes, stickerSelection } from "./idle/selection.ts";
 import { goToIdle, type ViewModel, type ViewModelState } from "./type.ts";
 
 export const viewModelState$ = new BehaviorSubject<ViewModelState>(goToIdle())
@@ -41,27 +43,46 @@ export const viewModel$ = combineLatest([viewModelState$, nodes$]).pipe(
   shareReplay({ bufferSize: 1, refCount: true })
 )
 
+export const selectedRect$ = combineLatest([nodes$, viewModelState$])
+  .pipe(map(([nodes, { selectedIds }]) => getRectBySelectedNodes({
+    selectedIds,
+    nodes,
+  })))
+
 mouseUp$.pipe(
   filter(({ event }) => event.button === 0),
-  withLatestFrom(viewModelState$, viewModel$),
-  map(([upEvent, state, viewModel]) => ({ ...upEvent, state, viewModel })),
-  map(({ node, event, state, viewModel }) => match(state, {
+  withLatestFrom(viewModelState$, viewModel$, selectedRect$, camera$),
+  map(([upEvent, state, viewModel, selectedRect, camera]) => ({ ...upEvent, camera, state, viewModel, selectedRect })),
+  map(({ node, point, event, state, viewModel, selectedRect }) => match(state, {
     __other: () => state,
-    idle: (idleState) => match(node, {
-      grid: () => goToIdle(),
-      sticker: (sticker) => {
-        const node = viewModel.nodes.find(({ id }) => sticker.id === id) as StickerToView
+    idle: (idleState) => {
+      return match(node, {
+        grid: () => matchEither(selectedRect, {
+          right: (rect) => isRectIntersectionV2({ point, rect }) ? idleState : goToIdle(),
+          left: () => goToIdle(),
+        }),
+        sticker: (sticker) => {
+          const node = viewModel.nodes.find(({ id }) => sticker.id === id) as StickerToView
 
-        return stickerSelection({ idleState, event, node })
-      },
-    }),
+          return stickerSelection({ idleState, event, node })
+        },
+      })
+    },
   })),
 ).subscribe(viewModelState$)
 
 mouseDown$.pipe(
   filter(({ event }) => event.button === 0),
-  withLatestFrom(nodes$, cameraSubject$, viewModelState$),
-  map(([downEvent, stickers, { camera }, state]) => ({ ...downEvent, stickers, camera, state })),
+  withLatestFrom(nodes$, camera$, viewModelState$, selectedRect$),
+  map(([downEvent, stickers, camera, state, selectedRect]) => ({ ...downEvent, selectedRect, stickers, camera, state })),
+  filter(({ node, point, selectedRect }) => {
+    return matchEither(selectedRect, {
+      left: () => node.type === "sticker",
+      right: (rect) => {
+        return isRectIntersectionV2({ point, rect })
+      },
+    })
+  }),
   switchMap(({ camera, event, node, stickers, point, state }) => match(state, {
     __other: () => EMPTY,
     idle: () => {

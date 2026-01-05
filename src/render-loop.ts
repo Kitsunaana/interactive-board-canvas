@@ -7,9 +7,11 @@ import { drawActiveBox } from "./features/board/ui/active-box.ts";
 import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./features/board/ui/grid.ts";
 import { subscribeToMiniMapRenderLoop } from "./features/board/ui/mini-map.ts";
 import { drawSticker } from "./features/board/ui/sketch/sticker/draw.ts";
-import { viewModel$ } from "./features/board/view-model/state";
+import { selectedRect$, viewModel$, viewModelState$ } from "./features/board/view-model/state";
+import { mapRight } from "./shared/lib/either.ts";
 import { canvas, context, resize$ } from "./shared/lib/initial-canvas.ts";
 import { getCanvasSizes, isNotNull } from "./shared/lib/utils.ts";
+import type { Rect } from "./shared/type/shared.ts";
 
 export const canvasProperties$ = combineLatest([
   cameraSubject$,
@@ -34,18 +36,28 @@ export const gridProps$ = canvasProperties$.pipe(
 )
 
 export const renderLoop$ = animationFrames().pipe(
-  withLatestFrom(cameraSubject$, gridTypeSubject$, viewModel$, miniMapCameraSubject$, gridProps$),
-  map(([_, cameraState, gridType, viewModel, miniMapCameraRect, { canvasProperties, gridProps }]) => ({
+  withLatestFrom(
+    cameraSubject$,
+    gridTypeSubject$,
+    viewModel$,
+    miniMapCameraSubject$,
+    viewModelState$,
+    selectedRect$,
+    gridProps$
+  ),
+  map(([_, cameraState, gridType, viewModel, miniMapCameraRect, viewModelState, selectedRect, { canvasProperties, gridProps }]) => ({
     ...cameraState,
     canvasSizes: canvasProperties.sizes,
     nodes: viewModel.nodes,
     miniMapCameraRect,
+    viewModelState,
+    selectedRect,
     gridProps,
     gridType,
   }))
 )
 
-renderLoop$.subscribe(({ canvasSizes, gridType, gridProps, camera, nodes }) => {
+renderLoop$.subscribe(({ selectedRect, canvasSizes, gridType, gridProps, camera, nodes }) => {
   context.save()
 
   context.clearRect(0, 0, canvasSizes.width, canvasSizes.height)
@@ -55,7 +67,14 @@ renderLoop$.subscribe(({ canvasSizes, gridType, gridProps, camera, nodes }) => {
 
   gridTypeVariants[gridType]({ gridProps, context })
 
-  renderNodes(context, nodes, camera)
+  renderNodes({ context, nodes })
+
+  mapRight(selectedRect, (rect) => {
+    const params = { context, camera, rect }
+
+    drawActiveBox(params)
+    drawActiveBoxDots(params)
+  })
 
   context.restore()
 })
@@ -64,11 +83,10 @@ const miniMapRenderLoop$ = getMiniMapRenderLoop(renderLoop$)
 
 miniMapRenderLoop$.subscribe(subscribeToMiniMapRenderLoop)
 
-export function renderNodes(
-  context: CanvasRenderingContext2D,
-  nodes: StickerToView[],
-  camera: Camera
-) {
+export function renderNodes({ context, nodes }: {
+  context: CanvasRenderingContext2D
+  nodes: StickerToView[]
+}) {
   nodes.forEach((rect) => {
     drawSticker.variant[rect.variant](rect as any)
 
@@ -76,21 +94,34 @@ export function renderNodes(
     context.textAlign = "center"
     context.textBaseline = "middle"
     context.fillText("Hello World", rect.x + rect.width / 2, rect.y + rect.height / 2);
-
-    if (rect.isSelected) {
-      context.save()
-
-      drawActiveBox({
-        rect,
-        camera,
-        context,
-        activeBoxDots: getActiveBoxDots({
-          camera,
-          rect
-        }),
-      })
-
-      context.restore()
-    }
   })
+}
+
+const baseLineWidth = 0.45
+const scalePower = 0.75
+const baseRadius = 5
+
+function drawActiveBoxDots({ context, camera, rect }: {
+  context: CanvasRenderingContext2D
+  camera: Camera
+  rect: Rect
+}) {
+  const dotLineWidth = baseLineWidth / Math.pow(camera.scale, scalePower)
+  const dotRadius = baseRadius / Math.pow(camera.scale, scalePower)
+
+  context.save()
+
+  context.fillStyle = "#ffffff"
+  context.strokeStyle = "#aaaaaa"
+
+  getActiveBoxDots({ camera, rect }).forEach((dot) => {
+    context.beginPath()
+    context.lineWidth = dotLineWidth
+    context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)
+    context.fill()
+    context.stroke()
+    context.closePath()
+  })
+
+  context.restore()
 }

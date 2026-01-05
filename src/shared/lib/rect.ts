@@ -35,6 +35,16 @@ export const isRectIntersection = ({ camera, rect, point }: {
   )
 }
 
+export const isRectIntersectionV2 = ({ rect, point }: {
+  point: Point
+  rect: Rect
+}) => {
+  return (
+    point.x >= rect.x && point.x <= rect.x + rect.width &&
+    point.y >= rect.y && point.y <= rect.y + rect.height
+  )
+}
+
 export const centerPointFromRect = (rect: Rect): Point => ({
   y: rect.y + rect.height / 2,
   x: rect.x + rect.width / 2,
