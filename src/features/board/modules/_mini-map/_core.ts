@@ -136,7 +136,7 @@ export const canMoveMiniMapViewportRect = ({ miniMapCamera, unscaleMap, downEven
 }) => {
   const unscaledMapViewportRect = unscaleRect(miniMapCamera, unscaleMap)
 
-  const clientRect = (downEvent.target as HTMLElement).getBoundingClientRect()
+  const clientRect = getBoundingClientRect(downEvent)
   const pointFromEvent = getPointFromEvent(downEvent)
 
   return isRectIntersection({

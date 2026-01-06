@@ -6,11 +6,12 @@ import { context, findNodeByColorId } from "./_core.ts";
 import { renderHelperNodes } from "./loop.ts";
 
 export const [_, canvas] = initialCanvas({
-  height: window.innerHeight / 2,
-  width: window.innerWidth / 2,
+  height: window.innerHeight,
+  width: window.innerWidth,
   canvasId: "canvas",
 })
 
+export const pointerLeave$ = fromEvent<PointerEvent>(canvas, "pointerleave")
 export const pointerMove$ = fromEvent<PointerEvent>(canvas, "pointermove")
 export const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
 export const pointerUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
