@@ -1,12 +1,7 @@
-﻿import type { Point, Rect } from "@/shared/type/shared.ts";
+﻿import { getRandFromId } from "@/shared/lib/seed.ts";
+import type { Point, Rect } from "@/shared/type/shared.ts";
 import { times } from "lodash";
 import type { Camera } from "../modules/_camera";
-// import {
-//   generateHachureLines,
-//   generateLayerOffsets,
-//   generateSketchyOutline,
-//   getRectBasePoints
-// } from "../ui/sketch/sticker/generate.ts";
 import {
   generateHachureLines,
   generateLayerOffsets,
@@ -15,7 +10,6 @@ import {
 } from "../ui/sketch/generate-v2.ts";
 import { CONFIG } from "../ui/sketch/sticker/config.ts";
 import type { BaseNode } from "./node.ts";
-import { getRandFromId } from "@/shared/lib/seed.ts";
 
 export type StickerSketchVariant = {
   variant: "sketch"
@@ -41,19 +35,17 @@ export type Sticker = BaseNode & StickerVariants & {
   variant: "sketch" | "default"
 }
 
+
 export type StickerToView = Sticker & {
   isSelected: boolean
 }
+
+export const isSticker = (candidate: object & { type: string }): candidate is Sticker => candidate.type === "sticker"
 
 export const PADDING = 7
 
 export const BASE_RADIUS = 5
 export const SCALE_POWER = 0.75
-
-export type ActiveBoxDotsParams = {
-  camera: Camera
-  rect: Rect
-}
 
 export const generateRectSketchProps = ({ id, ...rect }: Rect & { id: string }) => {
   const rand = getRandFromId(id)
@@ -81,25 +73,28 @@ export const generateRectSketchProps = ({ id, ...rect }: Rect & { id: string }) 
   }
 }
 
-export const getActiveBoxDots = ({ rect, camera }: ActiveBoxDotsParams) => [
-  {
-    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
-    x: rect.x - PADDING,
-    y: rect.y - PADDING,
-  },
-  {
-    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
-    x: rect.x + rect.width + PADDING,
-    y: rect.y - PADDING,
-  },
-  {
-    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
-    x: rect.x + rect.width + PADDING,
-    y: rect.y + rect.height + PADDING,
-  },
-  {
-    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
-    x: rect.x - PADDING,
-    y: rect.y + rect.height + PADDING,
-  },
-]
+export const getActiveBoxDots = ({ rect, camera }: {
+  camera: Camera
+  rect: Rect
+}) => [
+    {
+      radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+      x: rect.x - PADDING,
+      y: rect.y - PADDING,
+    },
+    {
+      radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+      x: rect.x + rect.width + PADDING,
+      y: rect.y - PADDING,
+    },
+    {
+      radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+      x: rect.x + rect.width + PADDING,
+      y: rect.y + rect.height + PADDING,
+    },
+    {
+      radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+      x: rect.x - PADDING,
+      y: rect.y + rect.height + PADDING,
+    },
+  ]

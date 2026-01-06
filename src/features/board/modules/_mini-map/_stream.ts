@@ -1,5 +1,6 @@
 ﻿import { resize$ } from "@/shared/lib/initial-canvas";
 import { subtractPoint } from "@/shared/lib/point";
+import { centerPointFromRect, unscaleRect } from "@/shared/lib/rect";
 import { _u, isNegative, isNotNull } from "@/shared/lib/utils";
 import type { Rect } from "@/shared/type/shared";
 import { isEqual } from "lodash";
@@ -10,7 +11,6 @@ import {
   distinctUntilChanged,
   filter,
   fromEvent,
-  interval,
   map,
   merge,
   startWith,
@@ -22,21 +22,21 @@ import {
 } from "rxjs";
 import type { renderLoop$ } from "src/render-loop";
 import { nodes$ } from "../../domain/node";
+import { renderMiniMapV2 } from "../../ui/mini-map";
 import { cameraSubject$ } from "../_camera";
 import {
   calculateUnscaleMap,
   canMoveMiniMapViewportRect,
-  computeMiniMapCameraRect,
-  computeLimitPoints,
+  calculateLimitPoints,
+  calculateMiniMapCameraRect,
   fromMiniMapToCameraPosition,
-  getInitialClickedWorldPoint,
+  getPointFromMiniMapToScreen,
   getMiniMapPointerContext,
   moveCameraToClickedPoint,
   updateCameraWithAnimation,
-  updateMiniMapSizes
+  getUnscaledMiniMapSizes
 } from "./_core";
 import type { MiniMapState, MiniMapStateReady } from "./_domain";
-import { centerPointFromRect, unscaleRect } from "@/shared/lib/rect";
 
 export const miniMapCameraSubject$ = new BehaviorSubject<Rect>({
   height: 0,
@@ -65,11 +65,11 @@ export const readyMiniMapSubject$ = miniMapProperties$.pipe(
 )
 
 export const miniMapSizes$ = combineLatest([
-  resize$.pipe(map(updateMiniMapSizes), startWith(updateMiniMapSizes())),
+  resize$.pipe(map(getUnscaledMiniMapSizes), startWith(getUnscaledMiniMapSizes())),
   readyMiniMapSubject$
 ]).pipe(
   map(([sizes, readyMap]) => ({ sizes, readyMap })),
-  distinctUntilChanged(isEqual),
+  distinctUntilChanged((prev, current) => isEqual(prev, current)),
   map(({ sizes }) => sizes),
 )
 
@@ -78,12 +78,7 @@ miniMapSizes$.pipe(
   tap(([sizes, { canvas }]) => Object.assign(canvas, sizes))
 ).subscribe()
 
-export const findLimitMapPoints$ = combineLatest([miniMapSizes$, nodes$]).pipe(
-  map(([miniMapSizes, nodes]) => computeLimitPoints({
-    maxSizes: miniMapSizes,
-    rects: nodes,
-  })),
-)
+export const findLimitMapPoints$ = combineLatest([nodes$, miniMapSizes$]).pipe(map(([rects]) => calculateLimitPoints({ rects })))
 
 export const movedUnscaleNodes$ = findLimitMapPoints$.pipe(
   withLatestFrom(nodes$),
@@ -98,11 +93,16 @@ export const movedUnscaleNodes$ = findLimitMapPoints$.pipe(
 
 export const computeUnscaleMap$ = movedUnscaleNodes$.pipe(
   withLatestFrom(miniMapSizes$),
-  map(([nodes, miniMapSizes]) => calculateUnscaleMap({
-    miniMapSizes,
-    nodes,
-  }))
+  map(([rects, miniMapSizes]) => calculateUnscaleMap({ miniMapSizes, rects })),
 )
+
+export const miniMapRenderer = animationFrames().pipe(
+  withLatestFrom(readyMiniMapSubject$, miniMapSizes$, movedUnscaleNodes$, computeUnscaleMap$, miniMapCameraSubject$),
+  map(([_, { context }, sizes, nodes, unscale, cameraRect]) => ({ context, sizes, nodes, unscale, cameraRect })),
+  tap(renderMiniMapV2)
+)
+
+miniMapRenderer.subscribe()
 
 export const getMiniMapRenderLoop = (renderLoop: typeof renderLoop$) => (
   renderLoop.pipe(
@@ -122,10 +122,8 @@ export const getMiniMapRenderLoop = (renderLoop: typeof renderLoop$) => (
 )
 
 combineLatest([cameraSubject$, findLimitMapPoints$]).pipe(
-  map(([{ camera }, limitMapPoints]) => computeMiniMapCameraRect({
-    limitMapPoints,
-    camera,
-  })))
+  map(([{ camera }, limitMapPoints]) => calculateMiniMapCameraRect({ limitMapPoints, camera }))
+)
   .subscribe(miniMapCameraSubject$)
 
 readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
@@ -143,7 +141,7 @@ readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
       downEvent,
     })),
     switchMap(([downEvent, unscaleMap, _, initialCameraState, limitMapPoints]) => {
-      const initialClickedWorldPoint = getInitialClickedWorldPoint({
+      const initialClickedWorldPoint = getPointFromMiniMapToScreen({
         limitMapPoints,
         unscaleMap,
         downEvent,

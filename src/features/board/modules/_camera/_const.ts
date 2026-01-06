@@ -10,12 +10,6 @@ export const DEFAULT_POINT: Point = {
   y: 0,
 }
 
-export const DEFAULT_CAMERA: Camera = {
-  scale: 1,
-  x: 0,
-  y: 0,
-}
-
 export const ZOOM = {
   INTENSITY: 0.1,
   MIN_SCALE: 0.01,
@@ -29,8 +23,8 @@ export const START_POINT: Point = {
 
 export const INITIAL_CAMERA: Camera = {
   scale: 1,
-  x: 0,
-  y: 0,
+  x: 400,
+  y: 600,
 }
 
 export const ZOOM_INTENSITY = 0.1

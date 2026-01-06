@@ -1,12 +1,12 @@
-﻿import { addPoint, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point.ts";
+﻿import { calculateLimitPoints } from "@/features/board/modules/_mini-map/_core.ts";
+import { left, right } from "@/shared/lib/either.ts";
+import { match } from "@/shared/lib/match.ts";
+import { addPoint, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point.ts";
 import { _u } from "@/shared/lib/utils.ts";
 import type { Point } from "@/shared/type/shared.ts";
-import { generateRectSketchProps, type Sticker, type StickerToView } from "../../../domain/sticker.ts";
+import { generateRectSketchProps, type Sticker } from "../../../domain/sticker.ts";
 import type { Camera } from "../../../modules/_camera";
 import type { IdleViewState } from "../type.ts";
-import { match } from "@/shared/lib/match.ts";
-import { left, right } from "@/shared/lib/either.ts";
-import { computeLimitPoints } from "@/features/board/modules/_mini-map/_core.ts";
 
 export type SelectionModifier = "replace" | "add" | "toggle"
 export type Selection = Set<string>
@@ -68,19 +68,19 @@ export const moveSelectedStickers = ({ camera, stickers, point, event, selectedI
   })
 }
 
-export const stickerSelection = ({ event, node, idleState }: {
+export const stickerSelection = ({ event, nodeId, idleState }: {
   idleState: IdleViewState
   event: PointerEvent
-  node: StickerToView
+  nodeId: string
 }): IdleViewState => {
-  if (idleState.selectedIds.has(node.id) && !event.ctrlKey) return idleState
+  if (idleState.selectedIds.has(nodeId) && !event.ctrlKey) return idleState
 
   return {
     ...idleState,
     selectedIds: selectItems({
       modif: event.ctrlKey ? "toggle" : "replace",
       initialSelected: idleState.selectedIds,
-      ids: [node.id],
+      ids: [nodeId],
     })
   }
 }
@@ -102,18 +102,12 @@ export const getRectBySelectedNodes = ({ nodes, selectedIds }: {
   }
 
   if (selectedIds.size > 1) {
-    const rects = nodes.filter(node => selectedIds.has(node.id))
-
-    const limitPoints = computeLimitPoints({
-      maxSizes: { height: 0, width: 0 },
-      rects,
-    })
+    const rects = nodes.filter((node) => selectedIds.has(node.id))
+    const limitPoints = calculateLimitPoints({ rects })
 
     return right({
       height: limitPoints.max.y - limitPoints.min.y,
       width: limitPoints.max.x - limitPoints.min.x,
-      // height: limitPoints.max.y,
-      // width: limitPoints.max.x,
       x: limitPoints.min.x,
       y: limitPoints.min.y,
     })

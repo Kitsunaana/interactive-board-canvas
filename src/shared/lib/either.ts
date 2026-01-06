@@ -15,6 +15,10 @@ export const left = <L>(error: L): Left<L> => ({
   error
 })
 
+export const isLeft = <V>(value: Left<V> | Right<V>) => value.type === "left"
+
+export const isRight = <V>(value: Left<V> | Right<V>) => value.type === "right"
+
 export const right = <R>(value: R): Right<R> => ({
   type: "right",
   value

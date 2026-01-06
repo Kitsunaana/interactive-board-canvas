@@ -1,13 +1,11 @@
 import { animationFrames, combineLatest, map, startWith, tap, withLatestFrom } from "rxjs";
 import { getActiveBoxDots, type StickerToView } from "./features/board/domain/sticker.ts";
 import { getWorldPoints, type Camera } from "./features/board/modules/_camera/_domain.ts";
-import { cameraSubject$, gridTypeSubject$ } from "./features/board/modules/_camera/_stream.ts";
-import { getMiniMapRenderLoop, miniMapCameraSubject$ } from "./features/board/modules/_mini-map/_stream.ts";
+import { camera$, cameraSubject$, gridTypeSubject$ } from "./features/board/modules/_camera/_stream.ts";
 import { drawActiveBox } from "./features/board/ui/active-box.ts";
 import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./features/board/ui/grid.ts";
-import { subscribeToMiniMapRenderLoop } from "./features/board/ui/mini-map.ts";
 import { drawSticker } from "./features/board/ui/sketch/sticker/draw.ts";
-import { selectedRect$, viewModel$, viewModelState$ } from "./features/board/view-model/state";
+import { selectedRect$, viewModel$ } from "./features/board/view-model/state";
 import { mapRight } from "./shared/lib/either.ts";
 import { canvas, context, resize$ } from "./shared/lib/initial-canvas.ts";
 import { getCanvasSizes, isNotNull } from "./shared/lib/utils.ts";
@@ -37,23 +35,19 @@ export const gridProps$ = canvasProperties$.pipe(
 
 export const renderLoop$ = animationFrames().pipe(
   withLatestFrom(
-    cameraSubject$,
+    camera$,
     gridTypeSubject$,
     viewModel$,
-    miniMapCameraSubject$,
-    viewModelState$,
     selectedRect$,
     gridProps$
   ),
-  map(([_, cameraState, gridType, viewModel, miniMapCameraRect, viewModelState, selectedRect, { canvasProperties, gridProps }]) => ({
-    ...cameraState,
+  map(([_, camera, gridType, viewModel, selectedRect, { canvasProperties, gridProps }]) => ({
     canvasSizes: canvasProperties.sizes,
     nodes: viewModel.nodes,
-    miniMapCameraRect,
-    viewModelState,
     selectedRect,
     gridProps,
     gridType,
+    camera,
   }))
 )
 
@@ -78,10 +72,6 @@ renderLoop$.subscribe(({ selectedRect, canvasSizes, gridType, gridProps, camera,
 
   context.restore()
 })
-
-const miniMapRenderLoop$ = getMiniMapRenderLoop(renderLoop$)
-
-miniMapRenderLoop$.subscribe(subscribeToMiniMapRenderLoop)
 
 export function renderNodes({ context, nodes }: {
   context: CanvasRenderingContext2D

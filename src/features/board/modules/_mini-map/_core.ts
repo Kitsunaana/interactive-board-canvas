@@ -1,14 +1,13 @@
-﻿import { getPointFromEvent, screenToCanvas, sizesToPoint, subtractPoint } from "@/shared/lib/point"
+﻿import { getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
+import { isRectIntersection, unscaleRect } from "@/shared/lib/rect"
 import { _u, getBoundingClientRect, getCanvasSizes } from "@/shared/lib/utils"
 import type { LimitPoints, Point, Rect, Sizes } from "@/shared/type/shared"
 import { defaultTo, first } from "lodash"
-import type { Node } from "../../domain/node"
 import type { Camera, CameraState } from "../_camera"
 import { MINI_MAP_UNSCALE } from "./_const"
 import { getPointInMiniMap } from "./_domain"
-import { isRectIntersection, unscaleRect } from "@/shared/lib/rect"
 
-export const updateMiniMapSizes = () => {
+export const getUnscaledMiniMapSizes = () => {
   const canvasSizes = getCanvasSizes()
 
   return {
@@ -17,30 +16,31 @@ export const updateMiniMapSizes = () => {
   }
 }
 
-export const computeLimitPoints = ({ rects, maxSizes }: {
-  maxSizes: Sizes
-  rects: Rect[]
-}) => (
-  rects.reduce(
+export const calculateLimitPoints = ({ rects }: { rects: Rect[] }) => {
+  const { height, width, x, y } = defaultTo(first(rects), {
+    height: 0,
+    width: 0,
+    x: 0,
+    y: 0,
+  } satisfies Rect)
+
+  return rects.reduce(
     (foundPoints, node) => {
-      foundPoints.min.x = Math.min(foundPoints.min.x, node.x )
-      foundPoints.min.y = Math.min(foundPoints.min.y, node.y )
+      foundPoints.min.x = Math.min(foundPoints.min.x, node.x)
+      foundPoints.min.y = Math.min(foundPoints.min.y, node.y)
       foundPoints.max.x = Math.max(foundPoints.max.x, node.x + node.width)
       foundPoints.max.y = Math.max(foundPoints.max.y, node.y + node.height)
 
       return foundPoints
     },
     {
-      max: sizesToPoint(maxSizes),
-      min: {
-        x: defaultTo(first(rects)?.x, 0),
-        y: defaultTo(first(rects)?.y, 0),
-      },
-    } as LimitPoints
+      max: { x: x + width, y: y + height },
+      min: { x, y },
+    } satisfies LimitPoints
   )
-)
+}
 
-export const computeMiniMapCameraRect = ({ camera, limitMapPoints }: {
+export const calculateMiniMapCameraRect = ({ camera, limitMapPoints }: {
   limitMapPoints: LimitPoints
   camera: Camera
 }): Rect => {
@@ -64,11 +64,11 @@ export const computeMiniMapCameraRect = ({ camera, limitMapPoints }: {
   }
 }
 
-export const calculateUnscaleMap = ({ miniMapSizes, nodes }: {
+export const calculateUnscaleMap = ({ miniMapSizes, rects }: {
   miniMapSizes: Sizes
-  nodes: Node[]
+  rects: Rect[]
 }) => {
-  const mapPoints = computeLimitPoints({ maxSizes: miniMapSizes, rects: nodes })
+  const mapPoints = calculateLimitPoints({ rects })
   const { min, max } = mapPoints
 
   const maxPointX = Math.max(min.x, max.x)
@@ -80,7 +80,7 @@ export const calculateUnscaleMap = ({ miniMapSizes, nodes }: {
   return unscaleX > unscaleY ? unscaleX : unscaleY
 }
 
-export const getInitialClickedWorldPoint = ({ downEvent, unscaleMap, limitMapPoints }: {
+export const getPointFromMiniMapToScreen = ({ downEvent, unscaleMap, limitMapPoints }: {
   limitMapPoints: LimitPoints
   downEvent: PointerEvent
   unscaleMap: number

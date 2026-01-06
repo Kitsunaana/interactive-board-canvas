@@ -25,8 +25,8 @@ export const initialCanvas = ({ width, height, canvasId }: InitialCanvasParams) 
 }
 
 export const [context, canvas] = initialCanvas({
-  height: window.innerHeight / 2,
-  width: window.innerWidth / 2,
+  height: window.innerHeight,
+  width: window.innerWidth,
   canvasId: "canvas",
 })
 
