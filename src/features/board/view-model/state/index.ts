@@ -1,7 +1,6 @@
 import { matchEither } from "@/shared/lib/either.ts";
 import { match } from "@/shared/lib/match.ts";
 import { isRectIntersectionV2 } from "@/shared/lib/rect.ts";
-import { isNil } from "lodash";
 import {
   BehaviorSubject,
   combineLatest,
@@ -12,7 +11,6 @@ import {
   ignoreElements,
   map,
   merge,
-  Observable,
   of,
   share,
   shareReplay,
@@ -25,35 +23,41 @@ import {
   withLatestFrom
 } from "rxjs";
 import { nodes$ } from "../../domain/node.ts";
-import { isSticker, type Sticker, type StickerToView } from "../../domain/sticker.ts";
+import { isSticker, type StickerToView } from "../../domain/sticker.ts";
 import { camera$ } from "../../modules/_camera/_stream.ts";
 import { mouseDown$, mouseUp$, pointerMove$, pointerUp$, wheel$ } from "../../modules/_pick-node";
-import { pointerLeave$ } from "../../modules/_pick-node/_stream.ts";
-import { endMoveSticker, movingSticker, startStickerMove } from "./idle/moving.ts";
+import { pointerLeave$ } from "../../modules/_pick-node/_events.ts";
+import { endMoveSticker, movingSticker, startMoveSticker } from "./idle/moving.ts";
 import { getRectBySelectedNodes, stickerSelection } from "./idle/selection.ts";
 import type { ViewModel, ViewModelState } from "./type.ts";
-import { goToIdle, } from "./type.ts";
+import { goToIdle, goToNodesDragging, } from "./type.ts";
 
 export const viewModelState$ = new BehaviorSubject<ViewModelState>(goToIdle())
 
 export const viewModel$ = combineLatest([viewModelState$, nodes$]).pipe(
   map(([state, nodes]) => match(state, {
-    idle: (idleState): ViewModel => ({
+    nodesDragging: (state): ViewModel => ({
       actions: {},
       nodes: nodes.map((node): StickerToView => ({
         ...node,
-        isSelected: idleState.selectedIds.has(node.id),
+        isSelected: state.selectedIds.has(node.id),
+      })),
+    }),
+    idle: (state): ViewModel => ({
+      actions: {},
+      nodes: nodes.map((node): StickerToView => ({
+        ...node,
+        isSelected: state.selectedIds.has(node.id),
       })),
     }),
   })),
   shareReplay({ bufferSize: 1, refCount: true })
 )
 
-export const selectedRect$ = combineLatest([nodes$, viewModelState$])
-  .pipe(
-    map(([nodes, { selectedIds }]) => getRectBySelectedNodes({ selectedIds, nodes })),
-    shareReplay({ bufferSize: 1, refCount: true })
-  )
+export const selectedRect$ = combineLatest([nodes$, viewModelState$]).pipe(
+  map(([nodes, { selectedIds }]) => getRectBySelectedNodes({ selectedIds, stickers: nodes })),
+  shareReplay({ bufferSize: 1, refCount: true })
+)
 
 export const nodesToRecord$ = nodes$.pipe(
   distinctUntilChanged((prev, current) => current.length === prev.length),
@@ -64,22 +68,14 @@ mouseUp$.pipe(
   filter(({ event }) => !event.shiftKey && event.button === 0),
   withLatestFrom(viewModelState$),
   map(([upEvent, state]) => ({ ...upEvent, state })),
-  switchMap(({ node, point, event, state }) => match(state, {
-    __other: () => of(state),
+  switchMap(({ node, event, state }) => match(state, {
+    nodesDragging: (state) => of(state.needToDeselect ? goToIdle() : state),
+
     idle: (idleState) => match(node, {
-      grid: () => of(null).pipe(
-        withLatestFrom(selectedRect$),
-        map(([_, selectedRect]) => matchEither(selectedRect, {
-          right: (rect) => isRectIntersectionV2({ point, rect }) ? idleState : goToIdle(),
-          left: () => goToIdle(),
-        }))
-      ),
+      grid: () => of(null).pipe(map(() => goToIdle())),
 
       sticker: (sticker) => of(sticker).pipe(
-        withLatestFrom(nodesToRecord$),
-        map(([node, nodesRecord]) => nodesRecord[node.id]?.id),
-        filter((nodeId) => !isNil(nodeId)),
-        map((nodeId) => stickerSelection({ idleState, event, nodeId }))
+        map(() => stickerSelection({ idleState, stickerId: sticker.id, event }))
       ),
     }),
   })),
@@ -94,34 +90,43 @@ mouseDown$.pipe(
     left: () => isSticker(node),
   })),
   switchMap(({ camera, event, node, stickers, point, state }) => match(state, {
-    __other: () => EMPTY,
-    idle: () => {
-      const sharedMove$ = pointerMove$.pipe(share(), takeWhile((event) => !event.shiftKey))
+    nodesDragging: () => EMPTY,
 
-      const finishMove$ = takeUntil(merge(pointerUp$, pointerLeave$, wheel$))
+    idle: (idleState) => {
+      const sharedMove$ = pointerMove$.pipe(share(), takeWhile((event) => !event.shiftKey))
 
       return merge(
         sharedMove$.pipe(
           take(1),
-          tap(() => match(node, {
-            sticker: (sticker) => viewModelState$.next(startStickerMove({ event, point, sticker })),
-          })),
+          tap(() => {
+            const needToDeselect = idleState.selectedIds.size === 0
+
+            viewModelState$.next(goToNodesDragging({
+              selectedIds: idleState.selectedIds,
+              needToDeselect,
+            }))
+
+            match(node, {
+              sticker: (sticker) => viewModelState$.next(startMoveSticker({ event, point, sticker })),
+              grid: () => { },
+            })
+          }),
           ignoreElements(),
-          finishMove$
+          takeUntil(merge(pointerUp$, pointerLeave$, wheel$))
         ),
 
         sharedMove$.pipe(
           skip(1),
           map((event) => movingSticker({ event, point, stickers, camera })),
-          finishMove$,
+          takeUntil(merge(pointerUp$, pointerLeave$, wheel$))
         ),
 
         sharedMove$.pipe(
-          finishMove$,
+          takeUntil(merge(pointerUp$, pointerLeave$, wheel$)),
           ignoreElements(),
           finalize(() => viewModelState$.next(endMoveSticker()))
         ),
-      ) as Observable<Sticker[]>
+      )
     }
   }))
 ).subscribe(nodes$)

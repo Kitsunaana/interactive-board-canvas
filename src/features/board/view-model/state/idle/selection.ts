@@ -3,7 +3,7 @@ import { left, right } from "@/shared/lib/either.ts";
 import { match } from "@/shared/lib/match.ts";
 import { addPoint, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point.ts";
 import { _u } from "@/shared/lib/utils.ts";
-import type { Point } from "@/shared/type/shared.ts";
+import type { Point, Rect } from "@/shared/type/shared.ts";
 import { generateRectSketchProps, type Sticker } from "../../../domain/sticker.ts";
 import type { Camera } from "../../../modules/_camera";
 import type { IdleViewState } from "../type.ts";
@@ -68,48 +68,60 @@ export const moveSelectedStickers = ({ camera, stickers, point, event, selectedI
   })
 }
 
-export const stickerSelection = ({ event, nodeId, idleState }: {
+export const stickerSelection = ({ event, stickerId, idleState }: {
   idleState: IdleViewState
   event: PointerEvent
-  nodeId: string
+  stickerId: string
 }): IdleViewState => {
-  if (idleState.selectedIds.has(nodeId) && !event.ctrlKey) return idleState
+  if (idleState.selectedIds.has(stickerId) && !event.ctrlKey) return idleState
 
   return {
     ...idleState,
     selectedIds: selectItems({
       modif: event.ctrlKey ? "toggle" : "replace",
       initialSelected: idleState.selectedIds,
-      ids: [nodeId],
+      ids: [stickerId],
     })
   }
 }
 
-export const getRectBySelectedNodes = ({ nodes, selectedIds }: {
+export const getRectBySelectedNodes = ({ stickers, selectedIds }: {
   selectedIds: Set<string>
-  nodes: Sticker[]
+  stickers: Sticker[]
 }) => {
   if (selectedIds.size === 1) {
-    const rect = nodes.find(node => selectedIds.has(node.id))
+    const rect = stickers.find(node => selectedIds.has(node.id))
     if (rect === undefined) return left(null)
 
     return right({
-      height: rect.height,
-      width: rect.width,
-      x: rect.x,
-      y: rect.y,
+      rects: [] satisfies Rect[],
+      main: {
+        height: rect.height,
+        width: rect.width,
+        x: rect.x,
+        y: rect.y,
+      }
     })
   }
 
   if (selectedIds.size > 1) {
-    const rects = nodes.filter((node) => selectedIds.has(node.id))
+    const rects = stickers.filter((node) => selectedIds.has(node.id)).map((rect): Rect => ({
+      height: rect.height,
+      width: rect.width,
+      x: rect.x,
+      y: rect.y
+    }))
+
     const limitPoints = calculateLimitPoints({ rects })
 
     return right({
-      height: limitPoints.max.y - limitPoints.min.y,
-      width: limitPoints.max.x - limitPoints.min.x,
-      x: limitPoints.min.x,
-      y: limitPoints.min.y,
+      rects,
+      main: {
+        height: limitPoints.max.y - limitPoints.min.y,
+        width: limitPoints.max.x - limitPoints.min.x,
+        x: limitPoints.min.x,
+        y: limitPoints.min.y,
+      }
     })
   }
 

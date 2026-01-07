@@ -8,7 +8,7 @@ export const renderHelperNodes = ({ context, camera, stickers }: {
 }) => {
   context.save()
 
-  context.clearRect(0, 0, window.innerWidth / 2, window.innerHeight)
+  context.clearRect(0, 0, window.innerWidth, window.innerHeight)
 
   context.translate(camera.x, camera.y)
   context.scale(camera.scale, camera.scale)

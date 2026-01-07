@@ -63,11 +63,9 @@ renderLoop$.subscribe(({ selectedRect, canvasSizes, gridType, gridProps, camera,
 
   renderNodes({ context, nodes })
 
-  mapRight(selectedRect, (rect) => {
-    const params = { context, camera, rect }
-
-    drawActiveBox(params)
-    drawActiveBoxDots(params)
+  mapRight(selectedRect, ({ main, rects }) => {
+    drawActiveBox({ context, rects: rects.concat(main) })
+    drawActiveBoxDots({ context, camera, rect: main })
   })
 
   context.restore()
