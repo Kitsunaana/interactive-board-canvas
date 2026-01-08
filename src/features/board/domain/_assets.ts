@@ -33,6 +33,16 @@ export const shapes: Shape[] = [
     colorId: generateRandomColor(),
   },
   {
+    id: "7",
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 200,
+    sketch: true,
+    type: "circle",
+    colorId: generateRandomColor(),
+  },
+  {
     id: "4",
     x: -250,
     y: -300,

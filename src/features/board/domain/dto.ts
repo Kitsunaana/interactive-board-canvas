@@ -1,4 +1,5 @@
 import type { Rect, Simplify } from "@/shared/type/shared"
+import type { Circle, CircleToView } from "./shapes/circle"
 import type { Rectangle, RectangleToView } from "./shapes/rectangle"
 
 export type Square = Rect & {
@@ -10,16 +11,6 @@ export type Square = Rect & {
 }
 
 export type SquareToView = Square
-
-export type Circle = Rect & {
-  type: "circle"
-
-  colorId: string
-  sketch: boolean
-  id: string
-}
-
-export type CircleToView = Circle
 
 export type Arrow = Rect & {
   type: "arrow"

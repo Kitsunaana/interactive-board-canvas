@@ -11,7 +11,19 @@ export const renderHelperShapes = ({ context, shapes }: {
     match(shape, {
       arrow: () => { },
 
-      circle: () => { },
+      circle: ({ x, y, height, width, colorId }) => {
+        const radiusX = width / 2
+        const radiusY = height / 2
+
+        context.save()
+
+        context.beginPath()
+        context.ellipse(x + radiusX, y + radiusY, radiusX, radiusY, 0, 0, Math.PI * 2)
+        context.fillStyle = colorId
+        context.fill()
+
+        context.restore()
+      },
 
       square: () => { },
 

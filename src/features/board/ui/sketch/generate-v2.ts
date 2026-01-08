@@ -118,7 +118,7 @@ export const generateSketchyOutline = ({ basePoints, rand }: {
   })
 }
 
-export const getRectBasePoints = (x: number, y: number, w: number, h: number, samples: number = 36) => {
+export const getRectangleBasePoints = (x: number, y: number, w: number, h: number, samples: number = 36) => {
   const points = []
   const perSide = Math.floor(samples / 4)
 

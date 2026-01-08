@@ -27,7 +27,7 @@ import { shapes$, shapesToView$ } from "../../domain/node.ts";
 import { camera$ } from "../../modules/_camera/_stream.ts";
 import { mouseDown$, mouseUp$, pointerMove$, pointerUp$, wheel$ } from "../../modules/_pick-node";
 import { pointerLeave$ } from "../../modules/_pick-node/_events.ts";
-import { endMoveSticker, movingSticker, startMoveSticker } from "./idle/moving.ts";
+import { endMoveShape, movingShape, startMoveShape } from "./idle/moving.ts";
 import { getRectBySelectedShapes, shapeSelect } from "./idle/selection.ts";
 import type { ViewModel, ViewModelState } from "./type.ts";
 import { goToIdle, goToNodesDragging, } from "./type.ts";
@@ -77,30 +77,31 @@ mouseUp$.pipe(
 
       arrow: () => of(null).pipe(map(() => idleState)),
 
-      circle: () => of(null).pipe(map(() => idleState)),
-
       square: () => of(null).pipe(map(() => idleState)),
 
+      circle: ({ id: shapeId }) => of(null).pipe(
+        map(() => shapeSelect({ idleState, shapeId, event }))
+      ),
+
       rectangle: ({ id: shapeId }) => of(null).pipe(
-        map(() => shapeSelect({
-          idleState,
-          shapeId,
-          event,
-        }))
+        map(() => shapeSelect({ idleState, shapeId, event }))
       ),
     }),
   })),
 ).subscribe(viewModelState$)
 
-const isRectangle = <T extends { type: string }>(shape: T) => shape.type === "rectangle"
+const isShape = <T extends { type: string }>(shape: T) => (
+  shape.type === "rectangle" ||
+  shape.type === "circle"
+)
 
 mouseDown$.pipe(
   filter(({ event }) => event.button === 0),
   withLatestFrom(shapes$, camera$, viewModelState$, selectedRect$),
   map(([downEvent, stickers, camera, state, selectedRect]) => ({ ...downEvent, selectedRect, stickers, camera, state })),
   filter(({ node, point, selectedRect }) => matchEither(selectedRect, {
-    right: ({ main }) => isRectangle(node) || isRectIntersectionV2({ point, rect: main }),
-    left: () => isRectangle(node),
+    right: ({ main }) => isShape(node) || isRectIntersectionV2({ point, rect: main }),
+    left: () => isShape(node),
   })),
   switchMap(({ camera, event, node, stickers, point, state }) => match(state, {
     nodesDragging: () => EMPTY,
@@ -118,11 +119,13 @@ mouseDown$.pipe(
             }))
 
             match(node, {
-              grid: () => {},
-              arrow: () => {},
-              circle: () => {},
-              square: () => {},
-              rectangle: (shape) => viewModelState$.next(startMoveSticker({ event, point, shape })),
+              grid: () => { },
+              arrow: () => { },
+              square: () => { },
+
+              circle: (shape) => viewModelState$.next(startMoveShape({ event, point, shape })),
+
+              rectangle: (shape) => viewModelState$.next(startMoveShape({ event, point, shape })),
             })
           }),
           ignoreElements(),
@@ -131,14 +134,14 @@ mouseDown$.pipe(
 
         sharedMove$.pipe(
           skip(1),
-          map((event) => movingSticker({ event, point, shapes: stickers, camera })),
+          map((event) => movingShape({ event, point, shapes: stickers, camera })),
           takeUntil(merge(pointerUp$, pointerLeave$, wheel$))
         ),
 
         sharedMove$.pipe(
           takeUntil(merge(pointerUp$, pointerLeave$, wheel$)),
           ignoreElements(),
-          finalize(() => viewModelState$.next(endMoveSticker()))
+          finalize(() => viewModelState$.next(endMoveShape()))
         ),
       )
     }

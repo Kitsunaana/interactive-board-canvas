@@ -60,7 +60,58 @@ export const getShapeDrawer = (shape: ShapeToView) => {
   match(shape, {
     arrow: () => { },
 
-    circle: () => { },
+    circle: (shape) => {
+      matchEither(shape.sketch ? right(shape) : left(shape), {
+        right: ({ hachureFill, hachureLines, layerOffsets, outlines, strokeColor }) => {
+          context.save()
+
+          const mainOffset = layerOffsets[0]
+
+          context.lineWidth = 1
+          context.strokeStyle = strokeColor
+          context.globalAlpha = CONFIG.hachureOpacity
+
+          if (hachureFill && hachureLines) {
+            context.save()
+            drawSmoothPath(outlines[0], mainOffset.x, mainOffset.y)
+            context.clip()
+            hachureLines.forEach(drawSmoothWobblyLine)
+            context.restore();
+          }
+
+          outlines.forEach((outline, index) => {
+            const offset = layerOffsets[index]
+            context.globalAlpha = CONFIG.baseOpacity * (1 - index * 0.15)
+            context.lineWidth = 1.2
+            context.lineCap = 'round'
+            context.lineJoin = 'round'
+
+            drawSmoothPath(outline, offset.x, offset.y)
+            context.stroke()
+          })
+
+          context.restore()
+        },
+        left: ({ x, y, height, width }) => {
+          const radiusX = width / 2
+          const radiusY = height / 2
+
+          context.save()
+
+          context.shadowColor = 'rgba(0, 0, 0, 0.2)'
+          context.shadowOffsetX = 2
+          context.shadowOffsetY = 2
+          context.shadowBlur = 11
+
+          context.beginPath()
+          context.ellipse(x + radiusX, y + radiusY, radiusX, radiusY, 0, 0, Math.PI * 2)
+          context.fillStyle = "#fff8ac"
+          context.fill()
+
+          context.restore()
+        },
+      })
+    },
 
     square: () => { },
 

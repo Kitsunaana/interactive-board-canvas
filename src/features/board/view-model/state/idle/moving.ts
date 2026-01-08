@@ -1,4 +1,4 @@
-﻿import { generateRectSketchProps } from "@/features/board/domain/sticker.ts";
+﻿import { generateRectangleSketchProps } from "@/features/board/domain/sticker.ts";
 import { match } from "@/shared/lib/match.ts";
 import { addPoint, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point.ts";
 import { _u } from "@/shared/lib/utils.ts";
@@ -27,18 +27,17 @@ export const moveSelectedShapes = ({ camera, shapes, point, event, selectedIds }
       return match(node, {
         arrow: () => node,
 
-        circle: () => node,
 
         square: () => node,
 
-        rectangle: (rectangle) => {
-          if (rectangle.sketch) {
-            const moved = _u.merge(rectangle, endPoint)
+        circle: (shape) => _u.merge(shape, endPoint),
 
-            return _u.merge(moved, generateRectSketchProps(moved))
-          }
+        rectangle: (shape) => {
+          const moved = _u.merge(shape, endPoint)
 
-          return _u.merge(rectangle, endPoint)
+          return shape.sketch
+            ? _u.merge(moved, generateRectangleSketchProps(moved))
+            : moved
         }
       })
     }
@@ -47,7 +46,7 @@ export const moveSelectedShapes = ({ camera, shapes, point, event, selectedIds }
   })
 }
 
-export const startMoveSticker = ({ event, point, shape }: {
+export const startMoveShape = ({ event, point, shape }: {
   event: PointerEvent
   shape: Shape
   point: Point
@@ -69,7 +68,7 @@ export const startMoveSticker = ({ event, point, shape }: {
   })
 )
 
-export const movingSticker = ({ shapes, camera, point, event }: {
+export const movingShape = ({ shapes, camera, point, event }: {
   event: PointerEvent
   shapes: Shape[]
   camera: Camera
@@ -81,7 +80,7 @@ export const movingSticker = ({ shapes, camera, point, event }: {
     nodesDragging: ({ selectedIds }) => (
       moveSelectedShapes({
         selectedIds,
-        shapes: shapes,
+        shapes,
         camera,
         point,
         event
@@ -90,7 +89,7 @@ export const movingSticker = ({ shapes, camera, point, event }: {
   })
 )
 
-export const endMoveSticker = () => (
+export const endMoveShape = () => (
   match(viewModelState$.getValue(), {
     nodesDragging: ({ selectedIds }) => goToIdle({ selectedIds }),
 
