@@ -1,15 +1,16 @@
 import { animationFrames, combineLatest, map, startWith, tap, withLatestFrom } from "rxjs";
-import { getActiveBoxDots, type StickerToView } from "./features/board/domain/sticker.ts";
+import { getActiveBoxDots } from "./features/board/domain/sticker.ts";
 import { getWorldPoints, type Camera } from "./features/board/modules/_camera/_domain.ts";
 import { camera$, cameraSubject$, gridTypeSubject$ } from "./features/board/modules/_camera/_stream.ts";
 import { drawActiveBox } from "./features/board/ui/active-box.ts";
 import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./features/board/ui/grid.ts";
-import { drawSticker } from "./features/board/ui/sketch/sticker/draw.ts";
 import { selectedRect$, viewModel$ } from "./features/board/view-model/state";
 import { mapRight } from "./shared/lib/either.ts";
 import { canvas, context, resize$ } from "./shared/lib/initial-canvas.ts";
 import { getCanvasSizes, isNotNull } from "./shared/lib/utils.ts";
 import type { Rect } from "./shared/type/shared.ts";
+import { getShapeDrawer } from "./features/board/ui/sketch/sticker/draw.ts";
+import type { ShapeToView } from "./features/board/domain/dto.ts";
 
 export const canvasProperties$ = combineLatest([
   cameraSubject$,
@@ -61,7 +62,7 @@ renderLoop$.subscribe(({ selectedRect, canvasSizes, gridType, gridProps, camera,
 
   gridTypeVariants[gridType]({ gridProps, context })
 
-  renderNodes({ context, nodes })
+  renderShapes({ context, shapes: nodes })
 
   mapRight(selectedRect, ({ main, rects }) => {
     drawActiveBox({ context, rects: rects.concat(main) })
@@ -71,12 +72,12 @@ renderLoop$.subscribe(({ selectedRect, canvasSizes, gridType, gridProps, camera,
   context.restore()
 })
 
-export function renderNodes({ context, nodes }: {
+export function renderShapes({ context, shapes }: {
   context: CanvasRenderingContext2D
-  nodes: StickerToView[]
+  shapes: ShapeToView[]
 }) {
-  nodes.forEach((rect) => {
-    drawSticker.variant[rect.variant](rect as any)
+  shapes.forEach((rect) => {
+    getShapeDrawer(rect)
 
     context.font = "16px Arial"
     context.textAlign = "center"

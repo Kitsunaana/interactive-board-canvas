@@ -15,8 +15,8 @@ export type CameraState = {
   camera: Camera
 }
 
-export type ZoomEvent = {
-  __event: "zoomIn" | "zoomOut"
+export type ZoomAction = {
+  action: "zoomIn" | "zoomOut"
 }
 
 export const getWorldPoints = ({ sizes, camera }: {

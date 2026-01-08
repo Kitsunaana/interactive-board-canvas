@@ -29,7 +29,7 @@ import {
   zoomIn,
   zoomOut
 } from "./_core"
-import type { ZoomEvent } from "./_domain"
+import type { ZoomAction } from "./_domain"
 
 const pointerLeave$ = fromEvent<PointerEvent>(canvas, "pointerleave")
 const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
@@ -37,7 +37,7 @@ const pointerMove$ = fromEvent<PointerEvent>(canvas, "pointermove")
 const pointerUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
 const wheel$ = fromEvent<WheelEvent>(canvas, "wheel")
 
-export const zoomTrigger$ = new Subject<ZoomEvent>()
+export const zoomTrigger$ = new Subject<ZoomAction>()
 
 export const gridTypeSubject$ = new BehaviorSubject<"lines" | "dots">("lines")
 export const cameraSubject$ = new BehaviorSubject(INITIAL_STATE)
@@ -76,7 +76,7 @@ export const wheelCamera$ = merge(
   ),
   zoomTrigger$.pipe(
     withLatestFrom(cameraSubject$),
-    map(([{ __event }, cameraState]) => _u.merge(cameraState, {
+    map(([{ action: __event }, cameraState]) => _u.merge(cameraState, {
       camera: ({ zoomIn, zoomOut })[__event](cameraState.camera)
     }))
   )

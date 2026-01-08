@@ -21,13 +21,13 @@ const [useIsShowMiniMap] = bind(miniMapProperties$.pipe(map(state => state.isSho
 
 const zoomOut = () => {
   zoomTrigger$.next({
-    __event: "zoomOut"
+    action: "zoomOut"
   })
 }
 
 const zoomIn = () => {
   zoomTrigger$.next({
-    __event: "zoomIn"
+    action: "zoomIn"
   })
 }
 

@@ -1,22 +1,27 @@
-﻿import { BehaviorSubject } from "rxjs";
-import { nodes } from "./_assets.ts";
-import type { Sticker } from "./sticker.ts";
+﻿import { match } from "@/shared/lib/match";
+import { _u } from "@/shared/lib/utils";
+import { BehaviorSubject, map } from "rxjs";
+import { shapes } from "./_assets";
+import type { ArrowToView, CircleToView, ShapeToView, SquareToView } from "./dto";
+import type { RectangleToView } from "./shapes/rectangle";
+import { generateRectSketchProps } from "./sticker";
 
-export type BaseNode = {
-  id: string
-  type: string
-  colorId: string
+export const shapes$ = new BehaviorSubject(shapes)
 
-  x: number
-  y: number
-}
+export const shapesToView$ = shapes$.pipe(map((shapes) => {
+  return shapes.map((shape): ShapeToView => {
+    return match(shape, {
+      arrow: (arrow): ArrowToView => arrow,
+      circle: (circle): CircleToView => circle,
+      square: (square): SquareToView => square,
+      rectangle: (rectangle): RectangleToView => {
+        if (rectangle.sketch) return _u.merge(rectangle, generateRectSketchProps(rectangle))
 
-export type Grid = {
-  id: string
-  type: "grid"
-  colorId: string
-}
-
-export type Node = Sticker
-
-export const nodes$ = new BehaviorSubject(nodes)
+        return {
+          ...rectangle,
+          sketch: false
+        }
+      },
+    })
+  })
+}))

@@ -1,6 +1,6 @@
 import type { Rect, Sizes } from "@/shared/type/shared"
 
-export const renderMiniMapV2 = ({ nodes, sizes, context, unscale, cameraRect }: {
+export const renderMiniMap = ({ nodes, sizes, context, unscale, cameraRect }: {
   context: CanvasRenderingContext2D
   cameraRect: Rect
   unscale: number

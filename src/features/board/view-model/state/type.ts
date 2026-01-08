@@ -1,6 +1,6 @@
 import type { Point, Rect } from "@/shared/type/shared";
 import React from "react";
-import type { StickerToView } from "../../domain/sticker";
+import type { ShapeToView } from "../../domain/dto";
 
 export type IdleViewState = {
   selectedIds: Set<string>
@@ -24,7 +24,7 @@ export type ViewModelAction = {
 }
 
 export type ViewModel = {
-  nodes: StickerToView[]
+  nodes: ShapeToView[]
   selectionWindow?: Rect
   actions: {
     addSticker?: ViewModelAction

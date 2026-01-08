@@ -19,3 +19,5 @@ export type LimitPoints = {
   min: Point
   max: Point
 }
+
+export type Simplify<T> = { [K in keyof T]: T[K] } & {}

@@ -1,6 +1,8 @@
+import type { ShapeToView } from "@/features/board/domain/dto.ts";
+import { left, matchEither, right } from "@/shared/lib/either.ts";
 import { context } from "@/shared/lib/initial-canvas.ts";
+import { match } from "@/shared/lib/match.ts";
 import type { Point } from "@/shared/type/shared.ts";
-import type { Sticker } from "../../../domain/sticker.ts";
 import { CONFIG } from "./config.ts";
 
 export const drawSmoothPath = (points: Point[], offsetX: number, offsetY: number) => {
@@ -54,54 +56,63 @@ export const drawSmoothWobblyLine = (points: Point[]) => {
   context.stroke()
 }
 
-export const drawSticker = {
-  variant: {
-    default: (rect: Sticker & { variant: "default" }) => {
-      context.save()
-      context.shadowColor = 'rgba(0, 0, 0, 0.2)'
-      context.shadowOffsetX = 2
-      context.shadowOffsetY = 2
-      context.shadowBlur = 11
+export const getShapeDrawer = (shape: ShapeToView) => {
+  match(shape, {
+    arrow: () => { },
 
-      context.fillStyle = '#4f46e5'
+    circle: () => { },
 
-      context.beginPath()
-      context.fillStyle = "#fff8ac"
-      context.rect(rect.x, rect.y, rect.width, rect.height)
-      context.fill()
-      context.restore()
-    },
+    square: () => { },
 
-    sketch: (rect: Sticker & { variant: "sketch" }) => {
-      context.save()
-      const mainOffset = rect.layerOffsets[0]
+    rectangle: (rectangle) => {
+      matchEither(rectangle.sketch ? right(rectangle) : left(rectangle), {
+        right: ({ strokeColor, layerOffsets, hachureLines, hachureFill, outlines }) => {
+          context.save()
 
-      context.lineWidth = 1
-      context.strokeStyle = rect.strokeColor
-      context.globalAlpha = CONFIG.hachureOpacity
+          const mainOffset = layerOffsets[0]
 
-      if (rect.hachureFill && rect.hachureLines) {
-        context.save()
+          context.lineWidth = 1
+          context.strokeStyle = strokeColor
+          context.globalAlpha = CONFIG.hachureOpacity
 
-        drawSmoothPath(rect.outlines[0], mainOffset.x, mainOffset.y)
-        context.clip()
-        rect.hachureLines.forEach(drawSmoothWobblyLine)
+          if (hachureFill && hachureLines) {
+            context.save()
+            drawSmoothPath(outlines[0], mainOffset.x, mainOffset.y)
+            context.clip()
+            hachureLines.forEach(drawSmoothWobblyLine)
+            context.restore();
+          }
 
-        context.restore();
-      }
+          outlines.forEach((outline, index) => {
+            const offset = layerOffsets[index]
+            context.globalAlpha = CONFIG.baseOpacity * (1 - index * 0.15)
+            context.lineWidth = 1.2
+            context.lineCap = 'round'
+            context.lineJoin = 'round'
 
-      rect.outlines.forEach((outline, index) => {
-        const offset = rect.layerOffsets[index]
-        context.globalAlpha = CONFIG.baseOpacity * (1 - index * 0.15)
-        context.lineWidth = 1.2
-        context.lineCap = 'round'
-        context.lineJoin = 'round'
+            drawSmoothPath(outline, offset.x, offset.y)
+            context.stroke()
+          })
 
-        drawSmoothPath(outline, offset.x, offset.y)
-        context.stroke()
+          context.restore()
+        },
+
+        left: ({ x, y, width, height }) => {
+          context.save()
+          context.shadowColor = 'rgba(0, 0, 0, 0.2)'
+          context.shadowOffsetX = 2
+          context.shadowOffsetY = 2
+          context.shadowBlur = 11
+
+          context.fillStyle = '#4f46e5'
+
+          context.beginPath()
+          context.fillStyle = "#fff8ac"
+          context.rect(x, y, width, height)
+          context.fill()
+          context.restore()
+        }
       })
-
-      context.restore()
     }
-  }
+  })
 }

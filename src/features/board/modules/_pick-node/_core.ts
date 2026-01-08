@@ -1,6 +1,7 @@
+import { generateRandomColor, toRGB } from "@/shared/lib/color"
 import { initialCanvas } from "@/shared/lib/initial-canvas"
 import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
-import type { Node } from "../../domain/node"
+import type { Shape } from "../../domain/dto"
 import type { Camera } from "../_camera"
 
 export const [context] = initialCanvas({
@@ -8,18 +9,6 @@ export const [context] = initialCanvas({
   width: window.innerWidth,
   canvasId: "helper",
 })
-
-export const toRGB = (red: number, green: number, blue: number) => {
-  return `rgb(${red},${green},${blue})`
-}
-
-export const generateRandomColor = () => {
-  const red = Math.trunc(Math.random() * 255)
-  const green = Math.trunc(Math.random() * 255)
-  const blue = Math.trunc(Math.random() * 255)
-
-  return toRGB(red, green, blue)
-}
 
 export const getPickedColor = ({ camera, context, event }: {
   context: CanvasRenderingContext2D
@@ -39,14 +28,15 @@ export const getPickedColor = ({ camera, context, event }: {
   }
 }
 
-export const findNodeByColorId = ({ nodes, event, camera, context }: {
+export const findNodeByColorId = ({ shapes, event, camera, context }: {
   context: CanvasRenderingContext2D
   event: PointerEvent
+  shapes: Shape[]
   camera: Camera
-  nodes: Node[]
 }) => {
   const { colorId, point } = getPickedColor({ context, camera, event })
-  const node = nodes.find((node) => node.colorId === colorId) ?? {
+
+  const node = shapes.find((node) => node.colorId === colorId) ?? {
     colorId: generateRandomColor(),
     type: "grid",
     id: "grid",

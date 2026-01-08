@@ -1,11 +1,8 @@
-﻿import { calculateLimitPoints } from "@/features/board/modules/_mini-map/_core.ts";
+﻿import type { Shape } from "@/features/board/domain/dto.ts";
+import { calculateLimitPoints } from "@/features/board/modules/_mini-map/_core.ts";
 import { left, right } from "@/shared/lib/either.ts";
-import { match } from "@/shared/lib/match.ts";
-import { addPoint, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point.ts";
-import { _u } from "@/shared/lib/utils.ts";
-import type { Point, Rect } from "@/shared/type/shared.ts";
-import { generateRectSketchProps, type Sticker } from "../../../domain/sticker.ts";
-import type { Camera } from "../../../modules/_camera";
+import { inferRect } from "@/shared/lib/rect.ts";
+import type { Rect } from "@/shared/type/shared.ts";
 import type { IdleViewState } from "../type.ts";
 
 export type SelectionModifier = "replace" | "add" | "toggle"
@@ -32,90 +29,45 @@ export const selectItems = ({ ids, modif, initialSelected }: {
   return initialSelected
 }
 
-export const moveSelectedStickers = ({ camera, stickers, point, event, selectedIds }: {
-  selectedIds: Set<string>
-  event: PointerEvent
-  stickers: Sticker[]
-  camera: Camera
-  point: Point
-}) => {
-  const distance = subtractPoint(point, screenToCanvas({
-    point: getPointFromEvent(event),
-    camera,
-  }))
-
-  return stickers.map((node) => {
-    if (selectedIds.has(node.id)) {
-      const endPoint = addPoint(node, distance)
-
-      return match(
-        node,
-        {
-          default: (sticker) => _u.merge(sticker, endPoint),
-          sketch: (sticker) => _u.merge(_u.merge(sticker, endPoint), generateRectSketchProps(
-            _u.merge(endPoint, {
-              height: sticker.height,
-              width: sticker.width,
-              id: sticker.id,
-            })
-          ))
-        },
-        "variant"
-      )
-    }
-
-    return node
-  })
-}
-
-export const stickerSelection = ({ event, stickerId, idleState }: {
+export const shapeSelect = ({ event, shapeId, idleState }: {
   idleState: IdleViewState
   event: PointerEvent
-  stickerId: string
+  shapeId: string
 }): IdleViewState => {
-  if (idleState.selectedIds.has(stickerId) && !event.ctrlKey) return idleState
+  if (idleState.selectedIds.has(shapeId) && !event.ctrlKey) return idleState
 
   return {
     ...idleState,
     selectedIds: selectItems({
       modif: event.ctrlKey ? "toggle" : "replace",
       initialSelected: idleState.selectedIds,
-      ids: [stickerId],
+      ids: [shapeId],
     })
   }
 }
 
-export const getRectBySelectedNodes = ({ stickers, selectedIds }: {
+export const getRectBySelectedShapes = ({ shapes, selectedIds }: {
   selectedIds: Set<string>
-  stickers: Sticker[]
+  shapes: Shape[]
 }) => {
   if (selectedIds.size === 1) {
-    const rect = stickers.find(node => selectedIds.has(node.id))
-    if (rect === undefined) return left(null)
+    const selected = shapes.find((node) => selectedIds.has(node.id))
+
+    if (selected === undefined) return left(null)
 
     return right({
       rects: [] satisfies Rect[],
-      main: {
-        height: rect.height,
-        width: rect.width,
-        x: rect.x,
-        y: rect.y,
-      }
+      main: inferRect(selected)
     })
   }
 
   if (selectedIds.size > 1) {
-    const rects = stickers.filter((node) => selectedIds.has(node.id)).map((rect): Rect => ({
-      height: rect.height,
-      width: rect.width,
-      x: rect.x,
-      y: rect.y
-    }))
+    const selecteds = shapes.filter((node) => selectedIds.has(node.id)).map(inferRect)
 
-    const limitPoints = calculateLimitPoints({ rects })
+    const limitPoints = calculateLimitPoints({ rects: selecteds })
 
     return right({
-      rects,
+      rects: selecteds,
       main: {
         height: limitPoints.max.y - limitPoints.min.y,
         width: limitPoints.max.x - limitPoints.min.x,

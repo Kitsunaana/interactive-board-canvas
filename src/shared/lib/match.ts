@@ -19,6 +19,7 @@ export function match<
 >(state: State, map: Map, discriminant: Discriminant): MatchReturn<Map>
 export function match(state: any, map: any, discriminant: PropertyKey = "type") {
   const key = state[discriminant]
-  const handler = map[key] ?? map.__other
+  const handler = map[key]
+  
   return handler?.(state)
 }

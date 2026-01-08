@@ -22,8 +22,8 @@ import {
   tap,
   withLatestFrom
 } from "rxjs";
-import { nodes$ } from "../../domain/node";
-import { renderMiniMapV2 } from "../../ui/mini-map";
+import { shapes$ } from "../../domain/node";
+import { renderMiniMap } from "../../ui/mini-map";
 import { cameraSubject$, type Camera } from "../_camera";
 import {
   calculateLimitPoints,
@@ -37,6 +37,7 @@ import {
   updateCameraWithAnimation
 } from "./_core";
 import type { MiniMapState, MiniMapStateReady } from "./_domain";
+import type { Shape } from "../../domain/dto";
 
 export const miniMapCameraSubject$ = new BehaviorSubject<Rect>({
   height: 0,
@@ -78,10 +79,10 @@ miniMapSizes$.pipe(
   tap(([sizes, { canvas }]) => Object.assign(canvas, sizes))
 ).subscribe()
 
-export const findLimitMapPoints$ = combineLatest([nodes$, miniMapSizes$]).pipe(map(([rects]) => calculateLimitPoints({ rects })))
+export const findLimitMapPoints$ = combineLatest([shapes$, miniMapSizes$]).pipe(map(([rects]) => calculateLimitPoints({ rects })))
 
 export const movedUnscaleNodes$ = findLimitMapPoints$.pipe(
-  withLatestFrom(nodes$),
+  withLatestFrom(shapes$),
   map(([{ min }, nodes]) => (
     nodes.map((node) => ({
       ...node,
@@ -99,7 +100,7 @@ export const unscaleMap$ = movedUnscaleNodes$.pipe(
 export const miniMapRenderer = animationFrames().pipe(
   withLatestFrom(readyMiniMapSubject$, miniMapSizes$, movedUnscaleNodes$, unscaleMap$, miniMapCameraSubject$),
   map(([_, { context }, sizes, nodes, unscale, cameraRect]) => ({ context, sizes, nodes, unscale, cameraRect })),
-  tap(renderMiniMapV2)
+  tap(renderMiniMap)
 )
 
 miniMapRenderer.subscribe()
