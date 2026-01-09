@@ -1,5 +1,4 @@
-﻿import { canvas } from "@/shared/lib/initial-canvas"
-import { _u } from "@/shared/lib/utils"
+﻿import { _u } from "@/shared/lib/utils"
 import { isEqual } from "lodash"
 import {
   animationFrames,
@@ -30,6 +29,7 @@ import {
   zoomOut
 } from "./_core"
 import type { ZoomAction } from "./_domain"
+import { canvas } from "@/shared/lib/initial-canvas"
 
 const pointerLeave$ = fromEvent<PointerEvent>(canvas, "pointerleave")
 const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")

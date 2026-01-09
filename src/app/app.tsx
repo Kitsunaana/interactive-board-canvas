@@ -1,24 +1,21 @@
-import "../features/board/view-model/state/index"
+import "../features/board/view-model/state/index";
 import "../render-loop";
 import "./index.css";
 
-import { Button, ContextMenu } from "@radix-ui/themes";
 import { bind } from "@react-rxjs/core";
 import { clsx } from "clsx";
 import { isNil } from "lodash";
 import { map } from "rxjs";
 import type { CameraState } from "../features/board/modules/_camera/_domain";
 import { wheelCamera$, zoomTrigger$ } from "../features/board/modules/_camera/_stream";
-import { miniMapProperties$, toggleShowMiniMap } from "../features/board/modules/_mini-map/_stream";
-import { EyeClosedIcon, EyeOpenIcon } from "@radix-ui/react-icons"
+import { miniMapProperties$ } from "../features/board/modules/_mini-map/_stream";
 
+import { useSelectionBoundsRect } from "@/features/board/view-model/use-selection-bounds-rect";
 import "@radix-ui/themes/styles.css";
 
 const toPercentage = (state: CameraState) => `${Math.round(state.camera.scale * 100)}%`
 
 const [useZoomValue] = bind(wheelCamera$.pipe(map(toPercentage)), "100%")
-
-const [useIsShowMiniMap] = bind(miniMapProperties$.pipe(map(state => state.isShow)), true)
 
 const zoomOut = () => {
   zoomTrigger$.next({
@@ -43,33 +40,31 @@ const readyMiniMap = (instance: HTMLCanvasElement | null) => {
 }
 
 export function App() {
+  const selectionBoundsRect = useSelectionBoundsRect()
   const zoomValue = useZoomValue()
-  const isShowMiniMap = useIsShowMiniMap()
 
   return (
     <>
-      {isShowMiniMap && (
-        <ContextMenu.Root>
-          <ContextMenu.Trigger>
-            <canvas
-              id="map"
-              ref={readyMiniMap}
-              className="absolute z-[101] bottom-4 left-4 bg-white shadow-xl p-1 rounded-md"
-            />
-          </ContextMenu.Trigger>
-          <ContextMenu.Content>
-            <ContextMenu.Item onClick={toggleShowMiniMap}>
-              Скрыть
-            </ContextMenu.Item>
-          </ContextMenu.Content>
-        </ContextMenu.Root>
+      <canvas
+        id="map"
+        ref={readyMiniMap}
+        className="absolute z-[101] bottom-4 left-4 bg-white shadow-xl p-1 rounded-md"
+      />
+
+      {selectionBoundsRect && (
+        <div
+          style={{
+            top: `${selectionBoundsRect.y + selectionBoundsRect.height + 15}px`,
+            left: `${selectionBoundsRect.x + selectionBoundsRect.width / 2}px`,
+            transform: "translateX(-50%)"
+          }}
+          className="absolute bg-[#f4f5f6] text-xs border border-[#e1e1e1] py-2 px-3 rounded-md"
+        >
+          {Math.round(selectionBoundsRect.width)}{" x "}{Math.round(selectionBoundsRect.height)}
+        </div>
       )}
 
       <div className="flex items-center gap-2 absolute bottom-4 right-4 bg-white shadow-xl p-1 rounded-md text-sm text-gray-800 font-bold">
-        <Button size="2" variant="surface" onClick={toggleShowMiniMap}>
-          {isShowMiniMap ? <EyeOpenIcon /> : <EyeClosedIcon />}
-        </Button>
-
         <button
           onClick={zoomOut}
           className={clsx(

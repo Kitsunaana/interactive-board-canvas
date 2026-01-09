@@ -6,7 +6,7 @@ type InitialCanvasParams = {
   width: number
 }
 
-window.oncontextmenu = () => {}
+window.oncontextmenu = () => { }
 
 export const initialCanvas = ({ width, height, canvasId }: InitialCanvasParams) => {
   const canvas = document.getElementById(canvasId) as HTMLCanvasElement

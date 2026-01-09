@@ -24,7 +24,10 @@ import { endMoveShape, movingShape, startMoveShape } from "./idle/moving.ts";
 import { applyBottomEdgeResize, applyLeftEdgeResize, applyRightEdgeResize, applyTopEdgeResize } from "./idle/resize.ts";
 import { shapeSelect } from "./idle/selection.ts";
 import { selectionBounds$, viewModelState$ } from "./index-v2.ts";
-import { goToIdle, goToNodesDragging, } from "./type.ts";
+import { goToIdle, goToNodesDragging, goToShapesResize, } from "./type.ts";
+import { isUndefined } from "lodash";
+import { isNotUndefined } from "@/shared/lib/utils.ts";
+import { inferRect } from "@/shared/lib/rect.ts";
 
 const isBound = <T extends { id: string }>(candidate: T) => (
   candidate.id === "bottom" ||
@@ -56,6 +59,8 @@ mouseDown$.pipe(
   map(([bound, viewState, shapes, camera]) => ({ node: bound.node as Bound, viewState, shapes, camera })),
   switchMap(({ node, viewState, shapes, camera }) => {
     return match(viewState, {
+      shapesResize: () => EMPTY,
+
       nodesDragging: () => EMPTY,
 
       idle: (idleState) => {
@@ -71,6 +76,10 @@ mouseDown$.pipe(
                 left: () => "ew-resize",
                 top: () => "ns-resize",
               }, "id")
+
+              viewModelState$.next(goToShapesResize({
+                selectedIds: idleState.selectedIds
+              }))
             }),
             ignoreElements(),
             takeUntil(merge(pointerUp$, pointerLeave$, wheel$))
@@ -95,7 +104,11 @@ mouseDown$.pipe(
               })
             }),
             takeUntil(
-              merge(pointerUp$, pointerLeave$, wheel$).pipe(tap(() => document.documentElement.style.cursor = "default"))
+              merge(pointerUp$, pointerLeave$, wheel$).pipe(tap(() => {
+                viewModelState$.next(goToIdle({ selectedIds: idleState.selectedIds }))
+
+                document.documentElement.style.cursor = "default"
+              }))
             )
           )
         )
@@ -103,6 +116,18 @@ mouseDown$.pipe(
     })
   })
 ).subscribe(shapes$)
+
+viewModelState$.pipe(
+  filter((viewModelState) => viewModelState.type === "shapesResize"),
+  switchMap((viewModelState) => {
+    return shapes$.pipe(
+      map((shapes) => shapes.find(shape => viewModelState.selectedIds.has(shape.id))),
+      filter(shape => isNotUndefined(shape)),
+      map((shape) => inferRect(shape)),
+      takeUntil(viewModelState$.pipe(filter(state => state.type !== "shapesResize")))
+    )
+  })
+)
 
 mouseUp$.pipe(
   filter(({ event }) => !event.shiftKey && event.button === 0),
@@ -137,6 +162,8 @@ mouseDown$.pipe(
   map(([downEvent, stickers, camera, state, selectedRect]) => ({ ...downEvent, selectedRect, stickers, camera, state })),
   switchMap(({ camera, event, node, stickers, point, state }) => match(state, {
     nodesDragging: () => EMPTY,
+
+    shapesResize: () => EMPTY,
 
     idle: (idleState) => {
       const sharedMove$ = pointerMove$.pipe(share(), takeWhile((event) => !event.shiftKey))

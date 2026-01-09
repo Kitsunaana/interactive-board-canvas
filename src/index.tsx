@@ -1,8 +1,7 @@
-import { Theme } from "@radix-ui/themes"
 import { createRoot } from "react-dom/client"
 import { App } from "./app/app"
 import "./shared/lib/seed"
 
 const root = createRoot(document.getElementById("app") as HTMLElement)
 
-root.render(<Theme children={<App />} />)
+root.render(<App />)
