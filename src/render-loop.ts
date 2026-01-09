@@ -4,13 +4,13 @@ import { getWorldPoints, type Camera } from "./features/board/modules/_camera/_d
 import { camera$, cameraSubject$, gridTypeSubject$ } from "./features/board/modules/_camera/_stream.ts";
 import { drawActiveBox } from "./features/board/ui/active-box.ts";
 import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./features/board/ui/grid.ts";
-import { selectedRect$, viewModel$ } from "./features/board/view-model/state";
 import { mapRight } from "./shared/lib/either.ts";
 import { canvas, context, resize$ } from "./shared/lib/initial-canvas.ts";
 import { getCanvasSizes, isNotNull } from "./shared/lib/utils.ts";
 import type { Rect } from "./shared/type/shared.ts";
 import { getShapeDrawer } from "./features/board/ui/sketch/sticker/draw.ts";
 import type { ShapeToView } from "./features/board/domain/dto.ts";
+import { selectionBounds$, viewModel$ } from "./features/board/view-model/state/index-v2.ts";
 
 export const canvasProperties$ = combineLatest([
   cameraSubject$,
@@ -39,7 +39,7 @@ export const renderLoop$ = animationFrames().pipe(
     camera$,
     gridTypeSubject$,
     viewModel$,
-    selectedRect$,
+    selectionBounds$,
     gridProps$
   ),
   map(([_, camera, gridType, viewModel, selectedRect, { canvasProperties, gridProps }]) => ({
@@ -90,7 +90,7 @@ const baseLineWidth = 0.45
 const scalePower = 0.75
 const baseRadius = 5
 
-function drawActiveBoxDots({ context, camera, rect }: {
+export function drawActiveBoxDots({ context, camera, rect }: {
   context: CanvasRenderingContext2D
   camera: Camera
   rect: Rect

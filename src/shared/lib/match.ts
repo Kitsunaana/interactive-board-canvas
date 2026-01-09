@@ -3,7 +3,7 @@ export type AnyState<K extends PropertyKey = "type"> = {
 }
 
 export type MatchHandlers<State, Discriminant extends keyof State> = {
-  [Key in State[Discriminant] & PropertyKey]: (state: Extract<State, { [P in Discriminant]: Key }>) => any
+  [Key in State[Discriminant] & PropertyKey]?: (state: Extract<State, { [P in Discriminant]: Key }>) => any
 }
 
 export type MatchReturn<MatchMap> = MatchMap[keyof MatchMap] extends (...args: any) => infer R ? R : never

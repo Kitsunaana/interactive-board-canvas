@@ -24,9 +24,9 @@ export const shapes: Shape[] = [
   },
   {
     id: "3",
-    x: -200,
+    x: 100,
     y: -200,
-    width: 400,
+    width: 50,
     height: 100,
     type: "rectangle",
     sketch: true,

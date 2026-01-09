@@ -2,6 +2,8 @@
 
 export const isNotNull = <T>(value: T): value is NonNullable<T> => value !== null
 
+export const isNotUndefined = <T>(value: T): value is NonNullable<T> => value !== undefined
+
 export const isNegative = (value: number) => value < 0
 
 export const getCanvasSizes = () => ({

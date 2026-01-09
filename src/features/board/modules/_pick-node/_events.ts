@@ -17,4 +17,3 @@ export const wheel$ = fromEvent<WheelEvent>(canvas, "wheel")
 export const mouseDown$ = createPointerNodePick$(pointerDown$)
 export const mouseMove$ = createPointerNodePick$(pointerMove$)
 export const mouseUp$ = createPointerNodePick$(pointerUp$)
-

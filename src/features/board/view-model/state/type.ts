@@ -8,15 +8,21 @@ export type IdleViewState = {
   type: "idle"
 }
 
-export type NodesDragging = {
+export type ShapesDraggingViewState = {
   selectedIds: Set<string>
   needToDeselect: boolean
   type: "nodesDragging"
 }
 
+export type ShapesResizeViewState = {
+  selectedIds: Set<string>
+  type: "shapesResize"
+} 
+
 export type ViewModelState =
   | IdleViewState
-  | NodesDragging
+  | ShapesResizeViewState
+  | ShapesDraggingViewState
 
 export type ViewModelAction = {
   onClick?: (event: React.MouseEvent) => void
@@ -39,10 +45,15 @@ export const goToIdle = (state: Partial<IdleViewState> = {}): IdleViewState => (
   ...state,
 })
 
-export const goToNodesDragging = (state: Partial<NodesDragging> = {}): NodesDragging => ({
+export const goToNodesDragging = (state: Partial<ShapesDraggingViewState> = {}): ShapesDraggingViewState => ({
   selectedIds: new Set(),
   needToDeselect: false,
   type: "nodesDragging",
   ...state,
 })
 
+export const goToShapesResize = (state: Partial<ShapesResizeViewState> = {}): ShapesResizeViewState => ({
+  selectedIds: new Set(),
+  type: "shapesResize",
+  ...state,
+})

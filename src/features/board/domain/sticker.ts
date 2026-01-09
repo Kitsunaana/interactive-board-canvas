@@ -1,5 +1,5 @@
 ﻿import { getRandFromId } from "@/shared/lib/seed.ts";
-import type { Rect } from "@/shared/type/shared.ts";
+import type { Point, Rect } from "@/shared/type/shared.ts";
 import { times } from "lodash";
 import type { Camera } from "../modules/_camera";
 import {
@@ -13,14 +13,13 @@ import { CONFIG } from "../ui/sketch/sticker/config.ts";
 import type { Rectangle } from "./shapes/rectangle.ts";
 import type { Circle } from "./shapes/circle.ts";
 
-export const generateRectangleSketchProps = ({ id, ...rect }: Rectangle) => {
-  const rand = getRandFromId(id)
+export const generateSketchProps = <T extends Rect & { id: string }>({ rect, basePoints }: {
+  basePoints: Point[]
+  rect: T
+}) => {
+  const rand = getRandFromId(rect.id)
 
-  const basePoints = getRectangleBasePoints(rect.x, rect.y, rect.width, rect.height)
-  const outlines = times(CONFIG.layers).map(() => generateSketchyOutline({
-    basePoints,
-    rand,
-  }))
+  const outlines = times(CONFIG.layers).map(() => generateSketchyOutline({ basePoints, rand }))
 
   const layerOffsets = generateLayerOffsets({ rand })
   const hachureLines = generateHachureLines({
@@ -31,40 +30,32 @@ export const generateRectangleSketchProps = ({ id, ...rect }: Rectangle) => {
   })
 
   return {
-    outlines,
+    hachureLines,
     layerOffsets,
-    hachureFill: true,
-    strokeColor: '#8b5cf6',
-    hachureLines: hachureLines,
+    outlines,
   }
 }
 
-export const generateEllipseSketchProps = ({ id, ...rect }: Circle) => {
-  const rand = getRandFromId(id)
+export const generateRectangleSketchProps = (shape: Rectangle) => ({
+  hachureFill: true,
+  strokeColor: '#8b5cf6',
+  ...generateSketchProps({
+    basePoints: getRectangleBasePoints(shape.x, shape.y, shape.width, shape.height),
+    rect: shape
+  })
+})
 
+export const generateEllipseSketchProps = ({ id, ...rect }: Circle) => {
   const radiusY = rect.height / 2
   const radiusX = rect.width / 2
 
-  const basePoints = getEllipseBasePoints(rect.x + radiusX, rect.y + radiusY, radiusX, radiusY)
-  const outlines = times(CONFIG.layers).map(() => generateSketchyOutline({
-    basePoints,
-    rand,
-  }))
-
-  const layerOffsets = generateLayerOffsets({ rand })
-  const hachureLines = generateHachureLines({
-    outlinePoints: outlines[0],
-    offsetX: layerOffsets[0].x,
-    offsetY: layerOffsets[0].y,
-    rand,
-  })
-
   return {
-    outlines,
-    layerOffsets,
     hachureFill: true,
     strokeColor: '#df3182ff',
-    hachureLines: hachureLines,
+    ...generateSketchProps({
+      basePoints: getEllipseBasePoints(rect.x + radiusX, rect.y + radiusY, radiusX, radiusY),
+      rect: { ...rect, id }
+    })
   }
 }
 

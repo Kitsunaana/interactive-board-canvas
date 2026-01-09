@@ -5,8 +5,8 @@ import { _u } from "@/shared/lib/utils.ts";
 import type { Point } from "@/shared/type/shared.ts";
 import type { Shape } from "../../../domain/dto.ts";
 import type { Camera } from "../../../modules/_camera";
-import { viewModelState$ } from "../index.ts";
 import { goToIdle, type ViewModelState } from "../type.ts";
+import { viewModelState$ } from "../index-v2.ts";
 
 export const moveSelectedShapes = ({ camera, shapes, point, event, selectedIds }: {
   selectedIds: Set<string>
@@ -26,7 +26,6 @@ export const moveSelectedShapes = ({ camera, shapes, point, event, selectedIds }
 
       return match(node, {
         arrow: () => node,
-
 
         square: () => node,
 
