@@ -37,7 +37,6 @@ import {
   updateCameraWithAnimation
 } from "./_core";
 import type { MiniMapState, MiniMapStateReady } from "./_domain";
-import type { Shape } from "../../domain/dto";
 
 export const miniMapCameraSubject$ = new BehaviorSubject<Rect>({
   height: 0,

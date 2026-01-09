@@ -5,7 +5,7 @@ import type { Point } from "@/shared/type/shared"
 
 type ApplyEdgeResize = (params: { canvasPoint: Point, shape: Shape }) => Shape
 
-export const applyRightEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) => {
+const applyRightEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) => {
   const rightEdgeX = shape.x + shape.width
   const resizeOffset = canvasPoint.x - rightEdgeX - SELECTION_BOUNDS_PADDING
 
@@ -25,7 +25,7 @@ export const applyRightEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) =>
   return _u.merge(shape, { width: nextWidth })
 }
 
-export const applyLeftEdgeResize: ApplyEdgeResize = ({ canvasPoint, shape }) => {
+const applyLeftEdgeResize: ApplyEdgeResize = ({ canvasPoint, shape }) => {
   const pointerOffsetX = shape.x - canvasPoint.x - SELECTION_BOUNDS_PADDING
   const projectedWidth = shape.width + pointerOffsetX
 
@@ -51,7 +51,7 @@ export const applyLeftEdgeResize: ApplyEdgeResize = ({ canvasPoint, shape }) => 
   })
 }
 
-export const applyBottomEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) => {
+const applyBottomEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) => {
   const heightDelta = canvasPoint.y - shape.y - SELECTION_BOUNDS_PADDING
 
   if (isNegative(heightDelta)) {
@@ -72,7 +72,7 @@ export const applyBottomEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) =
   })
 }
 
-export const applyTopEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) => {
+const applyTopEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) => {
   const heightDelta = shape.y - canvasPoint.y - SELECTION_BOUNDS_PADDING
   const projectedHeight = shape.height + heightDelta
 
@@ -98,4 +98,11 @@ export const applyTopEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) => {
     y: shape.y - heightDelta,
     height: projectedHeight,
   })
+}
+
+export const independentResizeHandlers = {
+  applyBottomEdgeResize,
+  applyRightEdgeResize,
+  applyLeftEdgeResize,
+  applyTopEdgeResize,
 }

@@ -1,15 +1,15 @@
 import { generateRandomColor } from "@/shared/lib/color.ts";
 import { matchEither } from "@/shared/lib/either.ts";
 import { initialCanvas } from "@/shared/lib/initial-canvas.ts";
-import { concat, from, map, Observable, of, shareReplay, switchMap, tap, withLatestFrom } from "rxjs";
-import { shapes$ } from "../../domain/node.ts";
-import { selectionBounds$ } from "../../view-model/state/index-v2.ts";
-import { camera$ } from "../_camera/_stream.ts";
-import { context, findNodeByColorId, getPickedColor } from "./_core.ts";
-import { renderHelperShapes } from "./_loop.ts";
 import { isNotNull, isNotUndefined } from "@/shared/lib/utils.ts";
 import type { Point, Rect } from "@/shared/type/shared.ts";
 import { isNil } from "lodash";
+import { map, Observable, shareReplay, tap, withLatestFrom } from "rxjs";
+import { shapes$ } from "../../domain/node.ts";
+import { selectionBounds$ } from "../../view-model/state/index-v2.ts";
+import { camera$ } from "../_camera/_stream.ts";
+import { context, getPickedColor } from "./_core.ts";
+import { renderHelperShapes } from "./_loop.ts";
 
 export const [_, canvas] = initialCanvas({
   height: window.innerHeight,

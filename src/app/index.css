@@ -26,7 +26,3 @@ body {
   font-weight: bold;
   color: #333;
 }
-
-.radix-themes:where([data-is-root-theme='true']) {
-  min-height: unset !important;
-}

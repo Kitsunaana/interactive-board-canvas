@@ -11,7 +11,6 @@ import { wheelCamera$, zoomTrigger$ } from "../features/board/modules/_camera/_s
 import { miniMapProperties$ } from "../features/board/modules/_mini-map/_stream";
 
 import { useSelectionBoundsRect } from "@/features/board/view-model/use-selection-bounds-rect";
-import "@radix-ui/themes/styles.css";
 
 const toPercentage = (state: CameraState) => `${Math.round(state.camera.scale * 100)}%`
 
@@ -51,7 +50,7 @@ export function App() {
         className="absolute z-[101] bottom-4 left-4 bg-white shadow-xl p-1 rounded-md"
       />
 
-      {selectionBoundsRect && (
+      {/* {selectionBoundsRect && (
         <div
           style={{
             top: `${selectionBoundsRect.y + selectionBoundsRect.height + 15}px`,
@@ -62,7 +61,7 @@ export function App() {
         >
           {Math.round(selectionBoundsRect.width)}{" x "}{Math.round(selectionBoundsRect.height)}
         </div>
-      )}
+      )} */}
 
       <div className="flex items-center gap-2 absolute bottom-4 right-4 bg-white shadow-xl p-1 rounded-md text-sm text-gray-800 font-bold">
         <button
