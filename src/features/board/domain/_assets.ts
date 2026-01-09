@@ -26,7 +26,7 @@ export const shapes: Shape[] = [
     id: "3",
     x: 100,
     y: -200,
-    width: 50,
+    width: 250,
     height: 100,
     type: "rectangle",
     sketch: true,
