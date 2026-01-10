@@ -6,11 +6,11 @@ import {
   map,
   shareReplay
 } from "rxjs";
-import type { ShapeToView } from "../../domain/dto.ts";
-import { shapes$, shapesToView$ } from "../../domain/node.ts";
-import { getRectBySelectedShapes } from "./idle/selection.ts";
-import type { ViewModel, ViewModelState } from "./type.ts";
-import { goToIdle } from "./type.ts";
+import { computeSelectionBoundsRect } from "../../domain/_selection/index.ts";
+import type { ShapeToView } from "../../domain/_shape.ts";
+import { shapes$, shapesToView$ } from "../../model/index.ts";
+import type { ViewModel, ViewModelState } from "./_view-model.type.ts";
+import { goToIdle } from "./_view-model.type.ts";
 
 export const viewModelState$ = new BehaviorSubject<ViewModelState>(goToIdle())
 
@@ -45,7 +45,7 @@ export const viewModel$ = combineLatest([viewModelState$, shapesToView$]).pipe(
 )
 
 export const selectionBounds$ = combineLatest([shapes$, viewModelState$]).pipe(
-  map(([nodes, { selectedIds }]) => getRectBySelectedShapes({ selectedIds, shapes: nodes })),
+  map(([nodes, { selectedIds }]) => computeSelectionBoundsRect({ selectedIds, shapes: nodes })),
   shareReplay({ bufferSize: 1, refCount: true })
 )
 

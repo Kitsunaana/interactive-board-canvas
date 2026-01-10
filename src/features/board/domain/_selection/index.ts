@@ -1,12 +1,9 @@
-﻿import type { Shape } from "@/features/board/domain/dto.ts";
-import { calculateLimitPoints } from "@/features/board/modules/_mini-map/_core.ts";
-import { left, right } from "@/shared/lib/either.ts";
-import { inferRect } from "@/shared/lib/rect.ts";
-import type { Rect } from "@/shared/type/shared.ts";
-import type { IdleViewState } from "../type.ts";
-
-export type SelectionModifier = "replace" | "add" | "toggle"
-export type Selection = Set<string>
+﻿import { left, right } from "@/shared/lib/either"
+import { calculateLimitPoints, inferRect } from "@/shared/lib/rect"
+import type { Rect } from "@/shared/type/shared"
+import type { IdleViewState } from "../../view-model/state/_view-model.type"
+import type { Shape } from "../_shape"
+import type { Selection, SelectionModifier } from "./_selection.type"
 
 export const selectItems = ({ ids, modif, initialSelected }: {
   initialSelected: Selection
@@ -46,7 +43,7 @@ export const shapeSelect = ({ event, shapeId, idleState }: {
   }
 }
 
-export const getRectBySelectedShapes = ({ shapes, selectedIds }: {
+export const computeSelectionBoundsRect = ({ shapes, selectedIds }: {
   selectedIds: Set<string>
   shapes: Shape[]
 }) => {
@@ -56,8 +53,8 @@ export const getRectBySelectedShapes = ({ shapes, selectedIds }: {
     if (selected === undefined) return left(null)
 
     return right({
-      rects: [] satisfies Rect[],
-      main: inferRect(selected)
+      bounds: [] satisfies Rect[],
+      area: inferRect(selected)
     })
   }
 
@@ -67,8 +64,8 @@ export const getRectBySelectedShapes = ({ shapes, selectedIds }: {
     const limitPoints = calculateLimitPoints({ rects: selecteds })
 
     return right({
-      rects: selecteds,
-      main: {
+      bounds: selecteds,
+      area: {
         height: limitPoints.max.y - limitPoints.min.y,
         width: limitPoints.max.x - limitPoints.min.x,
         x: limitPoints.min.x,

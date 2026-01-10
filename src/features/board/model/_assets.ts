@@ -1,5 +1,5 @@
 ﻿import { generateRandomColor } from "@/shared/lib/color";
-import type { Shape } from "./dto";
+import type { Shape } from "../domain";
 
 export const shapes: Shape[] = [
   {
@@ -12,16 +12,16 @@ export const shapes: Shape[] = [
     sketch: false,
     colorId: generateRandomColor(),
   },
-  // {
-  //   id: "2",
-  //   x: 120,
-  //   y: 120,
-  //   width: 100,
-  //   height: 100,
-  //   type: "rectangle",
-  //   sketch: true,
-  //   colorId: generateRandomColor(),
-  // },
+  {
+    id: "2",
+    x: 120,
+    y: 120,
+    width: 100,
+    height: 100,
+    type: "rectangle",
+    sketch: true,
+    colorId: generateRandomColor(),
+  },
   {
     id: "3",
     x: 100,

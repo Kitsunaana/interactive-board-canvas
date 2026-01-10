@@ -1,16 +1,16 @@
 import { animationFrames, combineLatest, map, startWith, tap, withLatestFrom } from "rxjs";
-import { getActiveBoxDots } from "./features/board/domain/sticker.ts";
+import { getResizeHandlersProperties } from "./features/board/view-model/sticker.ts";
 import { getWorldPoints, type Camera } from "./features/board/modules/_camera/_domain.ts";
 import { camera$, cameraSubject$, gridTypeSubject$ } from "./features/board/modules/_camera/_stream.ts";
-import { drawActiveBox } from "./features/board/ui/active-box.ts";
+import { drawSelectionBoundsArea } from "./features/board/ui/selection-bounds-area.ts";
 import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./features/board/ui/grid.ts";
 import { mapRight } from "./shared/lib/either.ts";
 import { canvas, context, resize$ } from "./shared/lib/initial-canvas.ts";
 import { getCanvasSizes, isNotNull } from "./shared/lib/utils.ts";
 import type { Rect } from "./shared/type/shared.ts";
-import { getShapeDrawer } from "./features/board/ui/sketch/sticker/draw.ts";
-import type { ShapeToView } from "./features/board/domain/dto.ts";
-import { selectionBounds$, viewModel$ } from "./features/board/view-model/state/index-v2.ts";
+import { getShapeDrawer } from "./features/board/ui/sketch/draw.ts";
+import type { ShapeToView } from "./features/board/domain/_shape.ts";
+import { selectionBounds$, viewModel$ } from "./features/board/view-model/state/_view-model.ts";
 
 export const canvasProperties$ = combineLatest([
   cameraSubject$,
@@ -64,9 +64,9 @@ renderLoop$.subscribe(({ selectedRect, canvasSizes, gridType, gridProps, camera,
 
   renderShapes({ context, shapes: nodes })
 
-  mapRight(selectedRect, ({ main, rects }) => {
-    drawActiveBox({ context, rects: rects.concat(main) })
-    drawActiveBoxDots({ context, camera, rect: main })
+  mapRight(selectedRect, ({ area, bounds }) => {
+    drawSelectionBoundsArea({ context, rects: bounds.concat(area) })
+    drawActiveBoxDots({ context, camera, rect: area })
   })
 
   context.restore()
@@ -103,7 +103,7 @@ export function drawActiveBoxDots({ context, camera, rect }: {
   context.fillStyle = "#ffffff"
   context.strokeStyle = "#aaaaaa"
 
-  getActiveBoxDots({ camera, rect }).forEach((dot) => {
+  getResizeHandlersProperties({ camera, rect }).forEach((dot) => {
     context.beginPath()
     context.lineWidth = dotLineWidth
     context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)

@@ -1,9 +1,9 @@
 ﻿import { match } from "@/shared/lib/match";
 import { _u } from "@/shared/lib/utils";
 import { BehaviorSubject, map } from "rxjs";
+import type { ShapeToView } from "../domain";
+import { generateEllipseSketchProps, generateRectangleSketchProps } from "../view-model/sticker";
 import { shapes } from "./_assets";
-import type { ShapeToView } from "./dto";
-import { generateEllipseSketchProps, generateRectangleSketchProps } from "./sticker";
 
 export const shapes$ = new BehaviorSubject(shapes)
 

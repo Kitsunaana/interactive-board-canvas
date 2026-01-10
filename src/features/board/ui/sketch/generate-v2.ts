@@ -1,6 +1,6 @@
 import type { Point } from "@/shared/type/shared.ts";
 import { times } from "lodash";
-import { CONFIG } from "./sticker/config";
+import { CONFIG } from "./config";
 
 export const generateWobblyLinePoints = ({ x1, y1, x2, y2, rand, }: {
   rand: () => number

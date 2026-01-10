@@ -1,7 +1,7 @@
-import type { Shape } from "@/features/board/domain/dto"
-import { SELECTION_BOUNDS_PADDING } from "@/features/board/ui/active-box"
-import { isNegative, _u } from "@/shared/lib/utils"
+import { _u, isNegative } from "@/shared/lib/utils"
 import type { Point } from "@/shared/type/shared"
+import { SELECTION_BOUNDS_PADDING } from "../../ui/selection-bounds-area"
+import type { Shape } from "../_shape"
 
 type ApplyEdgeResize = (params: { canvasPoint: Point, shape: Shape }) => Shape
 

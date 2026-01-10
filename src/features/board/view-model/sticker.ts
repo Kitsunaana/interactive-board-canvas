@@ -1,7 +1,8 @@
 ﻿import { getRandFromId } from "@/shared/lib/seed.ts";
 import type { Point, Rect } from "@/shared/type/shared.ts";
 import { times } from "lodash";
-import type { Camera } from "../modules/_camera";
+import type { Circle, Rectangle } from "../domain/_shape.ts";
+import type { Camera } from "../modules/_camera/index.ts";
 import {
   generateHachureLines,
   generateLayerOffsets,
@@ -9,9 +10,7 @@ import {
   getEllipseBasePoints,
   getRectangleBasePoints
 } from "../ui/sketch/generate-v2.ts";
-import { CONFIG } from "../ui/sketch/sticker/config.ts";
-import type { Rectangle } from "./shapes/rectangle.ts";
-import type { Circle } from "./shapes/circle.ts";
+import { CONFIG } from "../ui/sketch/config.ts";
 
 export const generateSketchProps = <T extends Rect & { id: string }>({ rect, basePoints }: {
   basePoints: Point[]
@@ -45,16 +44,16 @@ export const generateRectangleSketchProps = (shape: Rectangle) => ({
   })
 })
 
-export const generateEllipseSketchProps = ({ id, ...rect }: Circle) => {
-  const radiusY = rect.height / 2
-  const radiusX = rect.width / 2
+export const generateEllipseSketchProps = (shape: Circle) => {
+  const radiusY = shape.height / 2
+  const radiusX = shape.width / 2
 
   return {
     hachureFill: true,
     strokeColor: '#df3182ff',
     ...generateSketchProps({
-      basePoints: getEllipseBasePoints(rect.x + radiusX, rect.y + radiusY, radiusX, radiusY),
-      rect: { ...rect, id }
+      basePoints: getEllipseBasePoints(shape.x + radiusX, shape.y + radiusY, radiusX, radiusY),
+      rect: shape
     })
   }
 }
@@ -64,7 +63,7 @@ export const PADDING = 7
 export const BASE_RADIUS = 5
 export const SCALE_POWER = 0.75
 
-export const getActiveBoxDots = ({ rect, camera }: { camera: Camera, rect: Rect }) => [
+export const getResizeHandlersProperties = ({ rect, camera }: { camera: Camera, rect: Rect }) => [
   {
     radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
     x: rect.x - PADDING,

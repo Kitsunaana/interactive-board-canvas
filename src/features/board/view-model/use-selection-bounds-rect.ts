@@ -2,9 +2,9 @@ import { addPoint, multiplePoint, pointToSizes, sizesToPoint } from "@/shared/li
 import { _u, isNotUndefined } from "@/shared/lib/utils";
 import { bind } from "@react-rxjs/core";
 import { endWith, filter, map, switchMap, takeUntil, withLatestFrom } from "rxjs";
-import { shapes$ } from "../domain/node";
+import { shapes$ } from "../model";
 import { camera$ } from "../modules/_camera/_stream";
-import { viewModelState$ } from "./state/index-v2";
+import { viewModelState$ } from "./state/_view-model";
 
 export const [useSelectionBoundsRect] = bind(viewModelState$.pipe(
   filter((viewModelState) => viewModelState.type === "shapesResize"),

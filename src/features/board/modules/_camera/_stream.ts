@@ -1,4 +1,5 @@
-﻿import { _u } from "@/shared/lib/utils"
+﻿import { canvas } from "@/shared/lib/initial-canvas"
+import { _u } from "@/shared/lib/utils"
 import { isEqual } from "lodash"
 import {
   animationFrames,
@@ -21,15 +22,14 @@ import {
 import { INITIAL_STATE } from "./_const"
 import {
   canStartPan,
+  changeZoom,
   inertiaCameraUpdate,
   toMovingPanState,
   toStartPanState,
-  wheelCameraUpdate,
   zoomIn,
   zoomOut
 } from "./_core"
 import type { ZoomAction } from "./_domain"
-import { canvas } from "@/shared/lib/initial-canvas"
 
 const pointerLeave$ = fromEvent<PointerEvent>(canvas, "pointerleave")
 const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
@@ -71,7 +71,7 @@ export const pan$ = pointerDown$.pipe(
 export const wheelCamera$ = merge(
   wheel$.pipe(
     withLatestFrom(cameraSubject$),
-    map(([event, cameraState]) => wheelCameraUpdate({ event, cameraState })),
+    map(([event, cameraState]) => _u.merge(cameraState, { camera: changeZoom(cameraState.camera, event) })),
     shareReplay(1)
   ),
   zoomTrigger$.pipe(

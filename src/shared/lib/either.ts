@@ -19,6 +19,8 @@ export const isLeft = <V>(value: Left<V> | Right<V>) => value.type === "left"
 
 export const isRight = <V>(value: Left<V> | Right<V>) => value.type === "right"
 
+export const isRightV2 = <L, R>(value: Left<L> | Right<R>) => value.type === "right"
+
 export const right = <R>(value: R): Right<R> => ({
   type: "right",
   value

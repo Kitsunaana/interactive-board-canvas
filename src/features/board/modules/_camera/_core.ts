@@ -87,13 +87,6 @@ export const changeZoom = (camera: Camera, event: WheelEvent) => {
   }
 }
 
-export const wheelCameraUpdate = ({ cameraState, event }: {
-  cameraState: CameraState
-  event: WheelEvent
-}) => _u.merge(cameraState, {
-  camera: changeZoom(cameraState.camera, event)
-})
-
 export const inertiaCameraUpdate = (cameraState: CameraState) => {
   const velocityMagnitude = Math.hypot(cameraState.velocity.x, cameraState.velocity.y)
 

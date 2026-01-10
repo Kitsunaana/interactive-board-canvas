@@ -1,2 +1,2 @@
-export type { Camera, CameraState, ZoomAction as ZoomEvent } from "./_domain"
+export type { Camera, CameraState, ZoomAction } from "./_domain"
 export { cameraSubject$ } from "./_stream"

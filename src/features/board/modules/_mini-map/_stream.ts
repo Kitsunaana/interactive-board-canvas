@@ -1,6 +1,6 @@
 ﻿import { resize$ } from "@/shared/lib/initial-canvas";
 import { getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point";
-import { centerPointFromRect, unscaleRect } from "@/shared/lib/rect";
+import { calculateLimitPoints, centerPointFromRect, unscaleRect } from "@/shared/lib/rect";
 import { _u, getBoundingClientRect, isNegative, isNotNull } from "@/shared/lib/utils";
 import type { Point, Rect } from "@/shared/type/shared";
 import { isEqual } from "lodash";
@@ -22,11 +22,10 @@ import {
   tap,
   withLatestFrom
 } from "rxjs";
-import { shapes$ } from "../../domain/node";
-import { renderMiniMap } from "../../ui/mini-map";
+import { shapes$ } from "../../model";
+import { drawMiniMap } from "../../ui/mini-map";
 import { cameraSubject$, type Camera } from "../_camera";
 import {
-  calculateLimitPoints,
   calculateMiniMapCameraRect,
   calculateUnscaleMap,
   canMoveMiniMapViewportRect,
@@ -98,8 +97,8 @@ export const unscaleMap$ = movedUnscaleNodes$.pipe(
 
 export const miniMapRenderer = animationFrames().pipe(
   withLatestFrom(readyMiniMapSubject$, miniMapSizes$, movedUnscaleNodes$, unscaleMap$, miniMapCameraSubject$),
-  map(([_, { context }, sizes, nodes, unscale, cameraRect]) => ({ context, sizes, nodes, unscale, cameraRect })),
-  tap(renderMiniMap)
+  map(([_, { context }, sizes, shapes, unscale, cameraRect]) => ({ context, sizes, shapes, unscale, cameraRect })),
+  tap(drawMiniMap)
 )
 
 miniMapRenderer.subscribe()

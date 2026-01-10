@@ -1,4 +1,4 @@
-import "../features/board/view-model/state/index";
+import "../features/board/view-model/state/_idle";
 import "../render-loop";
 import "./index.css";
 
