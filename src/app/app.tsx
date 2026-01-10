@@ -4,8 +4,9 @@ import "./index.css";
 
 import { bind } from "@react-rxjs/core";
 import { clsx } from "clsx";
-import { isNil } from "lodash";
-import { map } from "rxjs";
+import * as rx from "rxjs"
+import * as _ from "lodash"
+
 import type { CameraState } from "../features/board/modules/_camera/_domain";
 import { wheelCamera$, zoomTrigger$ } from "../features/board/modules/_camera/_stream";
 import { miniMapProperties$ } from "../features/board/modules/_mini-map/_stream";
@@ -14,7 +15,7 @@ import { useSelectionBoundsRect } from "@/features/board/view-model/use-selectio
 
 const toPercentage = (state: CameraState) => `${Math.round(state.camera.scale * 100)}%`
 
-const [useZoomValue] = bind(wheelCamera$.pipe(map(toPercentage)), "100%")
+const [useZoomValue] = bind(wheelCamera$.pipe(rx.map(toPercentage)), "100%")
 
 const zoomOut = () => {
   zoomTrigger$.next({
@@ -29,7 +30,7 @@ const zoomIn = () => {
 }
 
 const readyMiniMap = (instance: HTMLCanvasElement | null) => {
-  if (!isNil(instance)) {
+  if (!_.isNil(instance)) {
     miniMapProperties$.next({
       context: instance.getContext("2d"),
       canvas: instance,
@@ -50,7 +51,7 @@ export function App() {
         className="absolute z-[101] bottom-4 left-4 bg-white shadow-xl p-1 rounded-md"
       />
 
-      {/* {selectionBoundsRect && (
+      {selectionBoundsRect && (
         <div
           style={{
             top: `${selectionBoundsRect.y + selectionBoundsRect.height + 15}px`,
@@ -61,7 +62,7 @@ export function App() {
         >
           {Math.round(selectionBoundsRect.width)}{" x "}{Math.round(selectionBoundsRect.height)}
         </div>
-      )} */}
+      )}
 
       <div className="flex items-center gap-2 absolute bottom-4 right-4 bg-white shadow-xl p-1 rounded-md text-sm text-gray-800 font-bold">
         <button

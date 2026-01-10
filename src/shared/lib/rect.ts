@@ -1,4 +1,4 @@
-import { defaultTo, first } from "lodash";
+import * as _ from "lodash"
 import type { LimitPoints, Point, Rect } from "../type/shared";
 import { screenToCanvas, type Camera } from "./point";
 
@@ -52,7 +52,7 @@ export const centerPointFromRect = (rect: Rect): Point => ({
 })
 
 export const calculateLimitPoints = ({ rects }: { rects: Rect[] }) => {
-  const { height, width, x, y } = defaultTo(first(rects), {
+  const { height, width, x, y } = _.defaultTo(_.first(rects), {
     height: 0,
     width: 0,
     x: 0,

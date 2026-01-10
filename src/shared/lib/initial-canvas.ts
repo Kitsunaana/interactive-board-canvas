@@ -1,4 +1,4 @@
-﻿import { fromEvent } from "rxjs"
+﻿import * as rx from "rxjs"
 
 type InitialCanvasParams = {
   canvasId: string
@@ -30,4 +30,4 @@ export const [context, canvas] = initialCanvas({
   canvasId: "canvas",
 })
 
-export const resize$ = fromEvent(window, "resize")
+export const resize$ = rx.fromEvent(window, "resize")

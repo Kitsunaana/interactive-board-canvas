@@ -4,7 +4,7 @@ import { initialCanvas } from "@/shared/lib/initial-canvas"
 import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
 import { isNotNull, isNotUndefined } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
-import { entries, find } from "lodash"
+import * as _ from "lodash"
 import type { Shape } from "../../domain"
 import type { BoundVariant } from "../../domain/_selection/_selection.type"
 import type { Camera } from "../_camera"
@@ -60,8 +60,8 @@ export const isPickedCanvas = (colorId: string) => {
 
 export const isPickedSelectionBound = (colorId: string, selectionBounds: SelectionBoundsToPick | null) => {
   if (isNotNull(selectionBounds)) {
-    const pickedBound = find(
-      entries(selectionBounds.linesColor),
+    const pickedBound = _.find(
+      _.entries(selectionBounds.linesColor),
       ([_, boundColorId]) => boundColorId === colorId
     ) as [bound: BoundVariant, colorId: string] | undefined
 

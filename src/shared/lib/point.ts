@@ -1,4 +1,4 @@
-import { defaultTo, isNumber } from "lodash"
+import * as _ from "lodash"
 import type { Point, Sizes } from "../type/shared"
 
 export type Camera = {
@@ -8,8 +8,8 @@ export type Camera = {
 }
 
 export const screenToCanvas = ({ point, camera }: { camera: Camera, point: Point }) => ({
-  x: (point.x - camera.x) / defaultTo(camera.scale, 1),
-  y: (point.y - camera.y) / defaultTo(camera.scale, 1),
+  x: (point.x - camera.x) / _.defaultTo(camera.scale, 1),
+  y: (point.y - camera.y) / _.defaultTo(camera.scale, 1),
 })
 
 export const sizesToPoint = (sizes: Sizes): Point => ({
@@ -25,7 +25,7 @@ export const pointToSizes = (point: Point): Sizes => ({
 export function addPoint(point1: Point, point2: number): Point
 export function addPoint(point1: Point, point2: Point): Point
 export function addPoint(point1: Point, point2: Point | number): Point {
-  if (isNumber(point2)) {
+  if (_.isNumber(point2)) {
     return {
       x: point1.x + point2,
       y: point1.y + point2,
@@ -41,7 +41,7 @@ export function addPoint(point1: Point, point2: Point | number): Point {
 export function multiplePoint(point1: Point, point2: number): Point
 export function multiplePoint(point1: Point, point2: Point): Point
 export function multiplePoint(point1: Point, point2: Point | number): Point {
-  if (isNumber(point2)) {
+  if (_.isNumber(point2)) {
     return {
       x: point1.x * point2,
       y: point1.y * point2,

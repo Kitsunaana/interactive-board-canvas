@@ -1,21 +1,6 @@
 import { match } from "@/shared/lib/match.ts";
 import { getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point.ts";
-import {
-  filter,
-  finalize,
-  ignoreElements,
-  map,
-  merge,
-  of,
-  share,
-  skip,
-  switchMap,
-  take,
-  takeUntil,
-  takeWhile,
-  tap,
-  withLatestFrom
-} from "rxjs";
+import * as rx from "rxjs"
 import { endMoveShape, movingShape, startMoveShape } from "../../domain/_moving.ts";
 import type { Bound } from "../../domain/_selection/_selection.type.ts";
 import { shapeSelect } from "../../domain/_selection/index.ts";
@@ -27,19 +12,19 @@ import { viewModelState$ } from "./_view-model.ts";
 import { goToIdle, goToNodesDragging, goToShapesResize, type IdleViewState, } from "./_view-model.type.ts";
 
 const shapesResizeFlow$ = mouseDown$.pipe(
-  filter((params) => isBound(params.node)),
-  withLatestFrom(viewModelState$, shapes$, camera$),
-  filter(([_, viewModelState]) => viewModelState.type === "idle"),
-  map(([bound, viewState, shapes, camera]) => ({ node: bound.node as Bound, idleState: viewState as IdleViewState, shapes, camera })),
-  switchMap(({ node, idleState, shapes, camera }) => {
+  rx.filter((params) => isBound(params.node)),
+  rx.withLatestFrom(viewModelState$, shapes$, camera$),
+  rx.filter(([_, viewModelState]) => viewModelState.type === "idle"),
+  rx.map(([bound, viewState, shapes, camera]) => ({ node: bound.node as Bound, idleState: viewState as IdleViewState, shapes, camera })),
+  rx.switchMap(({ node, idleState, shapes, camera }) => {
     const resizeShapesStrategy = getShapesResizeStrategy({ idleState, shapes, node })
 
-    const sharedMove$ = pointerMove$.pipe(share(), takeWhile((event) => !event.shiftKey))
+    const sharedMove$ = pointerMove$.pipe(rx.share(), rx.takeWhile((event) => !event.shiftKey))
 
-    return merge(
+    return rx.merge(
       sharedMove$.pipe(
-        take(1),
-        tap(() => {
+        rx.take(1),
+        rx.tap(() => {
           document.documentElement.style.cursor = match(node, {
             bottom: () => "ns-resize",
             right: () => "ew-resize",
@@ -51,19 +36,19 @@ const shapesResizeFlow$ = mouseDown$.pipe(
             selectedIds: idleState.selectedIds
           }))
         }),
-        ignoreElements(),
-        takeUntil(merge(pointerUp$, pointerLeave$, wheel$))
+        rx.ignoreElements(),
+        rx.takeUntil(rx.merge(pointerUp$, pointerLeave$, wheel$))
       ),
 
       sharedMove$.pipe(
-        map((pointerEvent) => {
+        rx.map((pointerEvent) => {
           const pointerPosition = getPointFromEvent(pointerEvent)
           const canvasPoint = screenToCanvas({ camera, point: pointerPosition })
 
           return resizeShapesStrategy({ canvasPoint })
         }),
-        takeUntil(
-          merge(pointerUp$, pointerLeave$, wheel$).pipe(tap(() => {
+        rx.takeUntil(
+          rx.merge(pointerUp$, pointerLeave$, wheel$).pipe(rx.tap(() => {
             viewModelState$.next(goToIdle({ selectedIds: idleState.selectedIds }))
 
             document.documentElement.style.cursor = "default"
@@ -75,35 +60,35 @@ const shapesResizeFlow$ = mouseDown$.pipe(
 )
 
 const shapeSelectFlow$ = mouseUp$.pipe(
-  filter(({ event }) => !event.shiftKey && event.button === 0),
-  filter(({ node }) => isShape(node) || isCanvas(node)),
-  withLatestFrom(viewModelState$),
-  map(([upEvent, state]) => ({ ...upEvent, state })),
-  switchMap(({ node, event, state }) => match(state, {
-    nodesDragging: (state) => of(state.needToDeselect ? goToIdle() : state),
+  rx.filter(({ event }) => !event.shiftKey && event.button === 0),
+  rx.filter(({ node }) => isShape(node) || isCanvas(node)),
+  rx.withLatestFrom(viewModelState$),
+  rx.map(([upEvent, state]) => ({ ...upEvent, state })),
+  rx.switchMap(({ node, event, state }) => match(state, {
+    nodesDragging: (state) => rx.of(state.needToDeselect ? goToIdle() : state),
 
     idle: (idleState) => match(node, {
-      bound: () => of(null).pipe(map(() => idleState)),
+      bound: () => rx.of(null).pipe(rx.map(() => idleState)),
 
-      grid: () => of(null).pipe(map(() => goToIdle())),
+      grid: () => rx.of(null).pipe(rx.map(() => goToIdle())),
 
-      arrow: () => of(null).pipe(map(() => idleState)),
+      arrow: () => rx.of(null).pipe(rx.map(() => idleState)),
 
-      square: () => of(null).pipe(map(() => idleState)),
+      square: () => rx.of(null).pipe(rx.map(() => idleState)),
 
-      circle: ({ id: shapeId }) => of(null).pipe(map(() => shapeSelect({ idleState, shapeId, event }))),
+      circle: ({ id: shapeId }) => rx.of(null).pipe(rx.map(() => shapeSelect({ idleState, shapeId, event }))),
 
-      rectangle: ({ id: shapeId }) => of(null).pipe(map(() => shapeSelect({ idleState, shapeId, event }))),
+      rectangle: ({ id: shapeId }) => rx.of(null).pipe(rx.map(() => shapeSelect({ idleState, shapeId, event }))),
     }),
   })),
 )
 
 const shapesDraggingFlow$ = mouseDown$.pipe(
-  filter(({ event }) => event.button === 0),
-  switchMap((params) => of(params).pipe(filter(({ node }) => isShape(node)))),
-  withLatestFrom(shapes$, camera$, viewModelState$),
-  filter(([_downEvent, _shapes, _camera, viewModelState]) => viewModelState.type === "idle"),
-  map(([{ point, node, event }, shapes, camera, viewModelState]) => ({
+  rx.filter(({ event }) => event.button === 0),
+  rx.switchMap((params) => rx.of(params).pipe(rx.filter(({ node }) => isShape(node)))),
+  rx.withLatestFrom(shapes$, camera$, viewModelState$),
+  rx.filter(([_downEvent, _shapes, _camera, viewModelState]) => viewModelState.type === "idle"),
+  rx.map(([{ point, node, event }, shapes, camera, viewModelState]) => ({
     idleState: viewModelState as IdleViewState,
     startPoint: point,
     downEvent: event,
@@ -111,12 +96,12 @@ const shapesDraggingFlow$ = mouseDown$.pipe(
     camera,
     shapes,
   })),
-  switchMap(({ camera, downEvent, shape, shapes, startPoint, idleState }) => {
-    const sharedMove$ = pointerMove$.pipe(share(), takeWhile((event) => !event.shiftKey))
+  rx.switchMap(({ camera, downEvent, shape, shapes, startPoint, idleState }) => {
+    const sharedMove$ = pointerMove$.pipe(rx.share(), rx.takeWhile((event) => !event.shiftKey))
 
     const goToNodesDragging$ = sharedMove$.pipe(
-      take(1),
-      tap(() => {
+      rx.take(1),
+      rx.tap(() => {
         viewModelState$.next(goToNodesDragging({
           needToDeselect: idleState.selectedIds.size === 0,
           selectedIds: idleState.selectedIds,
@@ -132,13 +117,13 @@ const shapesDraggingFlow$ = mouseDown$.pipe(
           },
         })
       }),
-      ignoreElements(),
-      takeUntil(merge(pointerUp$, pointerLeave$, wheel$))
+      rx.ignoreElements(),
+      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$, wheel$))
     )
 
     const shapesDragging$ = sharedMove$.pipe(
-      skip(1),
-      map((event) => {
+      rx.skip(1),
+      rx.map((event) => {
         const distance = subtractPoint(startPoint, screenToCanvas({
           point: getPointFromEvent(event),
           camera,
@@ -150,18 +135,18 @@ const shapesDraggingFlow$ = mouseDown$.pipe(
           shapes,
         })
       }),
-      takeUntil(merge(pointerUp$, pointerLeave$, wheel$))
+      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$, wheel$))
     )
 
     const finishShapesDragging$ = sharedMove$.pipe(
-      takeUntil(merge(pointerUp$, pointerLeave$, wheel$)),
-      ignoreElements(),
-      finalize(() => {
+      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$, wheel$)),
+      rx.ignoreElements(),
+      rx.finalize(() => {
         viewModelState$.next(endMoveShape())
       })
     )
 
-    return merge(goToNodesDragging$, shapesDragging$, finishShapesDragging$)
+    return rx.merge(goToNodesDragging$, shapesDragging$, finishShapesDragging$)
   })
 )
 

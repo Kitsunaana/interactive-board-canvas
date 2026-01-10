@@ -1,5 +1,5 @@
 import type { Point } from "@/shared/type/shared.ts";
-import { times } from "lodash";
+import * as _ from "lodash"
 import { CONFIG } from "./config";
 
 export const generateWobblyLinePoints = ({ x1, y1, x2, y2, rand, }: {
@@ -149,7 +149,7 @@ export const getEllipseBasePoints = (cx: number, cy: number, rx: number, ry: num
 }
 
 export const generateLayerOffsets = ({ rand }: { rand: () => number }) => {
-  return times(CONFIG.layers).map(() => {
+  return _.times(CONFIG.layers).map(() => {
     return {
       x: (rand() - 0.5) * CONFIG.maxOffset,
       y: (rand() - 0.5) * CONFIG.maxOffset,

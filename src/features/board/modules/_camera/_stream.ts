@@ -1,24 +1,7 @@
 ﻿import { canvas } from "@/shared/lib/initial-canvas"
 import { _u } from "@/shared/lib/utils"
-import { isEqual } from "lodash"
-import {
-  animationFrames,
-  BehaviorSubject,
-  distinctUntilChanged,
-  filter,
-  finalize,
-  fromEvent,
-  map,
-  merge,
-  scan,
-  shareReplay,
-  startWith,
-  Subject,
-  switchMap,
-  takeUntil,
-  tap,
-  withLatestFrom
-} from "rxjs"
+import * as _ from "lodash"
+import * as rx from "rxjs"
 import { INITIAL_STATE } from "./_const"
 import {
   canStartPan,
@@ -31,72 +14,72 @@ import {
 } from "./_core"
 import type { ZoomAction } from "./_domain"
 
-const pointerLeave$ = fromEvent<PointerEvent>(canvas, "pointerleave")
-const pointerDown$ = fromEvent<PointerEvent>(canvas, "pointerdown")
-const pointerMove$ = fromEvent<PointerEvent>(canvas, "pointermove")
-const pointerUp$ = fromEvent<PointerEvent>(canvas, "pointerup")
-const wheel$ = fromEvent<WheelEvent>(canvas, "wheel")
+const pointerLeave$ = rx.fromEvent<PointerEvent>(canvas, "pointerleave")
+const pointerDown$ = rx.fromEvent<PointerEvent>(canvas, "pointerdown")
+const pointerMove$ = rx.fromEvent<PointerEvent>(canvas, "pointermove")
+const pointerUp$ = rx.fromEvent<PointerEvent>(canvas, "pointerup")
+const wheel$ = rx.fromEvent<WheelEvent>(canvas, "wheel")
 
-export const zoomTrigger$ = new Subject<ZoomAction>()
+export const zoomTrigger$ = new rx.Subject<ZoomAction>()
 
-export const gridTypeSubject$ = new BehaviorSubject<"lines" | "dots">("lines")
-export const cameraSubject$ = new BehaviorSubject(INITIAL_STATE)
+export const gridTypeSubject$ = new rx.BehaviorSubject<"lines" | "dots">("lines")
+export const cameraSubject$ = new rx.BehaviorSubject(INITIAL_STATE)
 
-export const activityStart$ = merge(pointerDown$, wheel$, zoomTrigger$).pipe(map(() => true))
-export const activityEnd$ = pointerUp$.pipe(map(() => false))
+export const activityStart$ = rx.merge(pointerDown$, wheel$, zoomTrigger$).pipe(rx.map(() => true))
+export const activityEnd$ = pointerUp$.pipe(rx.map(() => false))
 
-export const userActivity$ = merge(activityStart$, activityEnd$).pipe(
-  startWith(false),
-  shareReplay(1)
+export const userActivity$ = rx.merge(activityStart$, activityEnd$).pipe(
+  rx.startWith(false),
+  rx.shareReplay(1)
 )
 
 export const pan$ = pointerDown$.pipe(
-  filter(canStartPan),
-  withLatestFrom(cameraSubject$),
-  map(([startEvent, dragState]) => toStartPanState({ startEvent, dragState })),
+  rx.filter(canStartPan),
+  rx.withLatestFrom(cameraSubject$),
+  rx.map(([startEvent, dragState]) => toStartPanState({ startEvent, dragState })),
 
-  tap(() => document.documentElement.style.cursor = "grabbing"),
+  rx.tap(() => document.documentElement.style.cursor = "grabbing"),
 
-  switchMap((dragState) => (
+  rx.switchMap((dragState) => (
     pointerMove$.pipe(
-      map((moveEvent) => ({ moveEvent, dragState })),
-      takeUntil(merge(pointerUp$, pointerLeave$)),
-      map(toMovingPanState),
+      rx.map((moveEvent) => ({ moveEvent, dragState })),
+      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
+      rx.map(toMovingPanState),
 
-      finalize(() => document.documentElement.style.cursor = "default")
+      rx.finalize(() => document.documentElement.style.cursor = "default")
     )
   ))
 )
 
-export const wheelCamera$ = merge(
+export const wheelCamera$ = rx.merge(
   wheel$.pipe(
-    withLatestFrom(cameraSubject$),
-    map(([event, cameraState]) => _u.merge(cameraState, { camera: changeZoom(cameraState.camera, event) })),
-    shareReplay(1)
+    rx.withLatestFrom(cameraSubject$),
+    rx.map(([event, cameraState]) => _u.merge(cameraState, { camera: changeZoom(cameraState.camera, event) })),
+    rx.shareReplay(1)
   ),
   zoomTrigger$.pipe(
-    withLatestFrom(cameraSubject$),
-    map(([{ action: __event }, cameraState]) => _u.merge(cameraState, {
+    rx.withLatestFrom(cameraSubject$),
+    rx.map(([{ action: __event }, cameraState]) => _u.merge(cameraState, {
       camera: ({ zoomIn, zoomOut })[__event](cameraState.camera)
     }))
   )
 )
 
-export const cameraState$ = merge(wheelCamera$, pan$).pipe(
-  startWith(INITIAL_STATE),
-  scan((camera, updated) => (
+export const cameraState$ = rx.merge(wheelCamera$, pan$).pipe(
+  rx.startWith(INITIAL_STATE),
+  rx.scan((camera, updated) => (
     _u.merge(_u.merge(camera, updated), {
       camera: _u.merge(camera.camera, updated.camera)
     })
   )),
 )
 
-export const camera$ = cameraSubject$.pipe(map(({ camera }) => camera))
+export const camera$ = cameraSubject$.pipe(rx.map(({ camera }) => camera))
 
-export const cameraWithInertia$ = animationFrames().pipe(
-  withLatestFrom(cameraSubject$, userActivity$),
-  scan((acc, [_, cameraState, isActive]) => isActive ? cameraState : inertiaCameraUpdate(acc), INITIAL_STATE),
-  distinctUntilChanged(isEqual)
+export const cameraWithInertia$ = rx.animationFrames().pipe(
+  rx.withLatestFrom(cameraSubject$, userActivity$),
+  rx.scan((acc, [_, cameraState, isActive]) => isActive ? cameraState : inertiaCameraUpdate(acc), INITIAL_STATE),
+  rx.distinctUntilChanged(_.isEqual)
 )
 
 cameraState$.subscribe(cameraSubject$)

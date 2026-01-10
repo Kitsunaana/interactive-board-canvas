@@ -3,25 +3,8 @@ import { getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/p
 import { calculateLimitPoints, centerPointFromRect, unscaleRect } from "@/shared/lib/rect";
 import { _u, getBoundingClientRect, isNegative, isNotNull } from "@/shared/lib/utils";
 import type { Point, Rect } from "@/shared/type/shared";
-import { isEqual } from "lodash";
-import {
-  animationFrames,
-  BehaviorSubject,
-  combineLatest,
-  distinctUntilChanged,
-  filter,
-  fromEvent,
-  map,
-  merge,
-  Observable,
-  of,
-  startWith,
-  switchMap,
-  takeUntil,
-  takeWhile,
-  tap,
-  withLatestFrom
-} from "rxjs";
+import * as _ from "lodash"
+import * as rx from "rxjs";
 import { shapes$ } from "../../model";
 import { drawMiniMap } from "../../ui/mini-map";
 import { cameraSubject$, type Camera } from "../_camera";
@@ -37,14 +20,14 @@ import {
 } from "./_core";
 import type { MiniMapState, MiniMapStateReady } from "./_domain";
 
-export const miniMapCameraSubject$ = new BehaviorSubject<Rect>({
+export const miniMapCameraSubject$ = new rx.BehaviorSubject<Rect>({
   height: 0,
   width: 0,
   x: 0,
   y: 0,
 })
 
-export const miniMapProperties$ = new BehaviorSubject<MiniMapState>({
+export const miniMapProperties$ = new rx.BehaviorSubject<MiniMapState>({
   context: null,
   canvas: null,
   isShow: true,
@@ -60,28 +43,30 @@ export const toggleShowMiniMap = () => {
 }
 
 export const readyMiniMapSubject$ = miniMapProperties$.pipe(
-  filter((state): state is MiniMapStateReady => isNotNull(state.canvas) || isNotNull(state.context)),
+  rx.filter((state): state is MiniMapStateReady => isNotNull(state.canvas) || isNotNull(state.context)),
 )
 
-export const miniMapSizes$ = combineLatest([
-  resize$.pipe(map(getUnscaledMiniMapSizes), startWith(getUnscaledMiniMapSizes())),
+export const miniMapSizes$ = rx.combineLatest([
+  resize$.pipe(rx.map(getUnscaledMiniMapSizes), rx.startWith(getUnscaledMiniMapSizes())),
   readyMiniMapSubject$
 ]).pipe(
-  map(([sizes, readyMap]) => ({ sizes, readyMap })),
-  distinctUntilChanged((prev, current) => isEqual(prev, current)),
-  map(({ sizes }) => sizes),
+  rx.map(([sizes, readyMap]) => ({ sizes, readyMap })),
+  rx.distinctUntilChanged((prev, current) => _.isEqual(prev, current)),
+  rx.map(({ sizes }) => sizes),
 )
 
 miniMapSizes$.pipe(
-  withLatestFrom(readyMiniMapSubject$),
-  tap(([sizes, { canvas }]) => Object.assign(canvas, sizes))
+  rx.withLatestFrom(readyMiniMapSubject$),
+  rx.tap(([sizes, { canvas }]) => Object.assign(canvas, sizes))
 ).subscribe()
 
-export const findLimitMapPoints$ = combineLatest([shapes$, miniMapSizes$]).pipe(map(([rects]) => calculateLimitPoints({ rects })))
+export const findLimitMapPoints$ = rx.combineLatest([shapes$, miniMapSizes$]).pipe(
+  rx.map(([rects]) => calculateLimitPoints({ rects }))
+)
 
 export const movedUnscaleNodes$ = findLimitMapPoints$.pipe(
-  withLatestFrom(shapes$),
-  map(([{ min }, nodes]) => (
+  rx.withLatestFrom(shapes$),
+  rx.map(([{ min }, nodes]) => (
     nodes.map((node) => ({
       ...node,
       x: isNegative(min.x) ? node.x + Math.abs(min.x) : node.x,
@@ -91,29 +76,29 @@ export const movedUnscaleNodes$ = findLimitMapPoints$.pipe(
 )
 
 export const unscaleMap$ = movedUnscaleNodes$.pipe(
-  withLatestFrom(miniMapSizes$),
-  map(([rects, miniMapSizes]) => calculateUnscaleMap({ miniMapSizes, rects })),
+  rx.withLatestFrom(miniMapSizes$),
+  rx.map(([rects, miniMapSizes]) => calculateUnscaleMap({ miniMapSizes, rects })),
 )
 
-export const miniMapRenderer = animationFrames().pipe(
-  withLatestFrom(readyMiniMapSubject$, miniMapSizes$, movedUnscaleNodes$, unscaleMap$, miniMapCameraSubject$),
-  map(([_, { context }, sizes, shapes, unscale, cameraRect]) => ({ context, sizes, shapes, unscale, cameraRect })),
-  tap(drawMiniMap)
+export const miniMapRenderer = rx.animationFrames().pipe(
+  rx.withLatestFrom(readyMiniMapSubject$, miniMapSizes$, movedUnscaleNodes$, unscaleMap$, miniMapCameraSubject$),
+  rx.map(([_, { context }, sizes, shapes, unscale, cameraRect]) => ({ context, sizes, shapes, unscale, cameraRect })),
+  rx.tap(drawMiniMap)
 )
 
 miniMapRenderer.subscribe()
 
-combineLatest([cameraSubject$, findLimitMapPoints$])
-  .pipe(map(([{ camera }, limitMapPoints]) => calculateMiniMapCameraRect({ limitMapPoints, camera })))
+rx.combineLatest([cameraSubject$, findLimitMapPoints$])
+  .pipe(rx.map(([{ camera }, limitMapPoints]) => calculateMiniMapCameraRect({ limitMapPoints, camera })))
   .subscribe(miniMapCameraSubject$)
 
 export const fromMiniMapToCameraPosition$ = ({ worldPoint, camera, moveEvent }: {
   moveEvent: PointerEvent
   worldPoint: Point
   camera: Camera
-}): Observable<Camera> => of(camera).pipe(
-  withLatestFrom(unscaleMap$, findLimitMapPoints$),
-  map(([camera, unscaleMap, limitMapPoints]) => {
+}): rx.Observable<Camera> => rx.of(camera).pipe(
+  rx.withLatestFrom(unscaleMap$, findLimitMapPoints$),
+  rx.map(([camera, unscaleMap, limitMapPoints]) => {
     const pointInScreen = getPointFromEvent(moveEvent)
     const viewportMiniMapRect = getBoundingClientRect(moveEvent)
 
@@ -136,10 +121,10 @@ export const fromMiniMapToCameraPosition$ = ({ worldPoint, camera, moveEvent }: 
 )
 
 const createEvents = (element: HTMLElement) => {
-  const pointerLeave$ = fromEvent<PointerEvent>(element, "pointerleave")
-  const pointerDown$ = fromEvent<PointerEvent>(element, "pointerdown")
-  const pointerMove$ = fromEvent<PointerEvent>(element, "pointermove")
-  const pointerUp$ = fromEvent<PointerEvent>(element, "pointerup")
+  const pointerLeave$ = rx.fromEvent<PointerEvent>(element, "pointerleave")
+  const pointerDown$ = rx.fromEvent<PointerEvent>(element, "pointerdown")
+  const pointerMove$ = rx.fromEvent<PointerEvent>(element, "pointermove")
+  const pointerUp$ = rx.fromEvent<PointerEvent>(element, "pointerup")
 
   return {
     pointerLeave$,
@@ -149,24 +134,24 @@ const createEvents = (element: HTMLElement) => {
   }
 }
 
-readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
+readyMiniMapSubject$.pipe(rx.switchMap(({ canvas }) => {
   const { pointerDown$, pointerLeave$, pointerMove$, pointerUp$ } = createEvents(canvas)
 
   return pointerDown$.pipe(
-    filter((downEvent) => downEvent.button !== 0),
-    withLatestFrom(unscaleMap$, miniMapCameraSubject$, findLimitMapPoints$, cameraSubject$),
-    map(([downEvent, unscaleMap, miniMapCamera, limitMapPoints, { camera, ...cameraState }]) => ({
+    rx.filter((downEvent) => downEvent.button !== 0),
+    rx.withLatestFrom(unscaleMap$, miniMapCameraSubject$, findLimitMapPoints$, cameraSubject$),
+    rx.map(([downEvent, unscaleMap, miniMapCamera, limitMapPoints, { camera, ...cameraState }]) => ({
       limitMapPoints, miniMapCamera, cameraState, unscaleMap, downEvent, camera,
     })),
-    filter(({ miniMapCamera, unscaleMap, downEvent }) => canMoveMiniMapViewportRect({ miniMapCamera, unscaleMap, downEvent })),
-    switchMap(({ limitMapPoints, unscaleMap, downEvent, camera, cameraState }) => {
+    rx.filter(({ miniMapCamera, unscaleMap, downEvent }) => canMoveMiniMapViewportRect({ miniMapCamera, unscaleMap, downEvent })),
+    rx.switchMap(({ limitMapPoints, unscaleMap, downEvent, camera, cameraState }) => {
       const worldPoint = getPointFromMiniMapToScreen({ limitMapPoints, unscaleMap, downEvent })
 
       return pointerMove$.pipe(
-        takeUntil(merge(pointerUp$, pointerLeave$)),
-        switchMap((moveEvent) => (
+        rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
+        rx.switchMap((moveEvent) => (
           fromMiniMapToCameraPosition$({ worldPoint, moveEvent, camera }).pipe(
-            map((camera) => _u.merge(cameraState, { camera }))
+            rx.map((camera) => _u.merge(cameraState, { camera }))
           )
         ))
       )
@@ -174,25 +159,25 @@ readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
   )
 })).subscribe(cameraSubject$)
 
-readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
+readyMiniMapSubject$.pipe(rx.switchMap(({ canvas }) => {
   const { pointerDown$, pointerLeave$, pointerMove$, pointerUp$ } = createEvents(canvas)
 
   return pointerDown$.pipe(
-    filter((downEvent) => downEvent.button !== 1 && downEvent.button !== 2),
-    withLatestFrom(miniMapCameraSubject$, unscaleMap$),
-    map(([pointerEvent, miniMapCamera, unscaleMap]) => getMiniMapPointerContext({ miniMapCamera, pointerEvent, unscaleMap })),
-    switchMap((miniMapDownPointerContext) => {
+    rx.filter((downEvent) => downEvent.button !== 1 && downEvent.button !== 2),
+    rx.withLatestFrom(miniMapCameraSubject$, unscaleMap$),
+    rx.map(([pointerEvent, miniMapCamera, unscaleMap]) => getMiniMapPointerContext({ miniMapCamera, pointerEvent, unscaleMap })),
+    rx.switchMap((miniMapDownPointerContext) => {
       const miniMapPointerContext$ = pointerMove$.pipe(
-        withLatestFrom(miniMapCameraSubject$, unscaleMap$),
-        map(([pointerEvent, miniMapCamera, unscaleMap]) => getMiniMapPointerContext({ miniMapCamera, pointerEvent, unscaleMap })),
-        takeWhile(({ pointInViewportRect }) => !pointInViewportRect),
-        startWith(miniMapDownPointerContext)
+        rx.withLatestFrom(miniMapCameraSubject$, unscaleMap$),
+        rx.map(([pointerEvent, miniMapCamera, unscaleMap]) => getMiniMapPointerContext({ miniMapCamera, pointerEvent, unscaleMap })),
+        rx.takeWhile(({ pointInViewportRect }) => !pointInViewportRect),
+        rx.startWith(miniMapDownPointerContext)
       )
 
-      return animationFrames().pipe(
-        takeUntil(merge(pointerUp$, pointerLeave$)),
-        withLatestFrom(cameraSubject$, miniMapCameraSubject$, unscaleMap$, miniMapPointerContext$),
-        map(([{ elapsed }, cameraState, miniMapCamera, unscaleMap, { pointInMiniMap }]) => ({
+      return rx.animationFrames().pipe(
+        rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
+        rx.withLatestFrom(cameraSubject$, miniMapCameraSubject$, unscaleMap$, miniMapPointerContext$),
+        rx.map(([{ elapsed }, cameraState, miniMapCamera, unscaleMap, { pointInMiniMap }]) => ({
           pointInMiniMap,
           miniMapCamera,
           cameraState,
@@ -200,7 +185,7 @@ readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
           elapsed,
         })),
 
-        map((params) => {
+        rx.map((params) => {
           const viewportRectToCenter = centerPointFromRect(unscaleRect(params.miniMapCamera, params.unscaleMap))
           const displacement = subtractPoint(viewportRectToCenter, params.pointInMiniMap)
           const speed = params.elapsed / 100
@@ -208,21 +193,21 @@ readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
           return _u.merge(params, { displacement, speed })
         }),
 
-        takeWhile(({ speed, displacement }) => !(speed > Math.abs(displacement.x) && speed > Math.abs(displacement.y))),
+        rx.takeWhile(({ speed, displacement }) => !(speed > Math.abs(displacement.x) && speed > Math.abs(displacement.y))),
 
-        map(updateCameraWithAnimation)
+        rx.map(updateCameraWithAnimation)
       )
     })
   )
 })).subscribe(cameraSubject$)
 
-readyMiniMapSubject$.pipe(switchMap(({ canvas }) => {
+readyMiniMapSubject$.pipe(rx.switchMap(({ canvas }) => {
   const { pointerDown$ } = createEvents(canvas)
 
   return pointerDown$.pipe(
-    filter((downEvent) => downEvent.ctrlKey && downEvent.button === 0),
-    withLatestFrom(miniMapCameraSubject$, unscaleMap$, cameraSubject$),
-    map(([downEvent, miniMapCamera, unscaleMap, cameraState]) => (
+    rx.filter((downEvent) => downEvent.ctrlKey && downEvent.button === 0),
+    rx.withLatestFrom(miniMapCameraSubject$, unscaleMap$, cameraSubject$),
+    rx.map(([downEvent, miniMapCamera, unscaleMap, cameraState]) => (
       moveCameraToClickedPoint({
         ...getMiniMapPointerContext({ pointerEvent: downEvent, miniMapCamera, unscaleMap }),
         cameraState,

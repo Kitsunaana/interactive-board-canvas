@@ -1,4 +1,4 @@
-import { animationFrames, combineLatest, map, startWith, tap, withLatestFrom } from "rxjs";
+import * as rx from "rxjs"
 import { getResizeHandlersProperties } from "./features/board/view-model/sticker.ts";
 import { getWorldPoints, type Camera } from "./features/board/modules/_camera/_domain.ts";
 import { camera$, cameraSubject$, gridTypeSubject$ } from "./features/board/modules/_camera/_stream.ts";
@@ -12,21 +12,21 @@ import { getShapeDrawer } from "./features/board/ui/sketch/draw.ts";
 import type { ShapeToView } from "./features/board/domain/_shape.ts";
 import { selectionBounds$, viewModel$ } from "./features/board/view-model/state/_view-model.ts";
 
-export const canvasProperties$ = combineLatest([
+export const canvasProperties$ = rx.combineLatest([
   cameraSubject$,
   resize$.pipe(
-    map(getCanvasSizes),
-    startWith(getCanvasSizes()),
-    tap((canvasSizes) => Object.assign(canvas, canvasSizes)),
+    rx.map(getCanvasSizes),
+    rx.startWith(getCanvasSizes()),
+    rx.tap((canvasSizes) => Object.assign(canvas, canvasSizes)),
   )
-]).pipe(map(([state, sizes]) => getWorldPoints({
+]).pipe(rx.map(([state, sizes]) => getWorldPoints({
   camera: state.camera,
   sizes,
 })))
 
 export const gridProps$ = canvasProperties$.pipe(
-  withLatestFrom(cameraSubject$),
-  map(([canvasProperties, { camera }]) => ({
+  rx.withLatestFrom(cameraSubject$),
+  rx.map(([canvasProperties, { camera }]) => ({
     canvasProperties,
     gridProps: LEVELS
       .map(level => toDrawOneLevel({ ...canvasProperties, camera, level }))
@@ -34,15 +34,15 @@ export const gridProps$ = canvasProperties$.pipe(
   }))
 )
 
-export const renderLoop$ = animationFrames().pipe(
-  withLatestFrom(
+export const renderLoop$ = rx.animationFrames().pipe(
+  rx.withLatestFrom(
     camera$,
     gridTypeSubject$,
     viewModel$,
     selectionBounds$,
     gridProps$
   ),
-  map(([_, camera, gridType, viewModel, selectedRect, { canvasProperties, gridProps }]) => ({
+  rx.map(([_, camera, gridType, viewModel, selectedRect, { canvasProperties, gridProps }]) => ({
     canvasSizes: canvasProperties.sizes,
     nodes: viewModel.nodes,
     selectedRect,

@@ -1,6 +1,6 @@
 ﻿import { getRandFromId } from "@/shared/lib/seed.ts";
 import type { Point, Rect } from "@/shared/type/shared.ts";
-import { times } from "lodash";
+import * as _ from "lodash"
 import type { Circle, Rectangle } from "../domain/_shape.ts";
 import type { Camera } from "../modules/_camera/index.ts";
 import {
@@ -18,7 +18,7 @@ export const generateSketchProps = <T extends Rect & { id: string }>({ rect, bas
 }) => {
   const rand = getRandFromId(rect.id)
 
-  const outlines = times(CONFIG.layers).map(() => generateSketchyOutline({ basePoints, rand }))
+  const outlines = _.times(CONFIG.layers).map(() => generateSketchyOutline({ basePoints, rand }))
 
   const layerOffsets = generateLayerOffsets({ rand })
   const hachureLines = generateHachureLines({
