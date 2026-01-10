@@ -8,14 +8,19 @@ import { getShapesResizeStrategy, isBound, isCanvas, isShape } from "../../domai
 import { shapes$ } from "../../model/index.ts";
 import { camera$ } from "../../modules/_camera/_stream.ts";
 import { mouseDown$, mouseUp$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../../modules/_pick-node/_events.ts";
-import { viewModelState$ } from "./_view-model.ts";
+import { selectionBounds$, viewModelState$ } from "./_view-model.ts";
 import { goToIdle, goToNodesDragging, goToShapesResize, type IdleViewState, } from "./_view-model.type.ts";
+import type { Point, Rect } from "@/shared/type/shared.ts";
+import { mapRight, matchEither } from "@/shared/lib/either.ts";
+import { isRectIntersectionV2 } from "@/shared/lib/rect.ts";
 
 const shapesResizeFlow$ = mouseDown$.pipe(
   rx.filter((params) => isBound(params.node)),
   rx.withLatestFrom(viewModelState$, shapes$, camera$),
   rx.filter(([_, viewModelState]) => viewModelState.type === "idle"),
-  rx.map(([bound, viewState, shapes, camera]) => ({ node: bound.node as Bound, idleState: viewState as IdleViewState, shapes, camera })),
+  rx.map(([bound, viewState, shapes, camera]) => ({
+    node: bound.node as Bound, idleState: viewState as IdleViewState, shapes, camera
+  })),
   rx.switchMap(({ node, idleState, shapes, camera }) => {
     const resizeShapesStrategy = getShapesResizeStrategy({ idleState, shapes, node })
 
@@ -83,11 +88,31 @@ const shapeSelectFlow$ = mouseUp$.pipe(
   })),
 )
 
+const distance = (a: Point, b: Point) => Math.hypot(b.x - a.x, b.y - a.y)
+
+const hasRectIntersection = ({ point, rects }: { rects: Rect[], point: Point }) => {
+  return rects.some((rect) => isRectIntersectionV2({ point, rect }))
+}
+
 const shapesDraggingFlow$ = mouseDown$.pipe(
   rx.filter(({ event }) => event.button === 0),
-  rx.switchMap((params) => rx.of(params).pipe(rx.filter(({ node }) => isShape(node)))),
+
+  rx.switchMap((params) => {
+    return rx.of(params).pipe(
+      rx.withLatestFrom(selectionBounds$),
+      rx.filter(([{ node, point }, selectionBounds]) => {
+        return matchEither(selectionBounds, {
+          right: ({ area, bounds }) => isShape(node) || hasRectIntersection({ point, rects: bounds.concat(area) }),
+          left: () => isShape(node),
+        })
+      }),
+      rx.map(([downEvent]) => downEvent)
+    )
+  }),
+
   rx.withLatestFrom(shapes$, camera$, viewModelState$),
   rx.filter(([_downEvent, _shapes, _camera, viewModelState]) => viewModelState.type === "idle"),
+
   rx.map(([{ point, node, event }, shapes, camera, viewModelState]) => ({
     idleState: viewModelState as IdleViewState,
     startPoint: point,
@@ -97,9 +122,12 @@ const shapesDraggingFlow$ = mouseDown$.pipe(
     shapes,
   })),
   rx.switchMap(({ camera, downEvent, shape, shapes, startPoint, idleState }) => {
-    const sharedMove$ = pointerMove$.pipe(rx.share(), rx.takeWhile((event) => !event.shiftKey))
+    const startPointInScreen = getPointFromEvent(downEvent)
 
-    const goToNodesDragging$ = sharedMove$.pipe(
+    const sharedMove$ = pointerMove$.pipe(rx.takeWhile((event) => !event.shiftKey), rx.share())
+
+    const waitForThreshold$ = sharedMove$.pipe(
+      rx.filter((event) => distance(startPointInScreen, getPointFromEvent(event)) >= 8),
       rx.take(1),
       rx.tap(() => {
         viewModelState$.next(goToNodesDragging({
@@ -108,45 +136,37 @@ const shapesDraggingFlow$ = mouseDown$.pipe(
         }))
 
         match((shape), {
-          circle: (shape) => {
-            viewModelState$.next(startMoveShape({ event: downEvent, point: startPoint, shape }))
-          },
-
-          rectangle: (shape) => {
-            viewModelState$.next(startMoveShape({ event: downEvent, point: startPoint, shape }))
-          },
+          circle: (shape) => viewModelState$.next(startMoveShape({ event: downEvent, point: startPoint, shape })),
+          rectangle: (shape) => viewModelState$.next(startMoveShape({ event: downEvent, point: startPoint, shape })),
         })
       }),
-      rx.ignoreElements(),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$, wheel$))
     )
 
-    const shapesDragging$ = sharedMove$.pipe(
+    const drag$ = waitForThreshold$.pipe(rx.switchMap(() => sharedMove$.pipe(
       rx.skip(1),
       rx.map((event) => {
-        const distance = subtractPoint(startPoint, screenToCanvas({
+        const delta = subtractPoint(startPoint, screenToCanvas({
           point: getPointFromEvent(event),
           camera,
         }))
 
         return movingShape({
           selectedIds: viewModelState$.getValue().selectedIds,
-          distance,
+          distance: delta,
           shapes,
         })
       }),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$, wheel$))
+    )))
+
+    const finish$ = rx.merge(pointerUp$, pointerLeave$, wheel$).pipe(
+      rx.take(1),
+      rx.tap(() => viewModelState$.next(endMoveShape())),
+      rx.ignoreElements()
     )
 
-    const finishShapesDragging$ = sharedMove$.pipe(
-      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$, wheel$)),
-      rx.ignoreElements(),
-      rx.finalize(() => {
-        viewModelState$.next(endMoveShape())
-      })
-    )
-
-    return rx.merge(goToNodesDragging$, shapesDragging$, finishShapesDragging$)
+    return rx.merge(drag$, finish$)
   })
 )
 
