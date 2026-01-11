@@ -1,9 +1,9 @@
 import type { Point } from "@/shared/type/shared"
 import type { Camera } from "./_domain"
 
-export const VELOCITY_SCALE = 0.1
+export const VELOCITY_SCALE = 0.2
 export const MIN_VELOCITY = 5
-export const FRICTION = 0.8
+export const FRICTION = 0.85
 
 export const DEFAULT_POINT: Point = {
   x: 0,
@@ -12,7 +12,7 @@ export const DEFAULT_POINT: Point = {
 
 export const ZOOM = {
   INTENSITY: 0.1,
-  MIN_SCALE: 0.01,
+  MIN_SCALE: 0.1,
   MAX_SCALE: 10,
 }
 

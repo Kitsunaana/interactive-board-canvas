@@ -16,20 +16,28 @@ export const [_, canvas] = initialCanvas({
 
 export const CANVAS_COLOR_ID = generateRandomColor()
 
-export function drawScene({ camera, context, shapes, selectionBounds }: {
+type ResizeHandler = {
+  strokeWidth: number
+  radius: number
+  x: number
+  y: number
+}
+
+export function drawScene({ camera, context, shapes, selectionBounds, resizeHandlers }: {
   selectionBounds: SelectionBoundsToPick | null
+  resizeHandlers: ResizeHandler[] | null
   context: CanvasRenderingContext2D
   shapes: Shape[]
   camera: Camera
 }) {
   context.save()
-
   context.clearRect(0, 0, context.canvas.width, context.canvas.height)
+
+  drawCanvas({ context })
 
   context.translate(camera.x, camera.y)
   context.scale(camera.scale, camera.scale)
 
-  drawCanvas({ camera, context })
   drawShapes({ shapes, context })
 
   if (isNotNull(selectionBounds)) {
@@ -40,16 +48,26 @@ export function drawScene({ camera, context, shapes, selectionBounds }: {
     })
   }
 
+  if (isNotNull(resizeHandlers)) {
+    resizeHandlers.forEach((resizeHandler) => {
+      context.beginPath()
+      context.lineWidth = resizeHandler.strokeWidth
+      context.arc(resizeHandler.x, resizeHandler.y, resizeHandler.radius * 1.5, 0, Math.PI * 2)
+      context.fill()
+      context.stroke()
+      context.closePath()
+    })
+  }
+
   context.restore()
 }
 
-function drawCanvas({ camera, context }: {
+function drawCanvas({ context }: {
   context: CanvasRenderingContext2D
-  camera: Camera
 }) {
   context.save()
   context.fillStyle = CANVAS_COLOR_ID
-  context.rect(-camera.x, -camera.y, context.canvas.width, context.canvas.height)
+  context.rect(0, 0, context.canvas.width, context.canvas.height)
   context.fill()
   context.restore()
 }

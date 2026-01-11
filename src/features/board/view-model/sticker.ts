@@ -62,24 +62,29 @@ export const generateEllipseSketchProps = (shape: Circle) => {
 export const PADDING = 7
 export const BASE_RADIUS = 5
 export const SCALE_POWER = 0.75
+export const BASE_LINE_WIDTH = 0.45
 
 export const getResizeHandlersProperties = ({ rect, camera }: { camera: Camera, rect: Rect }) => [
   {
+    strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),
     radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
     x: rect.x - PADDING,
     y: rect.y - PADDING,
   },
   {
+    strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),
     radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
     x: rect.x + rect.width + PADDING,
     y: rect.y - PADDING,
   },
   {
+    strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),
     radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
     x: rect.x + rect.width + PADDING,
     y: rect.y + rect.height + PADDING,
   },
   {
+    strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),
     radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
     x: rect.x - PADDING,
     y: rect.y + rect.height + PADDING,
