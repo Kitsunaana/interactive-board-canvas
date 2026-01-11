@@ -53,14 +53,14 @@ export function App() {
 
       {selectionBoundsRect && (
         <div
+          className="absolute bg-[#f4f5f6] text-xs border border-[#e1e1e1] py-2 px-3 rounded-md"
           style={{
-            top: `${selectionBoundsRect.y + selectionBoundsRect.height + 15}px`,
-            left: `${selectionBoundsRect.x + selectionBoundsRect.width / 2}px`,
+            top: `${selectionBoundsRect.toView.y + selectionBoundsRect.toView.height}px`,
+            left: `${selectionBoundsRect.toView.x + selectionBoundsRect.toView.width / 2}px`,
             transform: "translateX(-50%)"
           }}
-          className="absolute bg-[#f4f5f6] text-xs border border-[#e1e1e1] py-2 px-3 rounded-md"
         >
-          {Math.round(selectionBoundsRect.width)}{" x "}{Math.round(selectionBoundsRect.height)}
+          {Math.round(selectionBoundsRect.original.width)}{" x "}{Math.round(selectionBoundsRect.original.height)}
         </div>
       )}
 

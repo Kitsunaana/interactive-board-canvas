@@ -5,6 +5,7 @@ import * as rx from "rxjs"
 import { shapes$ } from "../model";
 import { camera$ } from "../modules/_camera/_stream";
 import { viewModelState$ } from "./state/_view-model";
+import type { Point } from "@/shared/type/shared";
 
 export const [useSelectionBoundsRect] = bind(viewModelState$.pipe(
   rx.filter((viewModelState) => viewModelState.type === "shapesResize"),
@@ -12,10 +13,17 @@ export const [useSelectionBoundsRect] = bind(viewModelState$.pipe(
     rx.map((shapes) => shapes.find(shape => viewModelState.selectedIds.has(shape.id))),
     rx.filter(shape => isNotUndefined(shape)),
     rx.withLatestFrom(camera$),
-    rx.map(([shape, camera]) => _u.merge(
-      pointToSizes(multiplePoint(sizesToPoint(shape), camera.scale)),
-      addPoint(multiplePoint(shape, camera.scale), camera)
-    )),
+    rx.map(([shape, camera]) => {
+      const computeRect = (position: Point) => _u.merge(
+        pointToSizes(multiplePoint(position, camera.scale)),
+        addPoint(multiplePoint(shape, camera.scale), camera)
+      )
+
+      return {
+        original: computeRect(sizesToPoint(shape)),
+        toView: computeRect(addPoint(sizesToPoint(shape), 14))
+      }
+    }),
     rx.takeUntil(viewModelState$.pipe(rx.filter(state => state.type !== "shapesResize"))),
     rx.endWith(null),
   ))

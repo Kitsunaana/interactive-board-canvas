@@ -8,11 +8,11 @@ export const [_, canvas] = initialCanvas({
   canvasId: "canvas",
 })
 
-export const pointerLeave$ = rx.fromEvent<PointerEvent>(canvas, "pointerleave")
-export const pointerMove$ = rx.fromEvent<PointerEvent>(canvas, "pointermove")
-export const pointerDown$ = rx.fromEvent<PointerEvent>(canvas, "pointerdown")
-export const pointerUp$ = rx.fromEvent<PointerEvent>(canvas, "pointerup")
-export const wheel$ = rx.fromEvent<WheelEvent>(canvas, "wheel")
+export const pointerLeave$ = rx.fromEvent<PointerEvent>(window, "pointerleave")
+export const pointerMove$ = rx.fromEvent<PointerEvent>(window, "pointermove")
+export const pointerDown$ = rx.fromEvent<PointerEvent>(window, "pointerdown")
+export const pointerUp$ = rx.fromEvent<PointerEvent>(window, "pointerup")
+export const wheel$ = rx.fromEvent<WheelEvent>(window, "wheel")
 
 export const mouseDown$ = createPointerNodePick$(pointerDown$)
 export const mouseMove$ = createPointerNodePick$(pointerMove$)
