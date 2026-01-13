@@ -2,6 +2,8 @@ import { _u, isNegative } from "@/shared/lib/utils"
 import type { Point } from "@/shared/type/shared"
 import { SELECTION_BOUNDS_PADDING } from "../../ui/selection-bounds-area"
 import type { Shape } from "../_shape"
+import type { Bound, Selection } from "../_selection/_selection.type"
+import { match } from "@/shared/lib/match"
 
 type ApplyEdgeResize = (params: { canvasPoint: Point, shape: Shape }) => Shape
 
@@ -99,6 +101,116 @@ const applyTopEdgeResize: ApplyEdgeResize = ({ shape, canvasPoint }) => {
     height: projectedHeight,
   })
 }
+
+
+/**
+ * 
+ */
+const resizeShapeFromRightEdge = ({ shapes, canvasPoint, selectedIds }: {
+  selectedIds: Selection
+  canvasPoint: Point
+  shapes: Shape[]
+}) => {
+  return shapes.map((shape) => {
+    if (selectedIds.has(shape.id)) {
+      return independentResizeHandlers.applyRightEdgeResize({
+        canvasPoint,
+        shape
+      })
+    }
+
+    return shape
+  })
+}
+
+const resizeShapeFromLeftEdge = ({ shapes, canvasPoint, selectedIds }: {
+  selectedIds: Selection
+  canvasPoint: Point
+  shapes: Shape[]
+}) => {
+  return shapes.map((shape) => {
+    if (selectedIds.has(shape.id)) {
+      return independentResizeHandlers.applyLeftEdgeResize({
+        canvasPoint,
+        shape
+      })
+    }
+
+    return shape
+  })
+}
+
+const resizeShapeFromBottomEdge = ({ shapes, canvasPoint, selectedIds }: {
+  selectedIds: Selection
+  canvasPoint: Point
+  shapes: Shape[]
+}) => {
+  return shapes.map((shape) => {
+    if (selectedIds.has(shape.id)) {
+      return independentResizeHandlers.applyBottomEdgeResize({
+        canvasPoint,
+        shape
+      })
+    }
+
+    return shape
+  })
+}
+
+const resizeShapeFromTopEdge = ({ shapes, canvasPoint, selectedIds }: {
+  selectedIds: Selection
+  canvasPoint: Point
+  shapes: Shape[]
+}) => {
+  return shapes.map((shape) => {
+    if (selectedIds.has(shape.id)) return independentResizeHandlers.applyTopEdgeResize({
+      canvasPoint,
+      shape
+    })
+
+    return shape
+  })
+}
+
+type ResizeInteraction = {
+  proportional: boolean
+  canvasPoint: Point
+}
+
+export const resizeShapeFromEdge = ({ node, ...params }: {
+  selectedIds: Selection
+  shapes: Shape[]
+  node: Bound
+}) => {
+  const mergeParams = (args: ResizeInteraction) => _u.merge(params, args)
+
+  return match(node, {
+    top: () => {
+      return (params: ResizeInteraction) => {
+        return resizeShapeFromTopEdge(mergeParams(params))
+      }
+    },
+
+    right: () => {
+      return (params: ResizeInteraction) => {
+        return resizeShapeFromRightEdge(mergeParams(params))
+      }
+    },
+
+    bottom: () => {
+      return (params: ResizeInteraction) => {
+        return resizeShapeFromBottomEdge(mergeParams(params))
+      }
+    },
+
+    left: () => {
+      return (params: ResizeInteraction) => {
+        return resizeShapeFromLeftEdge(mergeParams(params))
+      }
+    },
+  }, "id")
+}
+
 
 export const independentResizeHandlers = {
   applyBottomEdgeResize,

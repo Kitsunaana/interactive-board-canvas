@@ -21,3 +21,5 @@ export type LimitPoints = {
 }
 
 export type Simplify<T> = { [K in keyof T]: T[K] } & {}
+
+export type SimplifyUnion<T> = T extends any ? T : never

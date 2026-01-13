@@ -1,14 +1,15 @@
 import { addPoint, multiplePoint, pointToSizes, sizesToPoint } from "@/shared/lib/point";
 import { _u, isNotUndefined } from "@/shared/lib/utils";
+import type { Point } from "@/shared/type/shared";
 import { bind } from "@react-rxjs/core";
-import * as rx from "rxjs"
+import * as rx from "rxjs";
 import { shapes$ } from "../model";
 import { camera$ } from "../modules/_camera/_stream";
 import { viewModelState$ } from "./state/_view-model";
-import type { Point } from "@/shared/type/shared";
 
 export const [useSelectionBoundsRect] = bind(viewModelState$.pipe(
   rx.filter((viewModelState) => viewModelState.type === "shapesResize"),
+  rx.filter((viewModelState) => viewModelState.selectedIds.size <= 1),
   rx.switchMap((viewModelState) => shapes$.pipe(
     rx.map((shapes) => shapes.find(shape => viewModelState.selectedIds.has(shape.id))),
     rx.filter(shape => isNotUndefined(shape)),

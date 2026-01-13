@@ -28,7 +28,7 @@ export const startMoveShape = ({ event, point, shape }: {
   })
 )
 
-export const movingShape = ({ shapes, distance, selectedIds }: {
+export const moveShape = ({ shapes, distance, selectedIds }: {
   selectedIds: Set<string>
   distance: Point
   shapes: Shape[]

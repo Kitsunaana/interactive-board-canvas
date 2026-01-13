@@ -1,7 +1,8 @@
+
 export type BoundVariant = "top" | "right" | "bottom" | "left"
 
 export type Bound = {
-  id: BoundVariant
+  id: "top" | "right" | "bottom" | "left"
   type: "bound"
 }
 

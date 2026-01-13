@@ -4,7 +4,7 @@ export { computeSelectionBoundsRect, selectItems, shapeSelect } from "./_selecti
 
 export { isBound, isCanvas, isShape } from "./_is"
 
-export { startMoveShape, movingShape, endMoveShape } from "./_moving"
+export { startMoveShape, moveShape as movingShape, endMoveShape } from "./_moving"
 
 export type {
   CanvasGridDots,

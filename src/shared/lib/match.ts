@@ -20,6 +20,6 @@ export function match<
 export function match(state: any, map: any, discriminant: PropertyKey = "type") {
   const key = state[discriminant]
   const handler = map[key]
-  
+
   return handler?.(state)
 }
