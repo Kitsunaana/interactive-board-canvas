@@ -1,211 +1,71 @@
 import { match } from "@/shared/lib/match"
 import type { Point } from "@/shared/type/shared"
-import { map, omit } from "lodash"
+import { omit } from "lodash"
 import type { SelectionBounds } from "../../modules/_pick-node/_core"
 import type { Bound, Selection } from "../_selection/_selection.type"
-import type { Shape, ShapeToView } from "../_shape"
-import { resizeShapeFromEdge } from "./_independent"
-import { reflowMultiShapes } from "./_reflow-multi-shapes"
-
-const PADDING = 7
-
-const mapSelectedShapes = (shapes: ShapeToView[], iteratee: (shape: Shape) => Shape) => (
-  map(shapes, (shape) => (
-    shape.isSelected
-      ? iteratee(shape)
-      : shape
-  ))
-)
-
-const resizeMultiShapesFromLeftEdge = ({
-  selectionBounds,
-  canvasPoint,
-  shapes,
-}: {
-  selectionBounds: SelectionBounds
-  shapes: ShapeToView[]
-  canvasPoint: Point
-}) => {
-  const area = selectionBounds.area
-  const left = area.x
-  const right = area.x + area.width
-
-  const pointX = canvasPoint.x + PADDING
-  const delta = left - pointX
-
-  const prevWidth = area.width
-  const nextWidth = prevWidth + delta
-  const scale = nextWidth / prevWidth
-
-  if (nextWidth <= 0) {
-    const delta = pointX - right
-    const nextWidth = delta - PADDING * 2
-    const scale = nextWidth / prevWidth
-
-    if (nextWidth <= 0) {
-      return mapSelectedShapes(shapes, (shape) => ({
-        ...shape,
-        width: 0,
-        x: right,
-      }))
-    }
-
-    return mapSelectedShapes(shapes, (shape) => ({
-      ...shape,
-      width: shape.width * scale,
-      x: right + (shape.x - left) * scale,
-    }))
-  }
-
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    width: shape.width * scale,
-    x: right + (shape.x - right) * scale,
-  }))
-}
-
-const resizeMultiNodesFromRightEdge = ({ shapes, selectionBounds, canvasPoint }: {
-  selectionBounds: SelectionBounds
-  shapes: ShapeToView[]
-  canvasPoint: Point
-}) => {
-  const cursorPositionX = canvasPoint.x - PADDING
-  const area = selectionBounds.area
-
-  const right = area.x + area.width
-  const left = area.x
-
-  const delta = cursorPositionX - right
-
-  const prevWidth = area.width
-  const nextWidth = prevWidth + delta
-
-  const scale = nextWidth / prevWidth
-
-  if (nextWidth <= 0) {
-    const delta = left - cursorPositionX
-    const nextWidth = delta - PADDING * 2
-    const scale = nextWidth / prevWidth
-
-    if (nextWidth <= 0) {
-      return mapSelectedShapes(shapes, (shape) => ({
-        ...shape,
-        width: 0,
-        x: left,
-      }))
-    }
-
-    return mapSelectedShapes(shapes, (shape) => ({
-      ...shape,
-      width: shape.width * scale,
-      x: left + (shape.x - right) * scale,
-    }))
-  }
-
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    width: shape.width * scale,
-    x: left + (shape.x - left) * scale,
-  }))
-}
-
-const resizeMultiNodesFromTopEdge = ({ shapes, selectionBounds, canvasPoint }: {
-  selectionBounds: SelectionBounds
-  shapes: ShapeToView[]
-  canvasPoint: Point
-}) => {
-  const area = selectionBounds.area
-  const cursorPositionY = canvasPoint.y + PADDING
-
-  const top = area.y
-  const bottom = top + area.height
-
-  const delta = top - cursorPositionY
-  const prevHeight = area.height
-  const nextHeight = prevHeight + delta
-
-  const scale = nextHeight / prevHeight
-
-  if (nextHeight <= 0) {
-    const delta = cursorPositionY - bottom
-    const nextHeight = delta - PADDING * 2
-    const scale = nextHeight / prevHeight
-
-    if (nextHeight <= 0) {
-      return mapSelectedShapes(shapes, (shape) => ({
-        ...shape,
-        height: 0,
-        y: bottom,
-      }))
-    }
-
-    return mapSelectedShapes(shapes, (shape) => ({
-      ...shape,
-      height: shape.height * scale,
-      y: bottom + (shape.y - top) * scale,
-    }))
-  }
-
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    height: shape.height * scale,
-    y: bottom + (shape.y - bottom) * scale,
-  }))
-}
-
-const resizeMultiNodesFromBottomEdge = ({ shapes, selectionBounds, canvasPoint }: {
-  selectionBounds: SelectionBounds
-  shapes: ShapeToView[]
-  canvasPoint: Point
-}) => {
-  const cursorPositionY = canvasPoint.y - PADDING
-  const area = selectionBounds.area
-
-  const top = area.x
-  const bottom = top + area.height
-  const delta = cursorPositionY - bottom
-  
-  const prevHeight = area.height
-  const nextHeight = prevHeight + delta
-
-  const scale = nextHeight / prevHeight
-
-  if (nextHeight <= 0) {
-    const delta = top - cursorPositionY
-    const nextHeight = delta - PADDING * 2
-
-    const scale = nextHeight / prevHeight
-
-    if (nextHeight <= 0) {
-      return mapSelectedShapes(shapes, (shape) => ({
-        ...shape,
-        y: top,
-        height: 0,
-      }))
-    }
-
-    return mapSelectedShapes(shapes, (shape) => ({
-      ...shape,
-      height: shape.height * scale,
-      y: top + (shape.y - bottom) * scale,
-    }))
-  }
-
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    height: shape.height * scale,
-    y: top + (shape.y - top) * scale,
-  }))
-}
+import type { ShapeToView } from "../_shape"
+import { reflow } from "./_multiple/_reflow"
+import { resize } from "./_multiple/_resize"
+import { independent } from "./_single/_independent"
+import { proportional } from "./_single/_proportional"
 
 type ResizeInteraction = {
+  canvasPoint: Point
+
   proportional: boolean
   reflow: boolean
-
-  canvasPoint: Point
 }
 
-const resizeMultiShapesFromEdge = ({ node, ...params }: {
+const single = {
+  proportional,
+  independent,
+}
+
+const multiple = {
+  reflow,
+  resize,
+}
+
+export const resizeSingleShape = ({ node, shapes }: {
+  shapes: ShapeToView[]
+  node: Bound
+}) => {
+  return match(node, {
+    top: () => {
+      return ({ proportional, canvasPoint }: ResizeInteraction) => {
+        return proportional
+          ? single.proportional.top({ cursor: canvasPoint, shapes })
+          : single.independent.top({ cursor: canvasPoint, shapes })
+      }
+    },
+
+    right: () => {
+      return ({ proportional, canvasPoint }: ResizeInteraction) => {
+        return proportional
+          ? single.proportional.right({ cursor: canvasPoint, shapes })
+          : single.independent.right({ cursor: canvasPoint, shapes })
+      }
+    },
+
+    bottom: () => {
+      return ({ proportional, canvasPoint }: ResizeInteraction) => {
+        return proportional
+          ? single.proportional.bottom({ cursor: canvasPoint, shapes })
+          : single.independent.bottom({ cursor: canvasPoint, shapes })
+      }
+    },
+
+    left: () => {
+      return ({ proportional, canvasPoint }: ResizeInteraction) => {
+        return proportional
+          ? single.proportional.left({ cursor: canvasPoint, shapes })
+          : single.independent.left({ cursor: canvasPoint, shapes })
+      }
+    },
+  }, "id")
+}
+
+const resizeMultiShapes = ({ node, selectionBounds, ...params }: {
   selectionBounds: SelectionBounds
   selectedIds: Selection
   shapes: ShapeToView[]
@@ -213,23 +73,23 @@ const resizeMultiShapesFromEdge = ({ node, ...params }: {
 }) => {
   return match(node, {
     top: () => ({ canvasPoint }: ResizeInteraction) => {
-      return resizeMultiNodesFromTopEdge({ ...params, canvasPoint })
+      return multiple.resize.top({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
     },
 
     bottom: () => ({ canvasPoint }: ResizeInteraction) => {
-      return resizeMultiNodesFromBottomEdge({ ...params, canvasPoint })
+      return multiple.resize.bottom({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
     },
 
     right: () => {
       return ({ reflow, canvasPoint }: ResizeInteraction) => reflow
-        ? reflowMultiShapes.right({ ...params, canvasPoint })
-        : resizeMultiNodesFromRightEdge({ ...params, canvasPoint })
+        ? multiple.reflow.right({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
+        : multiple.resize.right({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
     },
 
     left: () => {
       return ({ reflow, canvasPoint }: ResizeInteraction) => reflow
-        ? reflowMultiShapes.left({ ...params, canvasPoint })
-        : resizeMultiShapesFromLeftEdge({ ...params, canvasPoint })
+        ? multiple.reflow.left({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
+        : multiple.resize.left({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
     }
   }, "id")
 }
@@ -241,6 +101,6 @@ export const getShapesResizeStrategy = (params: {
   node: Bound
 }) => {
   return params.selectedIds.size > 1
-    ? resizeMultiShapesFromEdge(params)
-    : resizeShapeFromEdge(omit(params, "selectionBounds"))
+    ? resizeMultiShapes(params)
+    : resizeSingleShape(omit(params, "selectionBounds"))
 }

@@ -62,8 +62,9 @@ const shapesResizeFlow$ = mouseDown$.pipe(
           const canvasPoint = screenToCanvas({ camera, point: pointerPosition })
 
           return resizeShapesStrategy({
-            proportional: moveEvent.shiftKey,
+            // proportional: moveEvent.shiftKey,
             reflow: moveEvent.ctrlKey,
+            proportional: true,
             canvasPoint,
           })
         }),
