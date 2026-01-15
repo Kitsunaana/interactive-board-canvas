@@ -12,10 +12,10 @@ import { shapes$ } from "../../model/index.ts";
 import { camera$ } from "../../modules/_camera/_stream.ts";
 import type { SelectionBounds } from "../../modules/_pick-node/_core.ts";
 import { mouseDown$, mouseUp$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../../modules/_pick-node/_events.ts";
-import { selectionBounds$, viewModel$, viewModelState$ } from "./_view-model.ts";
+import { computeSelectionBounds$, pressedEdgeSubject$, selectionBounds$, viewModel$, viewModelState$ } from "./_view-model.ts";
 import { goToIdle, goToNodesDragging, goToShapesResize, type IdleViewState, } from "./_view-model.type.ts";
 
-const changeCursor = (node: Bound) => {
+const applyResizeCursor = (node: Bound) => {
   document.documentElement.style.cursor = match(node, {
     bottom: () => "ns-resize",
     right: () => "ew-resize",
@@ -26,7 +26,7 @@ const changeCursor = (node: Bound) => {
 
 const shapesResizeFlow$ = mouseDown$.pipe(
   rx.filter((params) => isBound(params.node)),
-  rx.withLatestFrom(viewModelState$, viewModel$, camera$, selectionBounds$),
+  rx.withLatestFrom(viewModelState$, viewModel$, camera$, computeSelectionBounds$),
   rx.filter(([_, viewModelState, , , selectionBounds]) => (
     viewModelState.type === "idle" && selectionBounds.type === "right"
   )),
@@ -44,13 +44,15 @@ const shapesResizeFlow$ = mouseDown$.pipe(
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
+
     return rx.merge(
       sharedMove$.pipe(
         rx.take(1),
         rx.tap(() => {
-          changeCursor(args.node)
+          applyResizeCursor(args.node)
 
           viewModelState$.next(goToShapesResize({ selectedIds: args.selectedIds }))
+          pressedEdgeSubject$.next(args.node)
         }),
         rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
         rx.ignoreElements(),
@@ -58,13 +60,14 @@ const shapesResizeFlow$ = mouseDown$.pipe(
 
       sharedMove$.pipe(
         rx.map((moveEvent) => {
-          const pointerPosition = getPointFromEvent(moveEvent)
-          const canvasPoint = screenToCanvas({ camera, point: pointerPosition })
+          const cursorPosition = getPointFromEvent(moveEvent)
+          const canvasPoint = screenToCanvas({ camera, point: cursorPosition })
 
           return resizeShapesStrategy({
-            // proportional: moveEvent.shiftKey,
+            proportional: moveEvent.shiftKey,
             reflow: moveEvent.ctrlKey,
-            proportional: true,
+            // proportional: true,
+            // reflow: true,
             canvasPoint,
           })
         }),
@@ -74,7 +77,7 @@ const shapesResizeFlow$ = mouseDown$.pipe(
 
             document.documentElement.style.cursor = "default"
           }))
-        )
+        ),
       )
     )
   })

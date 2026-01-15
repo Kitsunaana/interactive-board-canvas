@@ -1,56 +1,91 @@
-import type { ResizeMultipleFromEdgeParams } from "../_shared"
+import { PADDING } from "@/features/board/view-model/sticker"
+import { mapSelectedShapes, type ResizeMultipleFromEdgeParams } from "../_shared"
 
-const reflowFromLeftEdge = ({
-  shapes,
-  cursor,
-  selectionArea
-}: ResizeMultipleFromEdgeParams) => {
-  const maxX = Math.max(...shapes.filter(shape => shape.isSelected).map((shape) => shape.x + shape.width))
+const reflowFromLeftEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
+  const cursorX = cursor.x + PADDING
 
-  const delta = cursor.x - selectionArea.x
+  const left = selectionArea.x
+  const right = left + selectionArea.width
+  const delta = cursorX - left
 
-  return shapes.map((shape) => {
-    if (shape.isSelected) {
-      if (shape.x + shape.width === maxX) return shape
+  return mapSelectedShapes(shapes, (shape) => {
+    const shapeLeft = shape.x
+    const shapeCenter = shapeLeft + shape.width / 2
 
-      const t = 1 - ((shape.x - selectionArea.x) / selectionArea.width)
+    const t = (right - shapeCenter) / selectionArea.width
 
-      return {
-        ...shape,
-        x: shape.x + (t * delta)
-      }
+    const easedT = Math.max(0, Math.min(1, t))
+
+    return {
+      ...shape,
+      x: shapeLeft + easedT * delta,
     }
-
-    return shape
   })
 }
 
-const reflowFromRightEdge = ({
-  shapes,
-  cursor,
-  selectionArea,
-}: ResizeMultipleFromEdgeParams) => {
-  const delta = cursor.x - (selectionArea.width + selectionArea.x)
 
-  return shapes.map((shape) => {
-    if (shape.isSelected) {
-      if (selectionArea.x === shape.x) return shape
+const reflowFromRightEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
+  const cursorX = cursor.x - PADDING
 
-      const t = (shape.x + shape.width - selectionArea.x) / selectionArea.width
+  const left = selectionArea.x
+  const right = left + selectionArea.width
+  const delta = cursorX - right
 
-      return {
-        ...shape,
-        x: shape.x + (t * delta)
-      }
+  return mapSelectedShapes(shapes, (shape) => {
+    const shapeLeft = shape.x
+    const shapeCenter = shapeLeft + shape.width / 2
+
+    const t = (shapeCenter - left) / selectionArea.width
+    const easedT = Math.max(0, Math.min(1, t))
+
+    return {
+      ...shape,
+      x: shapeLeft + easedT * delta,
     }
-
-    return shape
   })
 }
 
-const reflowFromTopEdge = ({ shapes }: ResizeMultipleFromEdgeParams) => shapes
+const reflowFromTopEdge = ({ shapes, cursor, selectionArea }: ResizeMultipleFromEdgeParams) => {
+  const cursorY = cursor.y + PADDING
 
-const reflowFromBottomEdge = ({ shapes }: ResizeMultipleFromEdgeParams) => shapes
+  const top = selectionArea.y
+  const bottom = top + selectionArea.height
+  const delta = cursorY - top
+
+  return mapSelectedShapes(shapes, (shape) => {
+    const shapeTop = shape.y
+    const shapeCenter = shapeTop + shape.height / 2
+
+    const t = (bottom - shapeCenter) / selectionArea.height
+    const easedT = Math.max(0, Math.min(1, t))
+
+    return {
+      ...shape,
+      y: shapeTop + easedT * delta,
+    }
+  })
+}
+
+const reflowFromBottomEdge = ({ shapes, cursor, selectionArea }: ResizeMultipleFromEdgeParams) => {
+  const cursorY = cursor.y - PADDING
+
+  const top = selectionArea.y
+  const bottom = top + selectionArea.height
+  const delta = cursorY - bottom
+
+  return mapSelectedShapes(shapes, (shape) => {
+    const shapeTop = shape.y
+    const shapeCenter = shapeTop + shape.height / 2
+
+    const t = (shapeCenter - top) / selectionArea.height
+    const easedT = Math.max(0, Math.min(1, t))
+
+    return {
+      ...shape,
+      y: shapeTop + easedT * delta,
+    }
+  })
+}
 
 export const reflow = {
   bottom: reflowFromBottomEdge,

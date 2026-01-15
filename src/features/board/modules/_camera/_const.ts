@@ -22,9 +22,9 @@ export const START_POINT: Point = {
 }
 
 export const INITIAL_CAMERA: Camera = {
-  scale: 2,
-  x: -50,
-  y: 600,
+  scale: 1.5,
+  x: 300,
+  y: 400,
 }
 
 export const ZOOM_INTENSITY = 0.1

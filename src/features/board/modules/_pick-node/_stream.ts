@@ -1,5 +1,5 @@
 import { generateRandomColor } from "@/shared/lib/color.ts";
-import { isRight, left, mapRight, matchEither, right } from "@/shared/lib/either.ts";
+import { isRight, left, matchEither, right } from "@/shared/lib/either.ts";
 import { _u, isNotUndefined } from "@/shared/lib/utils.ts";
 import * as rx from "rxjs";
 import { shapes$ } from "../../model/index.ts";

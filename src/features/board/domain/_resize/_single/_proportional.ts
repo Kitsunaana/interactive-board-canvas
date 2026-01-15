@@ -3,7 +3,7 @@ import { PADDING } from "@/features/board/view-model/sticker"
 import type { ShapeToView } from "../../_shape"
 import { mapSelectedShapes, type ApplyEdgeResizeParams, type ResizeSingleFromEdgeParams } from "../_shared"
 
-export const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
+const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -45,7 +45,7 @@ export const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): 
   }
 }
 
-export const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
+const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
   const cursorX = cursor.x + PADDING
 
   const left = shape.x
@@ -88,7 +88,7 @@ export const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): S
   }
 }
 
-export const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
+const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
   const cursorY = cursor.y - PADDING
 
   const top = shape.y
@@ -131,7 +131,7 @@ export const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams):
   }
 }
 
-export const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
+const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
   const cursorY = cursor.y + PADDING
 
   const top = shape.y
@@ -173,10 +173,6 @@ export const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): Sh
     height: nextHeight,
   }
 }
-
-/**
- * 
- */
 
 const resizeFromBottomEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
   return mapSelectedShapes(shapes, (shape) => applyBottomEdgeResize({ cursor, shape }))

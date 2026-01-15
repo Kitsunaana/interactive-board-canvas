@@ -67,17 +67,20 @@ export const resizeSingleShape = ({ node, shapes }: {
 
 const resizeMultiShapes = ({ node, selectionBounds, ...params }: {
   selectionBounds: SelectionBounds
-  selectedIds: Selection
   shapes: ShapeToView[]
   node: Bound
 }) => {
   return match(node, {
-    top: () => ({ canvasPoint }: ResizeInteraction) => {
-      return multiple.resize.top({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
+    top: () => ({ reflow, canvasPoint }: ResizeInteraction) => {
+      return reflow
+        ? multiple.reflow.top({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
+        : multiple.resize.top({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
     },
 
-    bottom: () => ({ canvasPoint }: ResizeInteraction) => {
-      return multiple.resize.bottom({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
+    bottom: () => ({ reflow, canvasPoint }: ResizeInteraction) => {
+      return reflow
+        ? multiple.reflow.bottom({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
+        : multiple.resize.bottom({ ...params, cursor: canvasPoint, selectionArea: selectionBounds.area })
     },
 
     right: () => {

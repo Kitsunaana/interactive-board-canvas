@@ -1,5 +1,6 @@
 import { PADDING } from "@/features/board/view-model/sticker"
-import { mapSelectedShapes, type ApplyEdgeResizeParams, type ResizeSingleFromEdgeParams } from "../_shared"
+import type { ApplyEdgeResizeParams, ResizeSingleFromEdgeParams } from "../_shared"
+import { mapSelectedShapes } from "../_shared"
 
 const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) => {
   const cursorX = cursor.x - PADDING
@@ -155,7 +156,6 @@ const resizeFromBottomEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) =>
 const resizeFromTopEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
   return mapSelectedShapes(shapes, (shape) => applyTopEdgeResize({ cursor, shape }))
 }
-
 
 export const independent = {
   bottom: resizeFromBottomEdge,

@@ -1,8 +1,14 @@
+import { isLeft, isRight, left, right } from "@/shared/lib/either.ts";
 import { match } from "@/shared/lib/match.ts";
-import * as rx from "rxjs"
+import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point.ts";
+import { isNotNull, isNotUndefined } from "@/shared/lib/utils.ts";
+import * as rx from "rxjs";
+import { recalculateSelectionBoundsFromEdge, type RecalculateFromEdgeParams } from "../../domain/_resize/_recalculate-selection-bounds.ts";
+import type { Bound } from "../../domain/_selection/_selection.type.ts";
 import { computeSelectionBoundsRect } from "../../domain/_selection/index.ts";
 import type { ShapeToView } from "../../domain/_shape.ts";
 import { shapes$, shapesToView$ } from "../../model/index.ts";
+import { camera$ } from "../../modules/_camera/_stream.ts";
 import type { ViewModel, ViewModelState } from "./_view-model.type.ts";
 import { goToIdle } from "./_view-model.type.ts";
 
@@ -26,7 +32,6 @@ export const viewModel$ = rx.combineLatest([viewModelState$, shapesToView$]).pip
       }) as ShapeToView),
     }),
 
-    
     shapesResize: (state): ViewModel => ({
       actions: {},
       nodes: nodes.map((node) => ({
@@ -38,10 +43,72 @@ export const viewModel$ = rx.combineLatest([viewModelState$, shapesToView$]).pip
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
 
-export const selectionBounds$ = rx.combineLatest([shapes$, viewModelState$]).pipe(
-  rx.map(([nodes, { selectedIds }]) => computeSelectionBoundsRect({ selectedIds, shapes: nodes })),
+export const pressedEdgeSubject$ = new rx.BehaviorSubject<Bound | null>(null)
+
+export const pointerMove$ = rx.fromEvent<PointerEvent>(window, "pointermove")
+export const pointerUp$ = rx.fromEvent<PointerEvent>(window, "pointerup")
+
+export const selectedShapesIds$ = viewModelState$.pipe(
+  rx.filter(state => isNotUndefined(state.selectedIds)),
+  rx.map(state => state.selectedIds)
+)
+
+const multiSelectionResizeFromEdge$ = pointerMove$.pipe(
+  rx.filter(state => state.ctrlKey),
+  rx.withLatestFrom(
+    selectedShapesIds$,
+    pressedEdgeSubject$.pipe(rx.filter((pressedEdge) => isNotNull(pressedEdge))),
+    camera$,
+    shapes$,
+    shapes$.pipe(
+      rx.first(),
+      rx.withLatestFrom(selectedShapesIds$),
+      rx.map(([shapes, selectedIds]) => computeSelectionBoundsRect({ shapes, selectedIds })),
+      rx.filter(selectionBounds => isRight(selectionBounds)),
+    ),
+  ),
+  rx.map(([pointerEvent, selectedIds, activeEdge, camera, shapes, initialSelectionBounds]) => {
+    const currentSelectionBounds = computeSelectionBoundsRect({
+      selectedIds,
+      shapes,
+    })
+
+    if (isLeft(currentSelectionBounds)) return left(null)
+
+    const cursorInCanvas = screenToCanvas({
+      point: getPointFromEvent(pointerEvent),
+      camera
+    })
+
+    const params: RecalculateFromEdgeParams = {
+      current: currentSelectionBounds.value,
+      first: initialSelectionBounds.value,
+      cursor: cursorInCanvas
+    }
+
+    return match(activeEdge, {
+      bottom: () => right(recalculateSelectionBoundsFromEdge.bottom(params)),
+      right: () => right(recalculateSelectionBoundsFromEdge.right(params)),
+      left: () => right(recalculateSelectionBoundsFromEdge.left(params)),
+      top: () => right(recalculateSelectionBoundsFromEdge.top(params)),
+    }, "id")
+  }),
+  rx.takeUntil(pointerUp$),
+)
+
+export const computeSelectionBounds$ = rx.combineLatest([shapes$, viewModelState$]).pipe(
+  rx.map(([shapes, { selectedIds }]) => computeSelectionBoundsRect({ selectedIds, shapes })),
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
+
+const isShapesReflowState = (state: ViewModelState) => state.type === "shapesResize" && state.selectedIds.size >= 2
+
+export const multiSelectionResize$ = rx.combineLatest([viewModelState$]).pipe(
+  rx.switchMap(([state]) => isShapesReflowState(state) ? multiSelectionResizeFromEdge$ : rx.EMPTY),
+  rx.shareReplay({ bufferSize: 1, refCount: true })
+)
+
+export const selectionBounds$ = rx.merge(computeSelectionBounds$, multiSelectionResize$)
 
 export const shapesToRecord$ = shapes$.pipe(
   rx.distinctUntilChanged((prev, current) => current.length === prev.length),
