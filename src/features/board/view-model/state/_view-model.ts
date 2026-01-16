@@ -44,6 +44,8 @@ export const viewModel$ = rx.combineLatest([viewModelState$, shapesToView$]).pip
 
 export const pressedEdgeSubject$ = new rx.BehaviorSubject<Bound | null>(null)
 
+const pressedEdge$ = pressedEdgeSubject$.pipe(rx.filter(edge => isNotNull(edge)), rx.shareReplay({ refCount: true, bufferSize: 1 }))
+
 export const pointerMove$ = rx.fromEvent<PointerEvent>(window, "pointermove")
 export const pointerDown$ = rx.fromEvent<PointerEvent>(window, "pointerdown")
 export const pointerUp$ = rx.fromEvent<PointerEvent>(window, "pointerup")
@@ -51,7 +53,8 @@ export const pointerUp$ = rx.fromEvent<PointerEvent>(window, "pointerup")
 export const selectedShapesIds$ = viewModelState$.pipe(
   rx.filter(state => isNotUndefined(state.selectedIds)),
   rx.map(state => state.selectedIds),
-  rx.startWith(new Set<string>())
+  rx.startWith(new Set<string>()),
+  rx.shareReplay({ bufferSize: 1, refCount: true })
 )
 
 export const autoSelectionBounds$ = rx.combineLatest({
@@ -62,22 +65,35 @@ export const autoSelectionBounds$ = rx.combineLatest({
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
 
-const manualSelectionBounds$ = pointerDown$.pipe(
-  rx.withLatestFrom(viewModelState$),
-  rx.filter(([, state]) => state.type === "idle" && state.selectedIds.size >= 2),
-  rx.switchMap(() => {
-    return pointerMove$.pipe(
-      rx.filter(event => event.ctrlKey),
+const isDragging$ = rx.merge(pointerDown$.pipe(rx.map(() => true)), pointerUp$.pipe(rx.map(() => false))).pipe(
+  rx.distinctUntilChanged(),
+  rx.shareReplay({ bufferSize: 1, refCount: true })
+)
 
+const isCtrlPressed$ = rx.merge(pointerMove$, pointerDown$, pointerUp$).pipe(
+  rx.map(event => event.ctrlKey),
+  rx.distinctUntilChanged(),
+  rx.shareReplay({ bufferSize: 1, refCount: true })
+)
+
+isDragging$.subscribe()
+
+const manualSelectionBounds$ = rx.combineLatest({
+  initialBounds: autoSelectionBounds$.pipe(rx.first()),
+  isDragging: isDragging$,
+}).pipe(
+  rx.filter(({ isDragging }) => isDragging),
+
+  rx.switchMap(({ initialBounds }) => {
+    return pointerMove$.pipe(
       rx.withLatestFrom(
         selectedShapesIds$,
         camera$,
         shapes$,
-        autoSelectionBounds$.pipe(rx.first()),
-        pressedEdgeSubject$.pipe(rx.filter(edge => isNotNull(edge)))
+        pressedEdge$,
       ),
 
-      rx.map(([moveEvent, selectedIds, camera, shapes, initialBounds, activeEdge]) => {
+      rx.map(([moveEvent, selectedIds, camera, shapes, activeEdge]) => {
         const cursorInCanvas = screenToCanvas({
           point: getPointFromEvent(moveEvent),
           camera,
@@ -90,20 +106,11 @@ const manualSelectionBounds$ = pointerDown$.pipe(
 
         if (isLeft(initialBounds) || isLeft(currentBounds)) return left(null)
 
-        const params = {
+        return right(recalculateSelectionBoundsFromEdge[activeEdge.id]({
           first: initialBounds.value,
           current: currentBounds.value,
           cursor: cursorInCanvas,
-        }
-
-        return right(
-          match(activeEdge, {
-            bottom: () => recalculateSelectionBoundsFromEdge.bottom(params),
-            right: () => recalculateSelectionBoundsFromEdge.right(params),
-            left: () => recalculateSelectionBoundsFromEdge.left(params),
-            top: () => recalculateSelectionBoundsFromEdge.top(params),
-          }, "id")
-        )
+        }))
       }),
 
       rx.takeUntil(pointerUp$),
@@ -112,8 +119,6 @@ const manualSelectionBounds$ = pointerDown$.pipe(
 
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
-
-const isCtrlPressed$ = rx.merge(pointerMove$, pointerDown$, pointerUp$).pipe(rx.map(event => event.ctrlKey), rx.startWith(false))
 
 export const selectionBounds$ = rx.combineLatest({
   selectedIds: selectedShapesIds$,
