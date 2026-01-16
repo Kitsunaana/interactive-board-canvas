@@ -1,4 +1,4 @@
-import { isLeft, left, right } from "@/shared/lib/either.ts";
+import { isRight, right, type Right } from "@/shared/lib/either.ts";
 import { match } from "@/shared/lib/match.ts";
 import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point.ts";
 import { isNotNull, isNotUndefined } from "@/shared/lib/utils.ts";
@@ -8,6 +8,7 @@ import type { Bound } from "../../domain/_selection/_selection.type.ts";
 import { computeSelectionBoundsRect } from "../../domain/_selection/index.ts";
 import { shapes$, shapesToView$ } from "../../model/index.ts";
 import { camera$ } from "../../modules/_camera/_stream.ts";
+import type { SelectionBounds } from "../../modules/_pick-node/_core.ts";
 import type { ViewModel, ViewModelState } from "./_view-model.type.ts";
 import { goToIdle } from "./_view-model.type.ts";
 
@@ -79,43 +80,29 @@ const isCtrlPressed$ = rx.merge(pointerMove$, pointerDown$, pointerUp$).pipe(
 isDragging$.subscribe()
 
 const manualSelectionBounds$ = rx.combineLatest({
-  initialBounds: autoSelectionBounds$.pipe(rx.first()),
+  initialBounds: autoSelectionBounds$.pipe(rx.first(), rx.filter(state => isRight(state))),
   isDragging: isDragging$,
 }).pipe(
   rx.filter(({ isDragging }) => isDragging),
 
-  rx.switchMap(({ initialBounds }) => {
-    return pointerMove$.pipe(
-      rx.withLatestFrom(
-        selectedShapesIds$,
-        camera$,
-        shapes$,
-        pressedEdge$,
-      ),
+  rx.switchMap(({ initialBounds }) => pointerMove$.pipe(
+    rx.withLatestFrom(selectedShapesIds$, camera$, shapes$, pressedEdge$),
 
-      rx.map(([moveEvent, selectedIds, camera, shapes, activeEdge]) => {
-        const cursorInCanvas = screenToCanvas({
+    rx.map(([moveEvent, selectedIds, camera, shapes, activeEdge]) => {
+      const currentBounds = computeSelectionBoundsRect({ selectedIds, shapes }) as Right<SelectionBounds>
+
+      return right(recalculateSelectionBoundsFromEdge[activeEdge.id]({
+        current: currentBounds.value,
+        first: initialBounds.value,
+        cursor: screenToCanvas({
           point: getPointFromEvent(moveEvent),
           camera,
-        })
+        }),
+      }))
+    }),
 
-        const currentBounds = computeSelectionBoundsRect({
-          selectedIds,
-          shapes,
-        })
-
-        if (isLeft(initialBounds) || isLeft(currentBounds)) return left(null)
-
-        return right(recalculateSelectionBoundsFromEdge[activeEdge.id]({
-          first: initialBounds.value,
-          current: currentBounds.value,
-          cursor: cursorInCanvas,
-        }))
-      }),
-
-      rx.takeUntil(pointerUp$),
-    )
-  }),
+    rx.takeUntil(pointerUp$),
+  )),
 
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
