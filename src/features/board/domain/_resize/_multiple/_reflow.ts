@@ -13,7 +13,6 @@ const reflowFromLeftEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFro
     const shapeCenter = shapeLeft + shape.width / 2
 
     const t = (right - shapeCenter) / selectionArea.width
-
     const easedT = Math.max(0, Math.min(1, t))
 
     return {

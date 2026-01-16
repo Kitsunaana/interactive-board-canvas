@@ -11,6 +11,7 @@ import { shapes$, shapesToView$ } from "../../model/index.ts";
 import { camera$ } from "../../modules/_camera/_stream.ts";
 import type { ViewModel, ViewModelState } from "./_view-model.type.ts";
 import { goToIdle } from "./_view-model.type.ts";
+import { isNull } from "lodash";
 
 export const viewModelState$ = new rx.BehaviorSubject<ViewModelState>(goToIdle())
 
@@ -46,11 +47,13 @@ export const viewModel$ = rx.combineLatest([viewModelState$, shapesToView$]).pip
 export const pressedEdgeSubject$ = new rx.BehaviorSubject<Bound | null>(null)
 
 export const pointerMove$ = rx.fromEvent<PointerEvent>(window, "pointermove")
+export const pointerDown$ = rx.fromEvent<PointerEvent>(window, "pointerdown")
 export const pointerUp$ = rx.fromEvent<PointerEvent>(window, "pointerup")
 
 export const selectedShapesIds$ = viewModelState$.pipe(
   rx.filter(state => isNotUndefined(state.selectedIds)),
-  rx.map(state => state.selectedIds)
+  rx.map(state => state.selectedIds),
+  rx.startWith(new Set<string>())
 )
 
 const multiSelectionResizeFromEdge$ = pointerMove$.pipe(
@@ -73,7 +76,7 @@ const multiSelectionResizeFromEdge$ = pointerMove$.pipe(
       shapes,
     })
 
-    if (isLeft(currentSelectionBounds)) return left(null)
+    if (isLeft(currentSelectionBounds) || isNull(activeEdge)) return left(null)
 
     const cursorInCanvas = screenToCanvas({
       point: getPointFromEvent(pointerEvent),
@@ -86,6 +89,8 @@ const multiSelectionResizeFromEdge$ = pointerMove$.pipe(
       cursor: cursorInCanvas
     }
 
+    console.log("ASD") // Выводиться
+
     return match(activeEdge, {
       bottom: () => right(recalculateSelectionBoundsFromEdge.bottom(params)),
       right: () => right(recalculateSelectionBoundsFromEdge.right(params)),
@@ -96,19 +101,60 @@ const multiSelectionResizeFromEdge$ = pointerMove$.pipe(
   rx.takeUntil(pointerUp$),
 )
 
-export const computeSelectionBounds$ = rx.combineLatest([shapes$, viewModelState$]).pipe(
+export const autoSelectionBounds$ = rx.combineLatest([shapes$, viewModelState$]).pipe(
   rx.map(([shapes, { selectedIds }]) => computeSelectionBoundsRect({ selectedIds, shapes })),
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
 
-const isShapesReflowState = (state: ViewModelState) => state.type === "shapesResize" && state.selectedIds.size >= 2
+const manualSelectionBounds$ = pointerDown$.pipe(
+  rx.withLatestFrom(viewModelState$),
+  rx.filter(([, state]) => {
+    return state.type === "idle" && state.selectedIds.size >= 2
+  }),
 
-export const multiSelectionResize$ = rx.combineLatest([viewModelState$]).pipe(
-  rx.switchMap(([state]) => isShapesReflowState(state) ? multiSelectionResizeFromEdge$ : rx.EMPTY),
+  rx.switchMap(([, state]) => {
+    return pointerMove$.pipe(
+      rx.filter(event => event.ctrlKey),
+
+      rx.withLatestFrom(
+        selectedShapesIds$,
+        camera$,
+        shapes$,
+        autoSelectionBounds$.pipe(rx.first())
+      ),
+
+      rx.map(([moveEvent, selectedIds, camera, shapes, initialBounds]) => {
+        const cursorInCanvas = screenToCanvas({
+          point: getPointFromEvent(moveEvent),
+          camera,
+        })
+
+        const currentBounds = computeSelectionBoundsRect({
+          shapes,
+          selectedIds,
+        })
+
+        if (isLeft(initialBounds) || isLeft(currentBounds)) return left(null)
+
+        return right(recalculateSelectionBoundsFromEdge.right({
+          first: initialBounds.value,
+          current: currentBounds.value,
+          cursor: cursorInCanvas,
+        }))
+      }),
+
+      rx.takeUntil(pointerUp$),
+    )
+  }),
+
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
 
-export const selectionBounds$ = rx.merge(computeSelectionBounds$, multiSelectionResize$)
+manualSelectionBounds$.subscribe(console.log)
+
+export const selectionBounds$ = rx.merge(autoSelectionBounds$, manualSelectionBounds$)
+
+// selectionBounds$.subscribe(console.log)
 
 export const shapesToRecord$ = shapes$.pipe(
   rx.distinctUntilChanged((prev, current) => current.length === prev.length),

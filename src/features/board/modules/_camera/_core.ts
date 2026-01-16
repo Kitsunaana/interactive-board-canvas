@@ -11,7 +11,7 @@ import {
 import type { Camera, CameraState } from "./_domain";
 
 export const canStartPan = (event: PointerEvent) => {
-  return event.button === 1
+  return event.button === 1 && event.ctrlKey === false
 }
 
 export const zoomIn = (camera: Camera) => {

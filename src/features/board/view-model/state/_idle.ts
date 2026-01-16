@@ -12,7 +12,7 @@ import { shapes$ } from "../../model/index.ts";
 import { camera$ } from "../../modules/_camera/_stream.ts";
 import type { SelectionBounds } from "../../modules/_pick-node/_core.ts";
 import { mouseDown$, mouseUp$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../../modules/_pick-node/_events.ts";
-import { computeSelectionBounds$, pressedEdgeSubject$, selectionBounds$, viewModel$, viewModelState$ } from "./_view-model.ts";
+import { autoSelectionBounds$, pressedEdgeSubject$, selectionBounds$, viewModel$, viewModelState$ } from "./_view-model.ts";
 import { goToIdle, goToNodesDragging, goToShapesResize, type IdleViewState, } from "./_view-model.type.ts";
 
 const applyResizeCursor = (node: Bound) => {
@@ -26,7 +26,7 @@ const applyResizeCursor = (node: Bound) => {
 
 const shapesResizeFlow$ = mouseDown$.pipe(
   rx.filter((params) => isBound(params.node)),
-  rx.withLatestFrom(viewModelState$, viewModel$, camera$, computeSelectionBounds$),
+  rx.withLatestFrom(viewModelState$, viewModel$, camera$, autoSelectionBounds$),
   rx.filter(([_, viewModelState, , , selectionBounds]) => (
     viewModelState.type === "idle" && selectionBounds.type === "right"
   )),
@@ -43,7 +43,6 @@ const shapesResizeFlow$ = mouseDown$.pipe(
     const resizeShapesStrategy = getShapesResizeStrategy(args)
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
-
 
     return rx.merge(
       sharedMove$.pipe(
