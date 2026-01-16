@@ -26,7 +26,7 @@ const multiple = {
   resize,
 }
 
-export const resizeSingleShape = ({ node, shapes }: {
+const resizeSingleShape = ({ node, shapes }: {
   shapes: ShapeToView[]
   node: Bound
 }) => {

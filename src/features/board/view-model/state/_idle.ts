@@ -65,8 +65,6 @@ const shapesResizeFlow$ = mouseDown$.pipe(
           return resizeShapesStrategy({
             proportional: moveEvent.shiftKey,
             reflow: moveEvent.ctrlKey,
-            // proportional: true,
-            // reflow: true,
             canvasPoint,
           })
         }),

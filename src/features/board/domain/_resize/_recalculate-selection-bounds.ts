@@ -41,12 +41,10 @@ const recalculateFromBottomEdge = ({ current, first, cursor }: RecalculateFromEd
 }
 
 const recalculateFromLeftEdge = ({ current, first, cursor }: RecalculateFromEdgeParams) => {
-  const areaLeft = current.area.x
+  const areaLeft = first.area.x
   const cursorPositionX = cursor.x + PADDING
   const delta = areaLeft - cursorPositionX
   
-  // console.log(delta)
-
   return {
     ...current,
     area: {
