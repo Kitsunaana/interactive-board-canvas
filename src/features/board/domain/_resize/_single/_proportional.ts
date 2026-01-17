@@ -1,5 +1,4 @@
 import { SELECTION_BOUNDS_PADDING } from "@/features/board/ui/selection-bounds-area"
-import { PADDING } from "@/features/board/view-model/sticker"
 import type { ShapeToView } from "../../_shape"
 import { mapSelectedShapes, type ApplyEdgeResizeParams, type ResizeSingleFromEdgeParams } from "../_shared"
 
@@ -18,9 +17,9 @@ const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeTo
   if (nextWidth <= 0) {
     const delta = left - cursorX
 
-    const nextWidth = delta - PADDING * 2
+    const nextWidth = delta - SELECTION_BOUNDS_PADDING * 2
     const nextHeight = nextWidth * aspectRatio
-    const nextX = shape.x - delta + PADDING * 2
+    const nextX = shape.x - delta + SELECTION_BOUNDS_PADDING * 2
 
     if (nextWidth <= 0) {
       return {
@@ -46,7 +45,7 @@ const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeTo
 }
 
 const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
-  const cursorX = cursor.x + PADDING
+  const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
   const left = shape.x
   const right = left + shape.width
@@ -60,7 +59,7 @@ const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToV
   if (nextWidth <= 0) {
     const delta = cursorX - right
 
-    const nextWidth = delta - PADDING * 2
+    const nextWidth = delta - SELECTION_BOUNDS_PADDING * 2
     const nextHeight = nextWidth * aspectRatio
 
     if (nextWidth <= 0) {
@@ -89,7 +88,7 @@ const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToV
 }
 
 const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
-  const cursorY = cursor.y - PADDING
+  const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const top = shape.y
   const bottom = top + shape.height
@@ -103,9 +102,9 @@ const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeT
   if (nextHeight <= 0) {
     const delta = top - cursorY
 
-    const nextHeight = delta - PADDING * 2
+    const nextHeight = delta - SELECTION_BOUNDS_PADDING * 2
     const nextWidth = nextHeight * aspectRatio
-    const nextY = top - delta + PADDING * 2
+    const nextY = top - delta + SELECTION_BOUNDS_PADDING * 2
 
     if (nextHeight <= 0) {
       return {
@@ -132,7 +131,7 @@ const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeT
 }
 
 const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
-  const cursorY = cursor.y + PADDING
+  const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const top = shape.y
   const bottom = top + shape.height
@@ -146,7 +145,7 @@ const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToVi
   if (nextHeight <= 0) {
     const delta = cursorY - bottom
     
-    const nextHeight = delta - PADDING * 2
+    const nextHeight = delta - SELECTION_BOUNDS_PADDING * 2
     const nextWidth = nextHeight * aspectRatio
     
     if (nextHeight <= 0) {
@@ -174,25 +173,18 @@ const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToVi
   }
 }
 
-const resizeFromBottomEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromBottomEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
   return mapSelectedShapes(shapes, (shape) => applyBottomEdgeResize({ cursor, shape }))
 }
 
-const resizeFromRightEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromRightEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
   return mapSelectedShapes(shapes, (shape) => applyRightEdgeResize({ cursor, shape }))
 }
 
-const resizeFromLeftEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromLeftEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
   return mapSelectedShapes(shapes, (shape) => applyLeftEdgeResize({ cursor, shape }))
 }
 
-const resizeFromTopEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromTopEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
   return mapSelectedShapes(shapes, (shape) => applyTopEdgeResize({ cursor, shape }))
-}
-
-export const proportional = {
-  bottom: resizeFromBottomEdge,
-  right: resizeFromRightEdge,
-  left: resizeFromLeftEdge,
-  top: resizeFromTopEdge,
 }

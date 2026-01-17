@@ -2,7 +2,7 @@
 import { calculateLimitPoints, inferRect } from "@/shared/lib/rect"
 import type { Rect } from "@/shared/type/shared"
 import type { IdleViewState } from "../../view-model/state/_view-model.type"
-import type { Shape } from "../_shape"
+import type { Shape, ShapeToView } from "../_shape"
 import type { Selection, SelectionModifier } from "./_selection.type"
 
 export const selectItems = ({ ids, modif, initialSelected }: {
@@ -75,4 +75,34 @@ export const computeSelectionBoundsRect = ({ shapes, selectedIds }: {
   }
 
   return left(null)
+}
+
+export const computeSelectionBoundsArea = (shapes: ShapeToView[]) => {
+  const selectedShapes = shapes.filter(shape => shape.isSelected)
+
+  if (selectedShapes.length === 1) {
+    return {
+      bounds: [] satisfies Rect[],
+      area: inferRect(selectedShapes[0]),
+    }
+  }
+
+  if (selectedShapes.length > 1) {
+    const rectsFromShape = selectedShapes.map(inferRect)
+    const limitPoints = calculateLimitPoints({
+      rects: rectsFromShape
+    })
+
+    return {
+      bounds: rectsFromShape,
+      area: {
+        height: limitPoints.max.y - limitPoints.min.y,
+        width: limitPoints.max.x - limitPoints.min.x,
+        x: limitPoints.min.x,
+        y: limitPoints.min.y,
+      }
+    }
+  }
+
+  return null
 }

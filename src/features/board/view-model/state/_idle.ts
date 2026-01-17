@@ -30,17 +30,23 @@ const shapesResizeFlow$ = mouseDown$.pipe(
   rx.filter(([_, viewModelState, , , selectionBounds]) => (
     viewModelState.type === "idle" && selectionBounds.type === "right"
   )),
-  rx.map(([downEvent, viewState, { nodes: shapes }, camera, selectionBounds]) => ({
+  rx.map(([downEvent, viewState, viewModel, camera, selectionBounds]) => ({
     selectionBounds: (selectionBounds as Right<SelectionBounds>).value,
     selectedIds: (viewState as IdleViewState).selectedIds,
     node: downEvent.node as Bound,
 
     downEvent: downEvent.event,
-    shapes,
+    shapes: viewModel.nodes,
+
     camera,
   })),
-  rx.switchMap(({ camera, ...args }) => {
-    const resizeShapesStrategy = getShapesResizeStrategy(args)
+  rx.switchMap(({ camera, node, shapes, selectedIds, selectionBounds }) => {
+    const resizeShapesStrategy = getShapesResizeStrategy({
+      selectionBounds,
+      selectedIds,
+      shapes,
+      node,
+    })
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
@@ -48,10 +54,10 @@ const shapesResizeFlow$ = mouseDown$.pipe(
       sharedMove$.pipe(
         rx.take(1),
         rx.tap(() => {
-          applyResizeCursor(args.node)
+          applyResizeCursor(node)
 
-          viewModelState$.next(goToShapesResize({ selectedIds: args.selectedIds }))
-          pressedEdgeSubject$.next(args.node)
+          pressedEdgeSubject$.next(node)
+          viewModelState$.next(goToShapesResize({ selectedIds }))
         }),
         rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
         rx.ignoreElements(),
@@ -70,7 +76,7 @@ const shapesResizeFlow$ = mouseDown$.pipe(
         }),
         rx.takeUntil(
           rx.merge(pointerUp$, pointerLeave$).pipe(rx.tap(() => {
-            viewModelState$.next(goToIdle({ selectedIds: args.selectedIds }))
+            viewModelState$.next(goToIdle({ selectedIds }))
 
             document.documentElement.style.cursor = "default"
           }))

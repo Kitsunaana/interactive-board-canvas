@@ -1,7 +1,7 @@
 import { SELECTION_BOUNDS_PADDING } from "@/features/board/ui/selection-bounds-area"
 import { mapSelectedShapes, type ResizeMultipleFromEdgeParams } from "../_shared"
 
-const resizeFromLeftEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromLeftEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
 
@@ -39,7 +39,7 @@ const resizeFromLeftEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFro
   }))
 }
 
-const resizeFromRightEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromRightEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
 
@@ -77,7 +77,7 @@ const resizeFromRightEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFr
   }))
 }
 
-const resizeFromTopEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromTopEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
 
@@ -115,7 +115,7 @@ const resizeFromTopEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFrom
   }))
 }
 
-const resizeFromBottomEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromBottomEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
 
@@ -153,11 +153,4 @@ const resizeFromBottomEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleF
     height: shape.height * scale,
     y: top + (shape.y - top) * scale,
   }))
-}
-
-export const resize = {
-  bottom: resizeFromBottomEdge,
-  right: resizeFromRightEdge,
-  left: resizeFromLeftEdge,
-  top: resizeFromTopEdge,
 }

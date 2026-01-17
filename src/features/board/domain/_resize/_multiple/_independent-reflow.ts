@@ -1,9 +1,8 @@
-import { PADDING } from "@/features/board/view-model/sticker"
+import { SELECTION_BOUNDS_PADDING } from "@/features/board/ui/selection-bounds-area"
 import { mapSelectedShapes, type ResizeMultipleFromEdgeParams } from "../_shared"
 
-const reflowFromLeftEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
-  const cursorX = cursor.x + PADDING
-
+export const reflowFromLeftEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
+  const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
   const left = selectionArea.x
   const right = left + selectionArea.width
   const delta = cursorX - left
@@ -22,9 +21,8 @@ const reflowFromLeftEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFro
   })
 }
 
-
-const reflowFromRightEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
-  const cursorX = cursor.x - PADDING
+export const reflowFromRightEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
+  const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
   const right = left + selectionArea.width
@@ -44,8 +42,8 @@ const reflowFromRightEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFr
   })
 }
 
-const reflowFromTopEdge = ({ shapes, cursor, selectionArea }: ResizeMultipleFromEdgeParams) => {
-  const cursorY = cursor.y + PADDING
+export const reflowFromTopEdge = ({ shapes, cursor, selectionArea }: ResizeMultipleFromEdgeParams) => {
+  const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const top = selectionArea.y
   const bottom = top + selectionArea.height
@@ -65,8 +63,8 @@ const reflowFromTopEdge = ({ shapes, cursor, selectionArea }: ResizeMultipleFrom
   })
 }
 
-const reflowFromBottomEdge = ({ shapes, cursor, selectionArea }: ResizeMultipleFromEdgeParams) => {
-  const cursorY = cursor.y - PADDING
+export const reflowFromBottomEdge = ({ shapes, cursor, selectionArea }: ResizeMultipleFromEdgeParams) => {
+  const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const top = selectionArea.y
   const bottom = top + selectionArea.height
@@ -84,11 +82,4 @@ const reflowFromBottomEdge = ({ shapes, cursor, selectionArea }: ResizeMultipleF
       y: shapeTop + easedT * delta,
     }
   })
-}
-
-export const reflow = {
-  bottom: reflowFromBottomEdge,
-  right: reflowFromRightEdge,
-  left: reflowFromLeftEdge,
-  top: reflowFromTopEdge
 }
