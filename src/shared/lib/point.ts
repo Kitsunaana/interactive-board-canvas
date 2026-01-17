@@ -64,3 +64,4 @@ export const getPointFromEvent = (event: PointerEvent): Point => ({
   y: event.clientY,
 })
 
+export const distance = (a: Point, b: Point) => Math.hypot(b.x - a.x, b.y - a.y)

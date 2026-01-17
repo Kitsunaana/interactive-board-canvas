@@ -1,58 +1,38 @@
 import * as rx from "rxjs";
-import type { ShapeToView } from "./features/board/domain/_shape.ts";
-import { getWorldPoints, type Camera } from "./features/board/modules/_camera/_domain.ts";
-import { camera$, cameraSubject$, gridTypeSubject$ } from "./features/board/modules/_camera/_stream.ts";
-import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./features/board/ui/grid.ts";
-import { drawSelectionBoundsArea } from "./features/board/ui/selection-bounds-area.ts";
-import { getShapeDrawer } from "./features/board/ui/sketch/draw.ts";
+import type { ShapeToView } from "./features/board/domain/shape.ts";
+import { type Camera } from "./features/board/modules/camera/_domain.ts";
+import { camera$, canvasSizes$, gridTypeSubject$ } from "./features/board/modules/camera/_stream.ts";
+import { gridTypeVariants } from "./features/board/ui/cavnas.ts";
+import { drawSelectionBoundsArea } from "./features/board/ui/selection-area.ts";
+import { getShapeDrawer } from "./features/board/ui/shape.ts";
+import { gridProps$ } from "./features/board/view-model/canvas-props.ts";
 import { selectionBounds$ } from "./features/board/view-model/selection-bounds.ts";
-import { viewModel$ } from "./features/board/view-model/state/_view-model.ts";
-import { getResizeHandlersProperties } from "./features/board/view-model/sticker.ts";
-import { canvas, context, resize$ } from "./shared/lib/initial-canvas.ts";
-import { getCanvasSizes, isNotNull } from "./shared/lib/utils.ts";
+import { getResizeHandlersPositions } from "./features/board/view-model/shape-sketch.ts";
+import { shapesToRender$ } from "./features/board/view-model/state/_view-model.ts";
+import { context } from "./shared/lib/initial-canvas.ts";
+import { isNotNull } from "./shared/lib/utils.ts";
 import type { Rect } from "./shared/type/shared.ts";
-
-export const canvasProperties$ = rx.combineLatest([
-  cameraSubject$,
-  resize$.pipe(
-    rx.map(getCanvasSizes),
-    rx.startWith(getCanvasSizes()),
-    rx.tap((canvasSizes) => Object.assign(canvas, canvasSizes)),
-  )
-]).pipe(rx.map(([state, sizes]) => getWorldPoints({
-  camera: state.camera,
-  sizes,
-})))
-
-export const gridProps$ = canvasProperties$.pipe(
-  rx.withLatestFrom(camera$),
-  rx.map(([canvasProperties, camera]) => ({
-    canvasProperties,
-    gridProps: LEVELS
-      .map(level => toDrawOneLevel({ ...canvasProperties, camera, level }))
-      .filter(isNotNull)
-  }))
-)
 
 export const renderLoop$ = rx.animationFrames().pipe(
   rx.withLatestFrom(
-    camera$,
     gridTypeSubject$,
-    viewModel$,
     selectionBounds$,
-    gridProps$
+    shapesToRender$,
+    canvasSizes$,
+    gridProps$,
+    camera$,
   ),
-  rx.map(([_, camera, gridType, viewModel, selectedRect, { canvasProperties, gridProps }]) => ({
-    canvasSizes: canvasProperties.sizes,
-    nodes: viewModel.nodes,
-    selectedRect,
+  rx.map(([_, gridType, selectionArea, shapes, canvasSizes, gridProps, camera]) => ({
+    selectionArea,
+    canvasSizes,
     gridProps,
     gridType,
     camera,
+    shapes,
   }))
 )
 
-renderLoop$.subscribe(({ selectedRect, canvasSizes, gridType, gridProps, camera, nodes }) => {
+renderLoop$.subscribe(({ selectionArea, canvasSizes, gridType, gridProps, camera, shapes }) => {
   context.save()
 
   context.clearRect(0, 0, canvasSizes.width, canvasSizes.height)
@@ -62,11 +42,11 @@ renderLoop$.subscribe(({ selectedRect, canvasSizes, gridType, gridProps, camera,
 
   gridTypeVariants[gridType]({ gridProps, context })
 
-  drawShapes({ context, shapes: nodes })
+  drawShapes({ context, shapes })
 
-  if (isNotNull(selectedRect)) {
-    drawSelectionBoundsArea({ context, rects: selectedRect.bounds.concat(selectedRect.area) })
-    drawResizeHandlers({ context, camera, rect: selectedRect.area })
+  if (isNotNull(selectionArea)) {
+    drawSelectionBoundsArea({ context, rects: selectionArea.bounds.concat(selectionArea.area) })
+    drawResizeHandlers({ context, camera, rect: selectionArea.area })
   }
 
   context.restore()
@@ -103,7 +83,7 @@ export function drawResizeHandlers({ context, camera, rect }: {
   context.fillStyle = "#ffffff"
   context.strokeStyle = "#aaaaaa"
 
-  getResizeHandlersProperties({ camera, rect }).forEach((dot) => {
+  getResizeHandlersPositions({ camera, rect }).forEach((dot) => {
     context.beginPath()
     context.lineWidth = dotLineWidth
     context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)

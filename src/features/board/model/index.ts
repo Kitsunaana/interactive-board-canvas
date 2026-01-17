@@ -1,9 +1,9 @@
 ﻿import { match } from "@/shared/lib/match";
 import { _u } from "@/shared/lib/utils";
-import * as rx from "rxjs"
+import * as rx from "rxjs";
 
-import type { ShapeToView } from "../domain";
-import { generateEllipseSketchProps, generateRectangleSketchProps } from "../view-model/sticker";
+import type { ShapeToView } from "../domain/shape";
+import { generateEllipseSketchProps, generateRectangleSketchProps } from "../view-model/shape-sketch";
 import { shapes } from "./_assets";
 
 export const shapes$ = new rx.BehaviorSubject(shapes)

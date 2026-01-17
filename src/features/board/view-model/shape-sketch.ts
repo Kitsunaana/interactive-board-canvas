@@ -1,0 +1,60 @@
+﻿import { generateSketchProps, getEllipseBasePoints, getRectangleBasePoints } from "@/shared/lib/sketch";
+import type { Rect } from "@/shared/type/shared.ts";
+import type { Circle, Rectangle } from "../domain/shape.ts";
+import type { Camera } from "../modules/camera/index.ts";
+
+export const generateRectangleSketchProps = (shape: Rectangle) => ({
+  hachureFill: true,
+  strokeColor: '#8b5cf6',
+  ...generateSketchProps({
+    basePoints: getRectangleBasePoints(shape.x, shape.y, shape.width, shape.height),
+    rect: shape
+  })
+})
+
+export const generateEllipseSketchProps = (shape: Circle) => {
+  const radiusY = shape.height / 2
+  const radiusX = shape.width / 2
+
+  return {
+    hachureFill: true,
+    strokeColor: '#df3182ff',
+    ...generateSketchProps({
+      basePoints: getEllipseBasePoints(shape.x + radiusX, shape.y + radiusY, radiusX, radiusY),
+      rect: shape
+    })
+  }
+}
+
+
+export const PADDING = 7
+export const BASE_RADIUS = 5
+export const SCALE_POWER = 0.75
+export const BASE_LINE_WIDTH = 0.45
+
+export const getResizeHandlersPositions = ({ rect, camera }: { camera: Camera, rect: Rect }) => [
+  {
+    strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),
+    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+    x: rect.x - PADDING,
+    y: rect.y - PADDING,
+  },
+  {
+    strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),
+    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+    x: rect.x + rect.width + PADDING,
+    y: rect.y - PADDING,
+  },
+  {
+    strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),
+    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+    x: rect.x + rect.width + PADDING,
+    y: rect.y + rect.height + PADDING,
+  },
+  {
+    strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),
+    radius: BASE_RADIUS / Math.pow(camera.scale, SCALE_POWER),
+    x: rect.x - PADDING,
+    y: rect.y + rect.height + PADDING,
+  },
+]

@@ -36,6 +36,8 @@ export const viewModel$ = rx.combineLatest([viewState$, shapesToView$]).pipe(
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
 
+export const shapesToRender$ = viewModel$.pipe(rx.map(model => model.nodes))
+
 export const selectedShapesIds$ = viewState$.pipe(
   rx.filter(state => isNotUndefined(state.selectedIds)),
   rx.map(state => state.selectedIds),

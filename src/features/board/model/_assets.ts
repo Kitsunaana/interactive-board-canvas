@@ -1,5 +1,5 @@
 ﻿import { generateRandomColor } from "@/shared/lib/color";
-import type { Shape } from "../domain";
+import type { Shape } from "../domain/shape";
 
 export const shapes: Shape[] = [
   {

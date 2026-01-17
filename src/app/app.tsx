@@ -1,47 +1,17 @@
-import "../features/board/view-model/state/_idle";
+import "../features/board/view-model/idle";
 import "../render-loop";
 import "./index.css";
 
-import { bind } from "@react-rxjs/core";
 import { clsx } from "clsx";
-import * as rx from "rxjs"
-import * as _ from "lodash"
 
-import type { CameraState } from "../features/board/modules/_camera/_domain";
-import { wheelCamera$, zoomTrigger$ } from "../features/board/modules/_camera/_stream";
-import { miniMapProperties$ } from "../features/board/modules/_mini-map/_stream";
+import { readyMiniMap } from "../features/board/modules/mini-map/_stream";
 
-import { useSelectionBoundsRect } from "@/features/board/view-model/use-selection-bounds-rect";
-
-const toPercentage = (state: CameraState) => `${Math.round(state.camera.scale * 100)}%`
-
-const [useZoomValue] = bind(wheelCamera$.pipe(rx.map(toPercentage)), "100%")
-
-const zoomOut = () => {
-  zoomTrigger$.next({
-    action: "zoomOut"
-  })
-}
-
-const zoomIn = () => {
-  zoomTrigger$.next({
-    action: "zoomIn"
-  })
-}
-
-const readyMiniMap = (instance: HTMLCanvasElement | null) => {
-  if (!_.isNil(instance)) {
-    miniMapProperties$.next({
-      context: instance.getContext("2d"),
-      canvas: instance,
-      isShow: true,
-    })
-  }
-}
+import { useResizedShapeSizeToView } from "@/features/board/view-model/use-resized-shape";
+import { useZoom, zoomIn, zoomOut } from "@/features/board/view-model/use-zoom";
 
 export function App() {
-  const selectionBoundsRect = useSelectionBoundsRect()
-  const zoomValue = useZoomValue()
+  const selectionBoundsRect = useResizedShapeSizeToView()
+  const zoom = useZoom()
 
   return (
     <>
@@ -76,7 +46,7 @@ export function App() {
         />
 
         <button
-          data-zoom={zoomValue}
+          data-zoom={zoom}
           className={clsx(
             "relative w-[52px] h-10 cursor-pointer rounded-md transition-all duration-100 hover:bg-[#f1f2f5]",
             "before:content-[attr(data-zoom)] before:absolute before:top-1/2 before:left-1/2 before:-translate-x-1/2 before:-translate-y-1/2 before:text-sm before:font-bold before:text-gray-900"
