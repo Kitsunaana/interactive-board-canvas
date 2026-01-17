@@ -2,9 +2,9 @@ export { getShapesResizeStrategy } from "./_resize"
 
 export { computeSelectionBoundsRect, selectItems, shapeSelect } from "./_selection"
 
-export { isBound, isCanvas, isShape } from "./_is"
+export { isEdge, isCanvas, isShape } from "./_is"
 
-export { startMoveShape, moveShape as movingShape, endMoveShape } from "./_moving"
+export { startMoveShape, getMovedShapes as movingShape, endMoveShapes as endMoveShape } from "./_moving"
 
 export type {
   CanvasGridDots,

@@ -1,8 +1,8 @@
 
-export type BoundVariant = "top" | "right" | "bottom" | "left"
+export type EdgeVariant = "top" | "right" | "bottom" | "left"
 
-export type Bound = {
-  id: "top" | "right" | "bottom" | "left"
+export type Edge = {
+  id: EdgeVariant
   type: "bound"
 }
 

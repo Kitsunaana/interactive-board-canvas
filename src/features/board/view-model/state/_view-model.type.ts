@@ -11,7 +11,7 @@ export type IdleViewState = {
 export type ShapesDraggingViewState = {
   selectedIds: Set<string>
   needToDeselect: boolean
-  type: "nodesDragging"
+  type: "shapesDragging"
 }
 
 export type ShapesResizeViewState = {
@@ -38,6 +38,12 @@ export type ViewModel = {
   }
 }
 
+export const isIdle = (state: ViewModelState) => state.type === "idle"
+
+export const isShapesResize = (state: ViewModelState) => state.type === "shapesResize"
+
+export const isShapesDragging = (state: ViewModelState) => state.type === "shapesDragging"
+
 export const goToIdle = (state: Partial<IdleViewState> = {}): IdleViewState => ({
   selectedIds: new Set(),
   mouseDown: undefined,
@@ -48,7 +54,7 @@ export const goToIdle = (state: Partial<IdleViewState> = {}): IdleViewState => (
 export const goToNodesDragging = (state: Partial<ShapesDraggingViewState> = {}): ShapesDraggingViewState => ({
   selectedIds: new Set(),
   needToDeselect: false,
-  type: "nodesDragging",
+  type: "shapesDragging",
   ...state,
 })
 

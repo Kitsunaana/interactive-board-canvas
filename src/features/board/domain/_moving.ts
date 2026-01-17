@@ -2,33 +2,33 @@
 import { addPoint } from "@/shared/lib/point.ts";
 import { _u } from "@/shared/lib/utils.ts";
 import type { Point } from "@/shared/type/shared.ts";
-import { viewModelState$ } from "../view-model/state/_view-model";
+import { viewState$ } from "../view-model/state/_view-model";
 import { goToIdle, type ViewModelState } from "../view-model/state/_view-model.type";
 import type { Shape } from "./_shape";
 
-export const startMoveShape = ({ event, point, shape }: {
-  event: PointerEvent
+export const startMoveShape = ({ downEvent, startPoint, shape }: {
+  downEvent: PointerEvent
+  startPoint: Point,
   shape: Shape
-  point: Point
 }): ViewModelState => (
-  match(viewModelState$.getValue(), {
+  match(viewState$.getValue(), {
     idle: (state) => state,
 
-    nodesDragging: (state) => {
-      const hasPressedKey = event.ctrlKey || event.shiftKey
+    shapesDragging: (state) => {
+      const hasPressedKey = downEvent.ctrlKey || downEvent.shiftKey
 
       if (state.selectedIds.has(shape.id) || hasPressedKey) return state
 
       return {
         ...state,
-        mouseDown: point,
+        mouseDown: startPoint,
         selectedIds: new Set(shape.id),
       }
     }
   })
 )
 
-export const moveShape = ({ shapes, distance, selectedIds }: {
+export const getMovedShapes = ({ shapes, distance, selectedIds }: {
   selectedIds: Set<string>
   distance: Point
   shapes: Shape[]
@@ -38,9 +38,9 @@ export const moveShape = ({ shapes, distance, selectedIds }: {
     : shape
 ))
 
-export const endMoveShape = () => (
-  match(viewModelState$.getValue(), {
-    nodesDragging: ({ selectedIds }) => goToIdle({ selectedIds }),
+export const endMoveShapes = () => (
+  match(viewState$.getValue(), {
+    shapesDragging: ({ selectedIds }) => goToIdle({ selectedIds }),
 
     idle: (state) => state,
   })

@@ -1,7 +1,7 @@
 import type { Point } from "@/shared/type/shared"
-import type { SelectionBounds } from "../../modules/_pick-node/_core"
-import { PADDING } from "../../view-model/sticker"
-import type { BoundVariant } from "../_selection/_selection.type"
+import type { SelectionBounds } from "../modules/_pick-node/_core"
+import type { EdgeVariant } from "./_selection/_selection.type"
+import { SELECTION_BOUNDS_PADDING } from "../ui/selection-bounds-area"
 
 export type RecalculateFromEdgeParams = {
   current: SelectionBounds
@@ -12,7 +12,7 @@ export type RecalculateFromEdgeParams = {
 
 const recalculateFromTopEdge = ({ current, first, cursor }: RecalculateFromEdgeParams) => {
   const areaTop = first.area.y
-  const cursorPositionY = cursor.y + PADDING
+  const cursorPositionY = cursor.y + SELECTION_BOUNDS_PADDING
   const delta = areaTop - cursorPositionY
 
   return {
@@ -27,7 +27,7 @@ const recalculateFromTopEdge = ({ current, first, cursor }: RecalculateFromEdgeP
 
 const recalculateFromBottomEdge = ({ current, first, cursor }: RecalculateFromEdgeParams) => {
   const areaBottom = first.area.y + first.area.height
-  const cursorPositionY = cursor.y - PADDING
+  const cursorPositionY = cursor.y - SELECTION_BOUNDS_PADDING
   const delta = cursorPositionY - areaBottom
 
   return {
@@ -42,9 +42,9 @@ const recalculateFromBottomEdge = ({ current, first, cursor }: RecalculateFromEd
 
 const recalculateFromLeftEdge = ({ current, first, cursor }: RecalculateFromEdgeParams) => {
   const areaLeft = first.area.x
-  const cursorPositionX = cursor.x + PADDING
+  const cursorPositionX = cursor.x + SELECTION_BOUNDS_PADDING
   const delta = areaLeft - cursorPositionX
-  
+
   return {
     ...current,
     area: {
@@ -57,7 +57,7 @@ const recalculateFromLeftEdge = ({ current, first, cursor }: RecalculateFromEdge
 
 const recalculateFromRightEdge = ({ current, first, cursor }: RecalculateFromEdgeParams) => {
   const areaRight = first.area.x + first.area.width
-  const cursorPositionX = cursor.x - PADDING
+  const cursorPositionX = cursor.x - SELECTION_BOUNDS_PADDING
   const delta = cursorPositionX - areaRight
 
   return {
@@ -71,7 +71,7 @@ const recalculateFromRightEdge = ({ current, first, cursor }: RecalculateFromEdg
 }
 
 export const recalculateSelectionBoundsFromEdge: Record<
-  BoundVariant,
+  EdgeVariant,
   (params: RecalculateFromEdgeParams) => SelectionBounds
 > = {
   bottom: recalculateFromBottomEdge,

@@ -18,6 +18,8 @@ export type ResizeMultipleFromEdgeParams = {
   cursor: Point
 }
 
+export const SELECTION_BOUNDS_PADDING = 7
+
 export const mapSelectedShapes = <T extends ShapeToView>(shapes: T[], iteratee: (shape: T) => T) => (
   map(shapes, (shape) => shape.isSelected ? iteratee(shape) : shape)
 )

@@ -1,32 +1,34 @@
 import { generateRandomColor } from "@/shared/lib/color.ts";
-import { isRight, left, matchEither, right } from "@/shared/lib/either.ts";
-import { _u, isNotUndefined } from "@/shared/lib/utils.ts";
+import { left, right } from "@/shared/lib/either.ts";
+import { _u, isNotNull, isNotUndefined } from "@/shared/lib/utils.ts";
+import { isNull } from "lodash";
 import * as rx from "rxjs";
 import { shapes$ } from "../../model/index.ts";
-import { selectionBounds$ } from "../../view-model/state/_view-model.ts";
+import { autoSelectionBounds$ } from "../../view-model/selection-bounds.ts";
 import { getResizeHandlersProperties } from "../../view-model/sticker.ts";
 import { camera$ } from "../_camera/_stream.ts";
-import { context, createFormatterFoundNode, getPickedColor, isPickedCanvas, isPickedSelectionBound, isPickedShape, type SelectionBoundsToPick } from "./_core.ts";
+import { context, createFormatterFoundNode, getPickedColor, isPickedCanvas, isPickedSelectionBound, isPickedShape } from "./_core.ts";
 import { drawScene } from "./_ui.ts";
 
-export const selectionBoundsToPick$ = selectionBounds$.pipe(rx.map((selectionBounds) => matchEither(selectionBounds, {
-  left: () => null,
-  right: (value): SelectionBoundsToPick => _u.merge(value, {
+export const selectionBoundsToPick$ = autoSelectionBounds$.pipe(rx.map((selectionBounds) => {
+  if (isNull(selectionBounds)) return null
+
+  return _u.merge(selectionBounds, {
     linesColor: {
       bottom: generateRandomColor(),
       right: generateRandomColor(),
       left: generateRandomColor(),
       top: generateRandomColor(),
     }
-  }),
-})))
+  })
+}))
 
-const resizeHandlersPropertiesToPick$ = selectionBounds$.pipe(
-  rx.filter(value => isRight(value)),
+const resizeHandlersPropertiesToPick$ = autoSelectionBounds$.pipe(
+  rx.filter(isNotNull),
   rx.switchMap((selectionBoundsArea) => {
     return camera$.pipe(
       rx.map((camera) => getResizeHandlersProperties({
-        rect: selectionBoundsArea.value.area,
+        rect: selectionBoundsArea.area,
         camera
       }))
     )
@@ -50,9 +52,7 @@ export const createPointerNodePick$ = (pointer$: rx.Observable<PointerEvent>) =>
         () => isPickedSelectionBound(colorId, selectionBounds),
         () => isPickedShape(colorId, shapes)
       ]).pipe(
-        rx.concatMap((fn) => {
-          return rx.of(fn())
-        }),
+        rx.concatMap((fn) => rx.of(fn())),
         rx.find(res => res.type === "right"),
         rx.switchMap((either) => {
           return isNotUndefined(either)

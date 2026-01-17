@@ -1,16 +1,16 @@
-import * as rx from "rxjs"
-import { getResizeHandlersProperties } from "./features/board/view-model/sticker.ts";
+import * as rx from "rxjs";
+import type { ShapeToView } from "./features/board/domain/_shape.ts";
 import { getWorldPoints, type Camera } from "./features/board/modules/_camera/_domain.ts";
 import { camera$, cameraSubject$, gridTypeSubject$ } from "./features/board/modules/_camera/_stream.ts";
-import { drawSelectionBoundsArea } from "./features/board/ui/selection-bounds-area.ts";
 import { gridTypeVariants, LEVELS, toDrawOneLevel } from "./features/board/ui/grid.ts";
-import { mapRight } from "./shared/lib/either.ts";
+import { drawSelectionBoundsArea } from "./features/board/ui/selection-bounds-area.ts";
+import { getShapeDrawer } from "./features/board/ui/sketch/draw.ts";
+import { selectionBounds$ } from "./features/board/view-model/selection-bounds.ts";
+import { viewModel$ } from "./features/board/view-model/state/_view-model.ts";
+import { getResizeHandlersProperties } from "./features/board/view-model/sticker.ts";
 import { canvas, context, resize$ } from "./shared/lib/initial-canvas.ts";
 import { getCanvasSizes, isNotNull } from "./shared/lib/utils.ts";
 import type { Rect } from "./shared/type/shared.ts";
-import { getShapeDrawer } from "./features/board/ui/sketch/draw.ts";
-import type { ShapeToView } from "./features/board/domain/_shape.ts";
-import { selectionBounds$, viewModel$ } from "./features/board/view-model/state/_view-model.ts";
 
 export const canvasProperties$ = rx.combineLatest([
   cameraSubject$,
@@ -25,8 +25,8 @@ export const canvasProperties$ = rx.combineLatest([
 })))
 
 export const gridProps$ = canvasProperties$.pipe(
-  rx.withLatestFrom(cameraSubject$),
-  rx.map(([canvasProperties, { camera }]) => ({
+  rx.withLatestFrom(camera$),
+  rx.map(([canvasProperties, camera]) => ({
     canvasProperties,
     gridProps: LEVELS
       .map(level => toDrawOneLevel({ ...canvasProperties, camera, level }))
@@ -62,17 +62,17 @@ renderLoop$.subscribe(({ selectedRect, canvasSizes, gridType, gridProps, camera,
 
   gridTypeVariants[gridType]({ gridProps, context })
 
-  renderShapes({ context, shapes: nodes })
+  drawShapes({ context, shapes: nodes })
 
-  mapRight(selectedRect, ({ area, bounds }) => {
-    drawSelectionBoundsArea({ context, rects: bounds.concat(area) })
-    drawActiveBoxDots({ context, camera, rect: area })
-  })
+  if (isNotNull(selectedRect)) {
+    drawSelectionBoundsArea({ context, rects: selectedRect.bounds.concat(selectedRect.area) })
+    drawResizeHandlers({ context, camera, rect: selectedRect.area })
+  }
 
   context.restore()
 })
 
-export function renderShapes({ context, shapes }: {
+export function drawShapes({ context, shapes }: {
   context: CanvasRenderingContext2D
   shapes: ShapeToView[]
 }) {
@@ -90,7 +90,7 @@ const baseLineWidth = 0.45
 const scalePower = 0.75
 const baseRadius = 5
 
-export function drawActiveBoxDots({ context, camera, rect }: {
+export function drawResizeHandlers({ context, camera, rect }: {
   context: CanvasRenderingContext2D
   camera: Camera
   rect: Rect

@@ -6,11 +6,11 @@ import { isNotNull, isNotUndefined } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
 import * as _ from "lodash"
 import type { Shape } from "../../domain"
-import type { BoundVariant } from "../../domain/_selection/_selection.type"
+import type { EdgeVariant } from "../../domain/_selection/_selection.type"
 import type { Camera } from "../_camera"
 import { CANVAS_COLOR_ID } from "./_ui"
 
-export type BoundLinesColor = Record<BoundVariant, string>
+export type BoundLinesColor = Record<EdgeVariant, string>
 
 export type SelectionBounds = {
   bounds: Rect[]
@@ -63,7 +63,7 @@ export const isPickedSelectionBound = (colorId: string, selectionBounds: Selecti
     const pickedBound = _.find(
       _.entries(selectionBounds.linesColor),
       ([_, boundColorId]) => boundColorId === colorId
-    ) as [bound: BoundVariant, colorId: string] | undefined
+    ) as [bound: EdgeVariant, colorId: string] | undefined
 
     if (isNotUndefined(pickedBound)) {
       return right({

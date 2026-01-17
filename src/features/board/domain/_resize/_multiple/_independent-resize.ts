@@ -1,5 +1,5 @@
-import { SELECTION_BOUNDS_PADDING } from "@/features/board/ui/selection-bounds-area"
-import { mapSelectedShapes, type ResizeMultipleFromEdgeParams } from "../_shared"
+import type { ResizeMultipleFromEdgeParams } from "../_shared"
+import { mapSelectedShapes, SELECTION_BOUNDS_PADDING } from "../_shared"
 
 export const resizeFromLeftEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
   const left = selectionArea.x

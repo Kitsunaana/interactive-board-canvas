@@ -1,4 +1,6 @@
-export const isBound = <T extends { id: string }>(candidate: T) => (
+import type { Edge } from "./_selection/_selection.type"
+
+export const isEdge = (candidate: { id: string }): candidate is Edge => (
   candidate.id === "bottom" ||
   candidate.id === "right" ||
   candidate.id === "left" ||

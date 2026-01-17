@@ -1,43 +1,40 @@
-import type { Point } from "@/shared/type/shared"
-import type { SelectionBounds } from "../../modules/_pick-node/_core"
-import type { Bound, Selection } from "../_selection/_selection.type"
+import { _u } from "@/shared/lib/utils"
+import type { Point, Rect } from "@/shared/type/shared"
+import type { Edge, Selection } from "../_selection/_selection.type"
 import type { ShapeToView } from "../_shape"
 import { multiple } from "./_multiple"
 import { type ResizeMultipleFromEdgeParams } from "./_shared"
 import { single } from "./_single"
 
 type ResizeInteraction = {
-  canvasPoint: Point
-
   proportional: boolean
   reflow: boolean
+  cursor: Point
 }
 
-export const getShapesResizeStrategy = ({ node, selectedIds, selectionBounds, shapes }: {
-  selectionBounds: SelectionBounds
+export const getShapesResizeStrategy = ({ selectedIds, edge, ...props }: {
+  selectionArea: Rect
   selectedIds: Selection
   shapes: ShapeToView[]
-  node: Bound
+  edge: Edge
 }) => {
   if (selectedIds.size > 1) {
-    return ({ reflow, proportional, canvasPoint }: ResizeInteraction) => {
-      const params: ResizeMultipleFromEdgeParams = {
-        selectionArea: selectionBounds.area,
-        cursor: canvasPoint,
-        shapes,
-      }
+    return ({ reflow, proportional, cursor }: ResizeInteraction) => {
+      const toResize: ResizeMultipleFromEdgeParams = _u.merge(props, { cursor })
 
-      if (proportional && reflow) return multiple.reflow.proportional[node.id](params)
-      if (proportional) return multiple.resize.proportional[node.id](params)
-      if (reflow) return multiple.reflow.independent[node.id](params)
+      if (proportional && reflow) return multiple.reflow.proportional[edge.id](toResize)
+      if (proportional) return multiple.resize.proportional[edge.id](toResize)
+      if (reflow) return multiple.reflow.independent[edge.id](toResize)
 
-      return multiple.resize.independent[node.id](params)
+      return multiple.resize.independent[edge.id](toResize)
     }
   }
 
-  return ({ proportional, canvasPoint }: ResizeInteraction) => {
-    if (proportional) return single.resize.proportional[node.id]({ cursor: canvasPoint, shapes })
+  return ({ proportional, cursor }: ResizeInteraction) => {
+    const { shapes } = props
+    
+    if (proportional) return single.resize.proportional[edge.id]({ cursor, shapes })
 
-    return single.resize.independent[node.id]({ cursor: canvasPoint, shapes })
+    return single.resize.independent[edge.id]({ cursor, shapes })
   }
 }

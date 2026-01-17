@@ -8,8 +8,8 @@ import { shapes } from "./_assets";
 
 export const shapes$ = new rx.BehaviorSubject(shapes)
 
-export const shapesToView$ = shapes$.pipe(rx.map((shapes) => {
-  return shapes.map((shape) => {
+export const shapesToView$ = shapes$.pipe(
+  rx.map((shapes) => shapes.map((shape) => {
     return match(shape, {
       arrow: (arrow) => arrow,
       square: (square) => square,
@@ -22,5 +22,6 @@ export const shapesToView$ = shapes$.pipe(rx.map((shapes) => {
         ? _u.merge(shape, generateRectangleSketchProps(shape))
         : shape,
     }) as ShapeToView
-  })
-}))
+  })),
+  rx.shareReplay({ refCount: true, bufferSize: 1 })
+)

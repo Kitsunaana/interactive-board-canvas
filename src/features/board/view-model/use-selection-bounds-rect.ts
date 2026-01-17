@@ -5,9 +5,9 @@ import { bind } from "@react-rxjs/core";
 import * as rx from "rxjs";
 import { shapes$ } from "../model";
 import { camera$ } from "../modules/_camera/_stream";
-import { viewModelState$ } from "./state/_view-model";
+import { viewState$ } from "./state/_view-model";
 
-export const [useSelectionBoundsRect] = bind(viewModelState$.pipe(
+export const [useSelectionBoundsRect] = bind(viewState$.pipe(
   rx.filter((viewModelState) => viewModelState.type === "shapesResize"),
   rx.filter((viewModelState) => viewModelState.selectedIds.size <= 1),
   rx.switchMap((viewModelState) => shapes$.pipe(
@@ -25,7 +25,7 @@ export const [useSelectionBoundsRect] = bind(viewModelState$.pipe(
         toView: computeRect(addPoint(sizesToPoint(shape), 14))
       }
     }),
-    rx.takeUntil(viewModelState$.pipe(rx.filter(state => state.type !== "shapesResize"))),
+    rx.takeUntil(viewState$.pipe(rx.filter(state => state.type !== "shapesResize"))),
     rx.endWith(null),
   ))
 ), null)
