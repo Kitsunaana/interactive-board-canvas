@@ -1,6 +1,9 @@
 import * as IndependentResize from "./_independent"
 import * as ProportionalResize from "./_proportional"
 
+export * as IndependentResize from "./_independent"
+export * as ProportionalResize from "./_proportional"
+
 export const single = {
   resize: {
     independent: {

@@ -6,7 +6,7 @@ import type { Rect } from "@/shared/type/shared.ts";
 import type { Circle, Rectangle, Shape } from "../../domain/shape.ts";
 import { SELECTION_BOUNDS_PADDING } from "../../ui/selection-area.ts";
 import type { Camera } from "../camera/index.ts";
-import type { BoundLinesColor, SelectionBoundsToPick } from "./_core.ts";
+import type { BoundLinesColor, ResizeHandlersPropertiesToPick, SelectionBoundsToPick } from "./_core.ts";
 
 export const [, canvas] = initialCanvas({
   height: window.innerHeight,
@@ -16,16 +16,9 @@ export const [, canvas] = initialCanvas({
 
 export const CANVAS_COLOR_ID = generateRandomColor()
 
-type ResizeHandler = {
-  strokeWidth: number
-  radius: number
-  x: number
-  y: number
-}
-
 export function drawScene({ camera, context, shapes, selectionBounds, resizeHandlers }: {
   selectionBounds: SelectionBoundsToPick | null
-  resizeHandlers: ResizeHandler[] | null
+  resizeHandlers: ResizeHandlersPropertiesToPick | null
   context: CanvasRenderingContext2D
   shapes: Shape[]
   camera: Camera
@@ -49,12 +42,12 @@ export function drawScene({ camera, context, shapes, selectionBounds, resizeHand
   }
 
   if (isNotNull(resizeHandlers)) {
-    resizeHandlers.forEach((resizeHandler) => {
+    resizeHandlers.resizeHandlers.forEach((handler) => {
       context.beginPath()
-      context.lineWidth = resizeHandler.strokeWidth
-      context.arc(resizeHandler.x, resizeHandler.y, resizeHandler.radius * 1.5, 0, Math.PI * 2)
+      context.lineWidth = handler.strokeWidth
+      context.fillStyle = resizeHandlers.linesColor[handler.corner]
+      context.arc(handler.x, handler.y, handler.radius * 1.5, 0, Math.PI * 2)
       context.fill()
-      context.stroke()
       context.closePath()
     })
   }

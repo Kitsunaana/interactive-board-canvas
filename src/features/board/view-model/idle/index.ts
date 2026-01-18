@@ -3,8 +3,9 @@ import { distance, getPointFromEvent, screenToCanvas, subtractPoint } from "@/sh
 import { isRectIntersectionV2 } from "@/shared/lib/rect"
 import { isNotNull } from "@/shared/lib/utils"
 import * as rx from "rxjs"
-import { isBound, isCanvas, isShape } from "../../domain/is"
+import { isBound, isCanvas, isResizeHandler, isShape } from "../../domain/is"
 import { getShapesResizeStrategy } from "../../domain/resize"
+import { getShapesResizeStrategyViaResizeHandler } from "../../domain/resize/_handler-single"
 import type { NodeBound } from "../../domain/selection-area"
 import { shapes$ } from "../../model"
 import { camera$ } from "../../modules/camera"
@@ -26,6 +27,60 @@ const applyResizeCursor = (node: NodeBound) => {
 const resetResizeCursor = () => {
   document.documentElement.style.cursor = "default"
 }
+
+const shapesResizeViaResizeHanlderFlow$ = mouseDown$.pipe(
+  rx.map((downEvent) => downEvent.node),
+  rx.filter(isResizeHandler),
+  rx.withLatestFrom(
+    viewState$.pipe(rx.filter(isIdle), rx.map((state) => state.selectedIds)),
+    autoSelectionBounds$.pipe(rx.filter(isNotNull), rx.map((selection) => selection.area)),
+    viewModel$.pipe(rx.map((model) => model.nodes)),
+    camera$
+  ),
+  rx.map(([corner, selectedIds, selectionArea, shapes, camera]) => ({ selectionArea, selectedIds, camera, shapes, corner })),
+  rx.switchMap(({ camera, corner, shapes, selectedIds, selectionArea }) => {
+    const sharedMove$ = pointerMove$.pipe(rx.share())
+
+    const resizeShapesStrategy = getShapesResizeStrategyViaResizeHandler({
+      selectionArea,
+      selectedIds,
+      corner,
+      shapes,
+    })
+
+    return rx.merge(
+      sharedMove$.pipe(
+        rx.take(1),
+        rx.tap(() => {
+          viewState$.next(goToShapesResize({ selectedIds }))
+        }),
+        rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
+        rx.ignoreElements(),
+      ),
+
+      sharedMove$.pipe(
+        rx.map((moveEvent) => {
+          const cursorPosition = getPointFromEvent(moveEvent)
+          const cursor = screenToCanvas({ camera, point: cursorPosition })
+
+          return resizeShapesStrategy({
+            proportional: moveEvent.shiftKey,
+            reflow: moveEvent.ctrlKey,
+            cursor,
+          })
+        }),
+        rx.takeUntil(
+          rx.merge(pointerUp$, pointerLeave$).pipe(rx.tap(() => {
+            viewState$.next(goToIdle({ selectedIds }))
+            resetResizeCursor()
+          }))
+        ),
+      )
+    )
+  })
+)
+
+shapesResizeViaResizeHanlderFlow$.subscribe(shapes$)
 
 const shapesResizeFlow$ = mouseDown$.pipe(
   rx.map((downEvent) => downEvent.node),

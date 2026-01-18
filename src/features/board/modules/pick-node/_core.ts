@@ -9,13 +9,22 @@ import type { Camera } from "../camera"
 import { CANVAS_COLOR_ID } from "./_ui"
 import type { Bound } from "../../domain/selection-area"
 import type { Shape } from "../../domain/shape"
+import type { Corner } from "../../domain/selection-area/_type"
+import type { ResizeHandler } from "../../view-model/shape-sketch"
 
 export type BoundLinesColor = Record<Bound, string>
+
+export type CornerLinesColor = Record<Corner, string>
 
 export type SelectionBoundsToPick = {
   linesColor: BoundLinesColor
   bounds: Rect[]
   area: Rect
+}
+
+export type ResizeHandlersPropertiesToPick = {
+  resizeHandlers: ResizeHandler[]
+  linesColor: CornerLinesColor
 }
 
 export const [context] = initialCanvas({
@@ -55,15 +64,31 @@ export const isPickedCanvas = (colorId: string) => {
 
 export const isPickedSelectionBound = (colorId: string, selectionBounds: SelectionBoundsToPick | null) => {
   if (isNotNull(selectionBounds)) {
-    const pickedBound = _.find(
-      _.entries(selectionBounds.linesColor),
-      ([_, boundColorId]) => boundColorId === colorId
-    ) as [bound: Bound, colorId: string] | undefined
+    const pickedBound = _.find(_.entries(selectionBounds.linesColor), (entry) => entry[1] === colorId) as undefined | [
+      bound: Bound, colorId: string
+    ]
 
     if (isNotUndefined(pickedBound)) {
       return right({
         id: pickedBound[0],
         type: "bound",
+      } as const)
+    }
+  }
+
+  return left(null)
+}
+
+export const isPickedResizeHandler = (colorId: string, resizeHandlers: ResizeHandlersPropertiesToPick | null) => {
+  if (isNotNull(resizeHandlers)) {
+    const pickedResizeHandler = _.find(_.entries(resizeHandlers.linesColor), (entry) => entry[1] === colorId) as undefined | [
+      resizeHandler: Corner, colorId: string
+    ]
+
+    if (isNotUndefined(pickedResizeHandler)) {
+      return right({
+        id: pickedResizeHandler[0],
+        type: "resizeHandler",
       } as const)
     }
   }

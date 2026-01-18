@@ -1,10 +1,17 @@
-import type { NodeBound } from "./selection-area"
+import type { NodeBound, NodeCorner } from "./selection-area"
 
 export const isBound = (candidate: { id: string }): candidate is NodeBound => (
   candidate.id === "bottom" ||
   candidate.id === "right" ||
   candidate.id === "left" ||
   candidate.id === "top"
+)
+
+export const isResizeHandler = (candidate: { id: string }): candidate is NodeCorner => (
+  candidate.id === "bottomRight" ||
+  candidate.id === "bottomLeft" ||
+  candidate.id === "topRight" ||
+  candidate.id === "topLeft"
 )
 
 export const isShape = <T extends { type: string }>(candidate: T) => {

@@ -1,17 +1,12 @@
 import { _u } from "@/shared/lib/utils"
-import type { Point, Rect } from "@/shared/type/shared"
+import type { Rect } from "@/shared/type/shared"
 import type { Selection } from "../selection"
 import type { NodeBound } from "../selection-area"
 import type { ShapeToView } from "../shape"
 import { multiple } from "./_multiple"
-import type { ResizeMultipleFromEdgeParams } from "./_shared"
+import type { ResizeInteraction, ResizeMultipleFromEdgeParams } from "./_shared"
 import { single } from "./_single"
 
-type ResizeInteraction = {
-  proportional: boolean
-  reflow: boolean
-  cursor: Point
-}
 
 export const getShapesResizeStrategy = ({ selectedIds, edge, ...props }: {
   selectionArea: Rect
