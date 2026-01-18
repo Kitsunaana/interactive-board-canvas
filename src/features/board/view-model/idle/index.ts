@@ -4,8 +4,7 @@ import { isRectIntersectionV2 } from "@/shared/lib/rect"
 import { isNotNull } from "@/shared/lib/utils"
 import * as rx from "rxjs"
 import { isBound, isCanvas, isResizeHandler, isShape } from "../../domain/is"
-import { getShapesResizeStrategy } from "../../domain/resize"
-import { getShapesResizeStrategyViaResizeHandler } from "../../domain/resize/_handler-single"
+import { getShapesResizeStrategyViaBound, getShapesResizeStrategyViaCorner } from "../../domain/resize"
 import type { NodeBound } from "../../domain/selection-area"
 import { shapes$ } from "../../model"
 import { camera$ } from "../../modules/camera"
@@ -15,7 +14,7 @@ import { goToIdle, goToNodesDragging, goToShapesResize, isIdle, viewModel$, view
 import { endMoveShapes, getMovedShapes, startMoveShape } from "./moving"
 import { shapeSelect } from "./selection"
 
-const applyResizeCursor = (node: NodeBound) => {
+const applyResizeViaBoundCursor = (node: NodeBound) => {
   document.documentElement.style.cursor = match(node, {
     bottom: () => "ns-resize",
     right: () => "ew-resize",
@@ -41,12 +40,7 @@ const shapesResizeViaResizeHanlderFlow$ = mouseDown$.pipe(
   rx.switchMap(({ camera, corner, shapes, selectedIds, selectionArea }) => {
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
-    const resizeShapesStrategy = getShapesResizeStrategyViaResizeHandler({
-      selectionArea,
-      selectedIds,
-      corner,
-      shapes,
-    })
+    const resizeShapesStrategy = getShapesResizeStrategyViaCorner({ selectionArea, selectedIds, corner, shapes })
 
     return rx.merge(
       sharedMove$.pipe(
@@ -93,7 +87,7 @@ const shapesResizeFlow$ = mouseDown$.pipe(
   ),
   rx.map(([edge, selectedIds, selectionArea, shapes, camera]) => ({ selectionArea, selectedIds, camera, shapes, edge })),
   rx.switchMap(({ camera, edge, shapes, selectedIds, selectionArea }) => {
-    const resizeShapesStrategy = getShapesResizeStrategy({ selectionArea, selectedIds, shapes, edge })
+    const resizeShapesStrategy = getShapesResizeStrategyViaBound({ selectionArea, selectedIds, shapes, edge })
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
@@ -101,7 +95,7 @@ const shapesResizeFlow$ = mouseDown$.pipe(
       sharedMove$.pipe(
         rx.take(1),
         rx.tap(() => {
-          applyResizeCursor(edge)
+          applyResizeViaBoundCursor(edge)
 
           pressedEdgeSubject$.next(edge)
           viewState$.next(goToShapesResize({ selectedIds }))

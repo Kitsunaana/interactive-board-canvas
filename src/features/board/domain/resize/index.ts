@@ -1,14 +1,14 @@
 import { _u } from "@/shared/lib/utils"
 import type { Rect } from "@/shared/type/shared"
 import type { Selection } from "../selection"
-import type { NodeBound } from "../selection-area"
+import type { NodeBound, NodeCorner } from "../selection-area"
 import type { ShapeToView } from "../shape"
+import { SingleViaCorner } from "./_handler-single"
 import { multiple } from "./_multiple"
 import type { ResizeInteraction, ResizeMultipleFromEdgeParams } from "./_shared"
 import { single } from "./_single"
 
-
-export const getShapesResizeStrategy = ({ selectedIds, edge, ...props }: {
+export const getShapesResizeStrategyViaBound = ({ selectedIds, edge, ...props }: {
   selectionArea: Rect
   selectedIds: Selection
   shapes: ShapeToView[]
@@ -33,4 +33,17 @@ export const getShapesResizeStrategy = ({ selectedIds, edge, ...props }: {
 
     return single.resize.independent[edge.id]({ cursor, shapes })
   }
+}
+
+export const getShapesResizeStrategyViaCorner = ({ corner, shapes, selectedIds }: {
+  selectedIds: Selection
+  shapes: ShapeToView[]
+  selectionArea: Rect
+  corner: NodeCorner
+}) => {
+  if (selectedIds.size > 1) {
+
+  }
+
+  return ({ cursor }: ResizeInteraction) =>SingleViaCorner.resize.independent[corner.id]({ cursor, shapes })
 }
