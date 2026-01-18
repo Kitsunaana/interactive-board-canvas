@@ -1,8 +1,8 @@
-import type { ShapeToView } from "../../shape"
+import { defaultTo } from "lodash"
 import type { ApplyEdgeResizeParams, ResizeSingleFromEdgeParams } from "../_shared"
 import { mapSelectedShapes, SELECTION_BOUNDS_PADDING } from "../_shared"
 
-const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
+export const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -23,14 +23,12 @@ const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeTo
 
     if (nextWidth <= 0) {
       return {
-        ...shape,
         width: 0,
         height: 0,
       }
     }
 
     return {
-      ...shape,
       x: nextX,
       width: nextWidth,
       height: nextHeight,
@@ -38,13 +36,12 @@ const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeTo
   }
 
   return {
-    ...shape,
     width: nextWidth,
     height: nextHeight,
   }
 }
 
-const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
+export const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -64,7 +61,7 @@ const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToV
 
     if (nextWidth <= 0) {
       return {
-        ...shape,
+        // ...shape,
         width: 0,
         height: 0,
         x: right,
@@ -72,22 +69,26 @@ const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToV
     }
 
     return {
-      ...shape,
+      // ...shape,
       x: right,
       width: nextWidth,
       height: nextHeight,
+
+      __flip: true,
     }
   }
 
   return {
-    ...shape,
+    // ...shape,
     x: shape.x - delta,
     width: nextWidth,
     height: nextHeight,
+
+    __flip: false,
   }
 }
 
-const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
+export const applyBottomEdgeResize = ({ shape, cursor, ...params }: ApplyEdgeResizeParams) => {
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const top = shape.y
@@ -108,29 +109,29 @@ const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeT
 
     if (nextHeight <= 0) {
       return {
-        ...shape,
         y: top,
         width: 0,
         height: 0,
+        ...defaultTo(params.frizen?.({ ...shape, nextWidth, nextHeight }), {})
       }
     }
 
     return {
-      ...shape,
       y: nextY,
       width: nextWidth,
       height: nextHeight,
+      ...defaultTo(params.flip?.({ ...shape, nextWidth, nextHeight }), {})
     }
   }
 
   return {
-    ...shape,
     width: nextWidth,
     height: nextHeight,
+    ...defaultTo(params.default?.({ ...shape, nextWidth, nextHeight }), {})
   }
 }
 
-const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToView => {
+export const applyTopEdgeResize = ({ shape, cursor, ...params }: ApplyEdgeResizeParams) => {
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const top = shape.y
@@ -150,41 +151,53 @@ const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams): ShapeToVi
 
     if (nextHeight <= 0) {
       return {
-        ...shape,
         y: bottom,
         width: 0,
         height: 0,
+        ...defaultTo(params.frizen?.({ ...shape, nextWidth, nextHeight }), {})
       }
     }
 
     return {
-      ...shape,
       y: bottom,
       width: nextWidth,
       height: nextHeight,
+      ...defaultTo(params.flip?.({ ...shape, nextWidth, nextHeight }), {})
     }
   }
 
   return {
-    ...shape,
     y: shape.y - delta,
     width: nextWidth,
     height: nextHeight,
+    ...defaultTo(params.default?.({ ...shape, nextWidth, nextHeight }), {})
   }
 }
 
 export const resizeFromBottomEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
-  return mapSelectedShapes(shapes, (shape) => applyBottomEdgeResize({ cursor, shape }))
+  return mapSelectedShapes(shapes, (shape) => ({
+    ...shape,
+    ...applyBottomEdgeResize({ cursor, shape }),
+  }))
 }
 
 export const resizeFromRightEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
-  return mapSelectedShapes(shapes, (shape) => applyRightEdgeResize({ cursor, shape }))
+  return mapSelectedShapes(shapes, (shape) => ({
+    ...shape,
+    ...applyRightEdgeResize({ cursor, shape }),
+  }))
 }
 
 export const resizeFromLeftEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
-  return mapSelectedShapes(shapes, (shape) => applyLeftEdgeResize({ cursor, shape }))
+  return mapSelectedShapes(shapes, (shape) => ({
+    ...shape,
+    ...applyLeftEdgeResize({ cursor, shape }),
+  }))
 }
 
 export const resizeFromTopEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
-  return mapSelectedShapes(shapes, (shape) => applyTopEdgeResize({ cursor, shape }))
+  return mapSelectedShapes(shapes, (shape) => ({
+    ...shape,
+    ...applyTopEdgeResize({ cursor, shape }),
+  }))
 }

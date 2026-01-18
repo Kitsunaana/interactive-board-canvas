@@ -8,7 +8,7 @@ import { multiple } from "./_multiple"
 import type { ResizeInteraction, ResizeMultipleFromEdgeParams } from "./_shared"
 import { single } from "./_single"
 
-export const getShapesResizeStrategyViaBound = ({ selectedIds, edge, ...props }: {
+export const getShapesResizeViaBoundStrategy = ({ selectedIds, shapes, edge, ...props }: {
   selectionArea: Rect
   selectedIds: Selection
   shapes: ShapeToView[]
@@ -16,7 +16,10 @@ export const getShapesResizeStrategyViaBound = ({ selectedIds, edge, ...props }:
 }) => {
   if (selectedIds.size > 1) {
     return ({ reflow, proportional, cursor }: ResizeInteraction) => {
-      const toResize: ResizeMultipleFromEdgeParams = _u.merge(props, { cursor })
+      const toResize: ResizeMultipleFromEdgeParams = _u.merge(props, {
+        cursor,
+        shapes,
+      })
 
       if (proportional && reflow) return multiple.reflow.proportional[edge.id](toResize)
       if (proportional) return multiple.resize.proportional[edge.id](toResize)
@@ -27,15 +30,13 @@ export const getShapesResizeStrategyViaBound = ({ selectedIds, edge, ...props }:
   }
 
   return ({ proportional, cursor }: ResizeInteraction) => {
-    const { shapes } = props
-
     if (proportional) return single.resize.proportional[edge.id]({ cursor, shapes })
 
     return single.resize.independent[edge.id]({ cursor, shapes })
   }
 }
 
-export const getShapesResizeStrategyViaCorner = ({ corner, shapes, selectedIds }: {
+export const getShapesResizeViaCornerStrategy = ({ corner, shapes, selectedIds }: {
   selectedIds: Selection
   shapes: ShapeToView[]
   selectionArea: Rect
@@ -45,5 +46,9 @@ export const getShapesResizeStrategyViaCorner = ({ corner, shapes, selectedIds }
 
   }
 
-  return ({ cursor }: ResizeInteraction) =>SingleViaCorner.resize.independent[corner.id]({ cursor, shapes })
+  return ({ cursor, reflow, proportional }: ResizeInteraction) => {
+    if (proportional) return SingleViaCorner.resize.proportional[corner.id]({ cursor, shapes })
+
+    return SingleViaCorner.resize.independent[corner.id]({ cursor, shapes })
+  }
 }

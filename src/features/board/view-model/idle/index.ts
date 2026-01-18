@@ -4,7 +4,7 @@ import { isRectIntersectionV2 } from "@/shared/lib/rect"
 import { isNotNull } from "@/shared/lib/utils"
 import * as rx from "rxjs"
 import { isBound, isCanvas, isResizeHandler, isShape } from "../../domain/is"
-import { getShapesResizeStrategyViaBound, getShapesResizeStrategyViaCorner } from "../../domain/resize"
+import { getShapesResizeViaBoundStrategy, getShapesResizeViaCornerStrategy } from "../../domain/resize"
 import type { NodeBound } from "../../domain/selection-area"
 import { shapes$ } from "../../model"
 import { camera$ } from "../../modules/camera"
@@ -40,7 +40,7 @@ const shapesResizeViaResizeHanlderFlow$ = mouseDown$.pipe(
   rx.switchMap(({ camera, corner, shapes, selectedIds, selectionArea }) => {
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
-    const resizeShapesStrategy = getShapesResizeStrategyViaCorner({ selectionArea, selectedIds, corner, shapes })
+    const resizeShapesStrategy = getShapesResizeViaCornerStrategy({ selectionArea, selectedIds, corner, shapes })
 
     return rx.merge(
       sharedMove$.pipe(
@@ -87,7 +87,7 @@ const shapesResizeFlow$ = mouseDown$.pipe(
   ),
   rx.map(([edge, selectedIds, selectionArea, shapes, camera]) => ({ selectionArea, selectedIds, camera, shapes, edge })),
   rx.switchMap(({ camera, edge, shapes, selectedIds, selectionArea }) => {
-    const resizeShapesStrategy = getShapesResizeStrategyViaBound({ selectionArea, selectedIds, shapes, edge })
+    const resizeShapesStrategy = getShapesResizeViaBoundStrategy({ selectionArea, selectedIds, shapes, edge })
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
 

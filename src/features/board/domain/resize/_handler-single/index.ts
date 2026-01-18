@@ -1,4 +1,5 @@
 import * as IndependentResize from "./_Independent"
+import * as ProportionalResize from "./_proportional"
 
 export const SingleViaCorner = {
   resize: {
@@ -9,10 +10,10 @@ export const SingleViaCorner = {
       topLeft: IndependentResize.resizeFromTopLeftCorner,
     },
     proportional: {
-      // bottom: ProportionalResize.resizeFromBottomEdge,
-      // right: ProportionalResize.resizeFromRightEdge,
-      // left: ProportionalResize.resizeFromLeftEdge,
-      // top: ProportionalResize.resizeFromTopEdge,
+      bottomRight: ProportionalResize.resizeFromBottomRightCorner,
+      bottomLeft: ProportionalResize.resizeFromBottomLeftCorner,
+      topRight: ProportionalResize.resizeFromTopRightCorner,
+      topLeft: ProportionalResize.resizeFromTopLeftCorner,
     },
   }
 }

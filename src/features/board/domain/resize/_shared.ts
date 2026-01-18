@@ -1,9 +1,18 @@
 import type { Point, Rect } from "@/shared/type/shared";
 import type { ShapeToView } from "../shape";
 
+type TransformedShape = Rect & {
+  nextWidth: number
+  nextHeight: number
+}
+
 export type ApplyEdgeResizeParams = {
-  shape: ShapeToView
   cursor: Point
+  shape: ShapeToView
+
+  default?: (params: TransformedShape) => Partial<Rect>
+  frizen?: (params: TransformedShape) => Partial<Rect>
+  flip?: (params: TransformedShape) => Partial<Rect>
 }
 
 export type ResizeSingleFromEdgeParams = {
