@@ -4,6 +4,10 @@ import * as ProportionalReflow from "./_proportional-reflow"
 import * as IndependentResize from "./_independent-resize"
 import * as ProportionalResize from "./_proportional-resize"
 
+export * as IndependentResize from "./_independent-resize"
+export * as ProportionalResize from "./_proportional-resize"
+
+
 export const multiple = {
   resize: {
     independent: {

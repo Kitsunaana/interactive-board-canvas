@@ -1,5 +1,6 @@
 import type { Point, Rect } from "@/shared/type/shared";
 import type { ShapeToView } from "../shape";
+import { map } from "lodash";
 
 type TransformedShape = Rect & {
   nextWidth: number
@@ -34,6 +35,8 @@ export type ResizeInteraction = {
 
 export const SELECTION_BOUNDS_PADDING = 7
 
-export const mapSelectedShapes = <T extends ShapeToView>(shapes: T[], iteratee: (shape: T) => T) => (
+export const mapSelectedShapes = <T extends ShapeToView, G>(shapes: T[], iteratee: (shape: T) => G) => (
   shapes.map(shape => shape.isSelected ? iteratee(shape) : shape)
 )
+
+map

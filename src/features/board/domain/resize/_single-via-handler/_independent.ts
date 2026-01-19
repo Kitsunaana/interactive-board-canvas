@@ -1,6 +1,6 @@
 import type { ResizeSingleFromEdgeParams } from "../_shared"
 import { mapSelectedShapes } from "../_shared"
-import { IndependentResize } from "../_single"
+import { IndependentResize } from "../_single-via-bound"
 
 export const resizeFromBottomLeftCorner = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
