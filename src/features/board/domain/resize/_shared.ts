@@ -21,10 +21,21 @@ export type ResizeSingleFromEdgeParams = {
   cursor: Point
 }
 
+export type RectEdges = {
+  top: number
+  left: number
+  right: number
+  bottom: number
+}
+
 export type ResizeMultipleFromEdgeParams = {
   shapes: ShapeToView[]
   selectionArea: Rect
   cursor: Point
+
+  default?: (scale: number, shape: ShapeToView, area: RectEdges) => Partial<ShapeToView>
+  frizen?: (scale: number, shape: ShapeToView, area: RectEdges) => Partial<ShapeToView>
+  flip?: (scale: number, shape: ShapeToView, area: RectEdges) => Partial<ShapeToView>
 }
 
 export type ResizeInteraction = {
@@ -38,5 +49,3 @@ export const SELECTION_BOUNDS_PADDING = 7
 export const mapSelectedShapes = <T extends ShapeToView, G>(shapes: T[], iteratee: (shape: T) => G) => (
   shapes.map(shape => shape.isSelected ? iteratee(shape) : shape)
 )
-
-map

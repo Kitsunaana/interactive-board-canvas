@@ -45,6 +45,10 @@ export const getShapesResizeViaCornerStrategy = ({ corner, shapes, selectedIds, 
 }) => {
   if (selectedIds.size > 1) {
     return ({ cursor, reflow, proportional }: ResizeInteraction) => {
+      if (proportional) {
+        return MultipleViaHandler.resize.proportional[corner.id]({ selectionArea, cursor, shapes }) 
+      }
+
       return MultipleViaHandler.resize.independent[corner.id]({ selectionArea, cursor, shapes })
     }
   }

@@ -10,10 +10,10 @@ export const MultipleViaHandler = {
       topLeft: IndependentResize.resizeFromTopLeftCorner,
     },
     proportional: {
-      bottomRight: ProportionalResize.resizeFromBottomEdge,
-      bottomLeft: ProportionalResize.resizeFromRightEdge,
-      topRight: ProportionalResize.resizeFromLeftEdge,
-      topLeft: ProportionalResize.resizeFromTopEdge,
+      bottomRight: ProportionalResize.resizeFromBottomRightCorner,
+      bottomLeft: ProportionalResize.resizeFromBottomLeftCorner,
+      topRight: ProportionalResize.resizeFromTopRightCorner,
+      topLeft: ProportionalResize.resizeFromTopLeftCorner,
     },
   },
 }
