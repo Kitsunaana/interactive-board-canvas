@@ -1,11 +1,11 @@
-import type { ResizeSingleFromEdgeParams } from "../_shared"
+import type { ResizeSingleFromBoundParams } from "../_shared"
 import { mapSelectedShapes } from "../_shared"
 import { ProportionalResize } from "../_single-via-bound"
 
-export const resizeFromBottomLeftCorner = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromBottomLeftCorner = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...ProportionalResize.applyBottomEdgeResize({
+    ...ProportionalResize.applyBottomBoundResize({
       shape,
       cursor,
       flip: ({ x, width }) => ({ x: x + width }),
@@ -15,10 +15,10 @@ export const resizeFromBottomLeftCorner = ({ shapes, cursor }: ResizeSingleFromE
   }))
 }
 
-export const resizeFromBottomRightCorner = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromBottomRightCorner = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...ProportionalResize.applyBottomEdgeResize({
+    ...ProportionalResize.applyBottomBoundResize({
       shape,
       cursor,
       flip: ({ x, nextWidth }) => ({ x: x - nextWidth })
@@ -26,10 +26,10 @@ export const resizeFromBottomRightCorner = ({ shapes, cursor }: ResizeSingleFrom
   }))
 }
 
-export const resizeFromTopLeftCorner = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromTopLeftCorner = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...ProportionalResize.applyTopEdgeResize({
+    ...ProportionalResize.applyTopBoundResize({
       shape,
       cursor,
       flip: ({ x, width }) => ({ x: x + width }),
@@ -39,10 +39,10 @@ export const resizeFromTopLeftCorner = ({ shapes, cursor }: ResizeSingleFromEdge
   }))
 }
 
-export const resizeFromTopRightCorner = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromTopRightCorner = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...ProportionalResize.applyTopEdgeResize({
+    ...ProportionalResize.applyTopBoundResize({
       shape,
       cursor,
       flip: ({ x, nextWidth }) => ({ x: x - nextWidth })

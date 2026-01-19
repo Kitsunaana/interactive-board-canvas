@@ -1,8 +1,8 @@
 import { IndependentResize } from "../_multiple-via-bound"
-import type { ResizeMultipleFromEdgeParams } from "../_shared"
+import type { ResizeMultipleFromBoundParams } from "../_shared"
 import { mapSelectedShapes } from "../_shared"
 
-export const resizeFromTopRightCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromTopRightCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const resizeYAxisShapes = IndependentResize.topWithFlipToBottom({ cursor, shapes, selectionArea })
   const resizeXAxisShapes = IndependentResize.rightWithFlipToLeft({ cursor, shapes, selectionArea })
 
@@ -14,7 +14,7 @@ export const resizeFromTopRightCorner = ({ cursor, shapes, selectionArea }: Resi
   }))
 }
 
-export const resizeFromTopLeftCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromTopLeftCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const resizeYAxisShapes = IndependentResize.topWithFlipToBottom({ cursor, shapes, selectionArea })
   const resizeXAxisShapes = IndependentResize.leftWithFlipToRight({ cursor, shapes, selectionArea })
 
@@ -27,7 +27,7 @@ export const resizeFromTopLeftCorner = ({ cursor, shapes, selectionArea }: Resiz
 }
 
 
-export const resizeFromBottomLeftCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromBottomLeftCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const resizeYAxisShapes = IndependentResize.bottomWithFlipToTop({ cursor, shapes, selectionArea })
   const resizeXAxisShapes = IndependentResize.leftWithFlipToRight({ cursor, shapes, selectionArea })
 
@@ -39,7 +39,7 @@ export const resizeFromBottomLeftCorner = ({ cursor, shapes, selectionArea }: Re
   }))
 }
 
-export const resizeFromBottomRightCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromBottomRightCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const resizeYAxisShapes = IndependentResize.bottomWithFlipToTop({ cursor, shapes, selectionArea })
   const resizeXAxisShapes = IndependentResize.rightWithFlipToLeft({ cursor, shapes, selectionArea })
 

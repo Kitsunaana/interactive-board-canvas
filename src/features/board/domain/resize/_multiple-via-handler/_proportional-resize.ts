@@ -1,14 +1,14 @@
 import { ProportionalResize } from "../_multiple-via-bound"
-import type { ResizeMultipleFromEdgeParams } from "../_shared"
+import type { ResizeMultipleFromBoundParams } from "../_shared"
 
-export const resizeFromTopLeftCorner = ProportionalResize.resizeFromTopEdge
+export const resizeFromTopLeftCorner = ProportionalResize.resizeFromTopBound
 
-export const resizeFromBottomLeftCorner = ProportionalResize.resizeFromLeftEdge
+export const resizeFromBottomLeftCorner = ProportionalResize.resizeFromLeftBound
 
-export const resizeFromBottomRightCorner = ProportionalResize.resizeFromRightEdge
+export const resizeFromBottomRightCorner = ProportionalResize.resizeFromRightBound
 
-export const resizeFromTopRightCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
-  return ProportionalResize.resizeFromRightEdge({
+export const resizeFromTopRightCorner = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+  return ProportionalResize.resizeFromRightBound({
     selectionArea,
     cursor,
     shapes,

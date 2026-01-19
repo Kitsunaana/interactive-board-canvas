@@ -82,13 +82,13 @@ export const isPickedSelectionBound = (colorId: string, selectionBounds: Selecti
 export const isPickedResizeHandler = (colorId: string, resizeHandlers: ResizeHandlersPropertiesToPick | null) => {
   if (isNotNull(resizeHandlers)) {
     const pickedResizeHandler = _.find(_.entries(resizeHandlers.linesColor), (entry) => entry[1] === colorId) as undefined | [
-      resizeHandler: Corner, colorId: string
+      corner: Corner, colorId: string
     ]
 
     if (isNotUndefined(pickedResizeHandler)) {
       return right({
         id: pickedResizeHandler[0],
-        type: "resizeHandler",
+        type: "corner",
       } as const)
     }
   }

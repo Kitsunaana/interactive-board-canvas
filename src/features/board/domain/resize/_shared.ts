@@ -1,13 +1,12 @@
 import type { Point, Rect } from "@/shared/type/shared";
 import type { ShapeToView } from "../shape";
-import { map } from "lodash";
 
 type TransformedShape = Rect & {
   nextWidth: number
   nextHeight: number
 }
 
-export type ApplyEdgeResizeParams = {
+export type ApplyBoundResizeParams = {
   cursor: Point
   shape: ShapeToView
 
@@ -16,26 +15,26 @@ export type ApplyEdgeResizeParams = {
   flip?: (params: TransformedShape) => Partial<Rect>
 }
 
-export type ResizeSingleFromEdgeParams = {
+export type ResizeSingleFromBoundParams = {
   shapes: ShapeToView[]
   cursor: Point
 }
 
-export type RectEdges = {
+export type RectBounds = {
   top: number
   left: number
   right: number
   bottom: number
 }
 
-export type ResizeMultipleFromEdgeParams = {
+export type ResizeMultipleFromBoundParams = {
   shapes: ShapeToView[]
   selectionArea: Rect
   cursor: Point
 
-  default?: (scale: number, shape: ShapeToView, area: RectEdges) => Partial<ShapeToView>
-  frizen?: (scale: number, shape: ShapeToView, area: RectEdges) => Partial<ShapeToView>
-  flip?: (scale: number, shape: ShapeToView, area: RectEdges) => Partial<ShapeToView>
+  default?: (scale: number, shape: ShapeToView, area: RectBounds) => Partial<ShapeToView>
+  frizen?: (scale: number, shape: ShapeToView, area: RectBounds) => Partial<ShapeToView>
+  flip?: (scale: number, shape: ShapeToView, area: RectBounds) => Partial<ShapeToView>
 }
 
 export type ResizeInteraction = {

@@ -7,16 +7,16 @@ export * as ProportionalResize from "./_proportional"
 export const single = {
   resize: {
     independent: {
-      bottom: IndependentResize.resizeFromBottomEdge,
-      right: IndependentResize.resizeFromRightEdge,
-      left: IndependentResize.resizeFromLeftEdge,
-      top: IndependentResize.resizeFromTopEdge,
+      bottom: IndependentResize.resizeFromBottomBound,
+      right: IndependentResize.resizeFromRightBound,
+      left: IndependentResize.resizeFromLeftBound,
+      top: IndependentResize.resizeFromTopBound,
     },
     proportional: {
-      bottom: ProportionalResize.resizeFromBottomEdge,
-      right: ProportionalResize.resizeFromRightEdge,
-      left: ProportionalResize.resizeFromLeftEdge,
-      top: ProportionalResize.resizeFromTopEdge,
+      bottom: ProportionalResize.resizeFromBottomBound,
+      right: ProportionalResize.resizeFromRightBound,
+      left: ProportionalResize.resizeFromLeftBound,
+      top: ProportionalResize.resizeFromTopBound,
     },
   },
 }

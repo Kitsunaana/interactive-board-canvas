@@ -1,7 +1,7 @@
-import type { ResizeMultipleFromEdgeParams } from "../_shared"
+import type { ResizeMultipleFromBoundParams } from "../_shared"
 import { SELECTION_BOUNDS_PADDING, mapSelectedShapes } from "../_shared"
 
-export const reflowFromRightEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
+export const reflowFromRightBound = ({ selectionArea, shapes, cursor }: ResizeMultipleFromBoundParams) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
@@ -30,7 +30,7 @@ export const reflowFromRightEdge = ({ selectionArea, shapes, cursor }: ResizeMul
   })
 }
 
-export const reflowFromLeftEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
+export const reflowFromLeftBound = ({ selectionArea, shapes, cursor }: ResizeMultipleFromBoundParams) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
@@ -61,7 +61,7 @@ export const reflowFromLeftEdge = ({ selectionArea, shapes, cursor }: ResizeMult
   })
 }
 
-export const reflowFromTopEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
+export const reflowFromTopBound = ({ selectionArea, shapes, cursor }: ResizeMultipleFromBoundParams) => {
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
@@ -92,7 +92,7 @@ export const reflowFromTopEdge = ({ selectionArea, shapes, cursor }: ResizeMulti
   })
 }
 
-export const reflowFromBottomEdge = ({ selectionArea, shapes, cursor }: ResizeMultipleFromEdgeParams) => {
+export const reflowFromBottomBound = ({ selectionArea, shapes, cursor }: ResizeMultipleFromBoundParams) => {
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x

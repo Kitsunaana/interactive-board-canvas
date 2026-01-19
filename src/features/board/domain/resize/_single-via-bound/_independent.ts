@@ -1,7 +1,7 @@
-import type { ApplyEdgeResizeParams, ResizeSingleFromEdgeParams } from "../_shared"
+import type { ApplyBoundResizeParams, ResizeSingleFromBoundParams } from "../_shared"
 import { mapSelectedShapes, SELECTION_BOUNDS_PADDING } from "../_shared"
 
-export const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) => {
+export const applyRightBoundResize = ({ shape, cursor }: ApplyBoundResizeParams) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -32,7 +32,7 @@ export const applyRightEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) =
   }
 }
 
-export const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) => {
+export const applyLeftBoundResize = ({ shape, cursor }: ApplyBoundResizeParams) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -64,7 +64,7 @@ export const applyLeftEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) =>
   }
 }
 
-export const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) => {
+export const applyBottomBoundResize = ({ shape, cursor }: ApplyBoundResizeParams) => {
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const top = shape.y
@@ -96,7 +96,7 @@ export const applyBottomEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) 
   }
 }
 
-export const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) => {
+export const applyTopBoundResize = ({ shape, cursor }: ApplyBoundResizeParams) => {
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const top = shape.y
@@ -128,30 +128,30 @@ export const applyTopEdgeResize = ({ shape, cursor }: ApplyEdgeResizeParams) => 
   }
 }
 
-export const resizeFromRightEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromRightBound = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...applyRightEdgeResize({ cursor, shape }),
+    ...applyRightBoundResize({ cursor, shape }),
   }))
 }
 
-export const resizeFromLeftEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromLeftBound = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...applyLeftEdgeResize({ cursor, shape }),
+    ...applyLeftBoundResize({ cursor, shape }),
   }))
 }
 
-export const resizeFromBottomEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromBottomBound = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...applyBottomEdgeResize({ cursor, shape }),
+    ...applyBottomBoundResize({ cursor, shape }),
   }))
 }
 
-export const resizeFromTopEdge = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromTopBound = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...applyTopEdgeResize({ cursor, shape }),
+    ...applyTopBoundResize({ cursor, shape }),
   }))
 }

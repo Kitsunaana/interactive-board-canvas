@@ -11,7 +11,7 @@ export type NodeBound = {
 
 export type NodeCorner = {
   id: Corner,
-  type: "resizeHandler"
+  type: "corner"
 }
 
 export type SelectionArea = {

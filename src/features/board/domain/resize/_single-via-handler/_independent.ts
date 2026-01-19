@@ -1,35 +1,35 @@
-import type { ResizeSingleFromEdgeParams } from "../_shared"
+import type { ResizeSingleFromBoundParams } from "../_shared"
 import { mapSelectedShapes } from "../_shared"
 import { IndependentResize } from "../_single-via-bound"
 
-export const resizeFromBottomLeftCorner = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromBottomLeftCorner = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...IndependentResize.applyLeftEdgeResize({ cursor, shape }),
-    ...IndependentResize.applyBottomEdgeResize({ cursor, shape })
+    ...IndependentResize.applyLeftBoundResize({ cursor, shape }),
+    ...IndependentResize.applyBottomBoundResize({ cursor, shape })
   }))
 }
 
-export const resizeFromBottomRightCorner = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromBottomRightCorner = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...IndependentResize.applyRightEdgeResize({ cursor, shape }),
-    ...IndependentResize.applyBottomEdgeResize({ cursor, shape })
+    ...IndependentResize.applyRightBoundResize({ cursor, shape }),
+    ...IndependentResize.applyBottomBoundResize({ cursor, shape })
   }))
 }
 
-export const resizeFromTopLeftCorner = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromTopLeftCorner = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...IndependentResize.applyLeftEdgeResize({ cursor, shape }),
-    ...IndependentResize.applyTopEdgeResize({ cursor, shape })
+    ...IndependentResize.applyLeftBoundResize({ cursor, shape }),
+    ...IndependentResize.applyTopBoundResize({ cursor, shape })
   }))
 }
 
-export const resizeFromTopRightCorner = ({ shapes, cursor }: ResizeSingleFromEdgeParams) => {
+export const resizeFromTopRightCorner = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
   return mapSelectedShapes(shapes, (shape) => ({
     ...shape,
-    ...IndependentResize.applyRightEdgeResize({ cursor, shape }),
-    ...IndependentResize.applyTopEdgeResize({ cursor, shape })
+    ...IndependentResize.applyRightBoundResize({ cursor, shape }),
+    ...IndependentResize.applyTopBoundResize({ cursor, shape })
   }))
 }

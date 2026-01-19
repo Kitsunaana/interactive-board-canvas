@@ -10,30 +10,30 @@ export * as ProportionalResize from "./_proportional-resize"
 export const multiple = {
   resize: {
     independent: {
-      bottom: IndependentResize.resizeFromBottomEdge,
-      right: IndependentResize.resizeFromRightEdge,
-      left: IndependentResize.resizeFromLeftEdge,
-      top: IndependentResize.resizeFromTopEdge,
+      bottom: IndependentResize.resizeFromBottomBound,
+      right: IndependentResize.resizeFromRightBound,
+      left: IndependentResize.resizeFromLeftBound,
+      top: IndependentResize.resizeFromTopBound,
     },
     proportional: {
-      bottom: ProportionalResize.resizeFromBottomEdge,
-      right: ProportionalResize.resizeFromRightEdge,
-      left: ProportionalResize.resizeFromLeftEdge,
-      top: ProportionalResize.resizeFromTopEdge,
+      bottom: ProportionalResize.resizeFromBottomBound,
+      right: ProportionalResize.resizeFromRightBound,
+      left: ProportionalResize.resizeFromLeftBound,
+      top: ProportionalResize.resizeFromTopBound,
     },
   },
   reflow: {
     independent: {
-      bottom: IndependentReflow.reflowFromRightEdge,
-      right: IndependentReflow.reflowFromRightEdge,
-      left: IndependentReflow.reflowFromLeftEdge,
-      top: IndependentReflow.reflowFromTopEdge,
+      bottom: IndependentReflow.reflowFromRightBound,
+      right: IndependentReflow.reflowFromRightBound,
+      left: IndependentReflow.reflowFromLeftBound,
+      top: IndependentReflow.reflowFromTopBound,
     },
     proportional: {
-      bottom: ProportionalReflow.reflowFromRightEdge,
-      right: ProportionalReflow.reflowFromRightEdge,
-      left: ProportionalReflow.reflowFromLeftEdge,
-      top: ProportionalReflow.reflowFromTopEdge,
+      bottom: ProportionalReflow.reflowFromRightBound,
+      right: ProportionalReflow.reflowFromRightBound,
+      left: ProportionalReflow.reflowFromLeftBound,
+      top: ProportionalReflow.reflowFromTopBound,
     },
   },
 }

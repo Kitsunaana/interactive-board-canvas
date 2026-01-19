@@ -1,19 +1,20 @@
 import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point.ts";
 import { isNotNull } from "@/shared/lib/utils.ts";
+import type { Point, Rect } from "@/shared/type/shared";
 import * as rx from "rxjs";
-import type { NodeBound } from "../domain/selection-area";
-import { computeSelectionBoundsArea, recalculateSelectionAreaFromEdge } from "../domain/selection-area";
+import type { NodeBound, NodeCorner, SelectionArea } from "../domain/selection-area";
+import { computeSelectionBoundsArea, recalculateSelectionAreaFromCorner, recalculateSelectionAreaFromBound } from "../domain/selection-area";
 import { camera$ } from "../modules/camera";
 import { selectedShapesIds$, viewModel$ } from "./state";
 
-export const pressedEdgeSubject$ = new rx.BehaviorSubject<NodeBound | null>(null)
+export const pressedResizeHandlerSubject$ = new rx.BehaviorSubject<NodeBound | NodeCorner | null>(null)
 
 const pointerMove$ = rx.fromEvent<PointerEvent>(window, "pointermove")
 const pointerDown$ = rx.fromEvent<PointerEvent>(window, "pointerdown")
 const pointerUp$ = rx.fromEvent<PointerEvent>(window, "pointerup")
 
-const pressedEdge$ = pressedEdgeSubject$.pipe(
-  rx.filter(edge => isNotNull(edge)),
+const pressedResizeHandler$: rx.Observable<NodeBound | NodeCorner> = pressedResizeHandlerSubject$.pipe(
+  rx.filter((handler) => isNotNull(handler)),
   rx.shareReplay({ refCount: true, bufferSize: 1 })
 )
 
@@ -35,26 +36,44 @@ export const autoSelectionBounds$ = rx.combineLatest([viewModel$.pipe(rx.map((mo
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
 
+const mergeWithCurrent = (current: SelectionArea, updated: Partial<Rect>) => ({
+  ...current,
+  area: {
+    ...current.area,
+    ...updated,
+  }
+})
+
+
+type RecalculateFromBoundParams = {
+  initial: SelectionArea
+  cursor: Point
+}
+
 const manualSelectionBounds$ = rx.combineLatest({
   initialBounds: autoSelectionBounds$.pipe(rx.first(), rx.filter(isNotNull)),
+  activeHandler: pressedResizeHandler$
 }).pipe(
-  rx.switchMap(({ initialBounds }) => pointerMove$.pipe(
+  rx.map(({ initialBounds, activeHandler }) => ({
+    initialBounds,
+    recalculateSelectionArea: ({
+      bound: (recalculateSelectionAreaFromBound as Record<string, ((params: RecalculateFromBoundParams) => Partial<Rect>)>),
+      corner: (recalculateSelectionAreaFromCorner as Record<string, ((params: RecalculateFromBoundParams) => Partial<Rect>)>)
+    })[activeHandler.type][activeHandler.id]
+  })),
+  rx.switchMap(({ initialBounds, recalculateSelectionArea }) => pointerMove$.pipe(
     rx.withLatestFrom(
       viewModel$.pipe(rx.map((model) => model.nodes), rx.map(computeSelectionBoundsArea), rx.filter(isNotNull)),
-      pressedEdge$,
       camera$,
     ),
 
-    rx.map(([moveEvent, currentBounds, activeEdge, camera]) => {
-      return recalculateSelectionAreaFromEdge[activeEdge.id]({
-        initial: initialBounds,
-        current: currentBounds,
-        cursor: screenToCanvas({
-          point: getPointFromEvent(moveEvent),
-          camera,
-        }),
+    rx.map(([moveEvent, currentBounds, camera]) => mergeWithCurrent(currentBounds, recalculateSelectionArea({
+      initial: initialBounds,
+      cursor: screenToCanvas({
+        point: getPointFromEvent(moveEvent),
+        camera,
       })
-    }),
+    }))),
 
     rx.takeUntil(pointerUp$),
   )),

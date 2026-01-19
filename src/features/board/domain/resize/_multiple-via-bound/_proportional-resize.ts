@@ -1,14 +1,14 @@
 import { defaultTo } from "lodash"
-import type { RectEdges, ResizeMultipleFromEdgeParams } from "../_shared"
+import type { RectBounds, ResizeMultipleFromBoundParams } from "../_shared"
 import { SELECTION_BOUNDS_PADDING, mapSelectedShapes } from "../_shared"
 
-export const resizeFromRightEdge = ({ cursor, shapes, selectionArea, ...params }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromRightBound = ({ cursor, shapes, selectionArea, ...params }: ResizeMultipleFromBoundParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
   const top = selectionArea.y
   const bottom = selectionArea.y + selectionArea.height
 
-  const areaEdges: RectEdges = { bottom, right, left, top }
+  const areaBounds: RectBounds = { bottom, right, left, top }
 
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
   const delta = cursorX - right
@@ -30,7 +30,7 @@ export const resizeFromRightEdge = ({ cursor, shapes, selectionArea, ...params }
         x: left,
         width: 0,
         height: 0,
-        ...defaultTo(params.frizen?.(scale, shape, areaEdges), {})
+        ...defaultTo(params.frizen?.(scale, shape, areaBounds), {})
       }))
     }
 
@@ -46,7 +46,7 @@ export const resizeFromRightEdge = ({ cursor, shapes, selectionArea, ...params }
         height: nextHeight,
         y: top + (shape.y - bottom) * scale,
         x: left + (shape.x - right) * scale,
-        ...defaultTo(params.flip?.(scale, shape, areaEdges), {})
+        ...defaultTo(params.flip?.(scale, shape, areaBounds), {})
       }
     })
   }
@@ -63,12 +63,12 @@ export const resizeFromRightEdge = ({ cursor, shapes, selectionArea, ...params }
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: left + (shape.x - left) * scale,
-      ...defaultTo(params.default?.(scale, shape, areaEdges), {})
+      ...defaultTo(params.default?.(scale, shape, areaBounds), {})
     }
   })
 }
 
-export const resizeFromLeftEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromLeftBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
   const top = selectionArea.y
@@ -128,7 +128,7 @@ export const resizeFromLeftEdge = ({ cursor, shapes, selectionArea }: ResizeMult
   })
 }
 
-export const resizeFromTopEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromTopBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
   const left = selectionArea.x
@@ -188,7 +188,7 @@ export const resizeFromTopEdge = ({ cursor, shapes, selectionArea }: ResizeMulti
   })
 }
 
-export const resizeFromBottomEdge = ({ cursor, shapes, selectionArea }: ResizeMultipleFromEdgeParams) => {
+export const resizeFromBottomBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
   const left = selectionArea.x

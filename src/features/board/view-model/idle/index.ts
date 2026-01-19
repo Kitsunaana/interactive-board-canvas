@@ -9,7 +9,7 @@ import type { NodeBound } from "../../domain/selection-area"
 import { shapes$ } from "../../model"
 import { camera$ } from "../../modules/camera"
 import { mouseDown$, mouseUp$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../../modules/pick-node"
-import { autoSelectionBounds$, pressedEdgeSubject$ } from "../selection-bounds"
+import { autoSelectionBounds$, pressedResizeHandlerSubject$ } from "../selection-bounds"
 import { goToIdle, goToNodesDragging, goToShapesResize, isIdle, viewModel$, viewState$ } from "../state"
 import { endMoveShapes, getMovedShapes, startMoveShape } from "./moving"
 import { shapeSelect } from "./selection"
@@ -46,6 +46,8 @@ const shapesResizeViaResizeHanlderFlow$ = mouseDown$.pipe(
       sharedMove$.pipe(
         rx.take(1),
         rx.tap(() => {
+          pressedResizeHandlerSubject$.next(corner)
+
           viewState$.next(goToShapesResize({ selectedIds }))
         }),
         rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
@@ -85,9 +87,9 @@ const shapesResizeFlow$ = mouseDown$.pipe(
     viewModel$.pipe(rx.map((model) => model.nodes)),
     camera$
   ),
-  rx.map(([edge, selectedIds, selectionArea, shapes, camera]) => ({ selectionArea, selectedIds, camera, shapes, edge })),
-  rx.switchMap(({ camera, edge, shapes, selectedIds, selectionArea }) => {
-    const resizeShapesStrategy = getShapesResizeViaBoundStrategy({ selectionArea, selectedIds, shapes, edge })
+  rx.map(([bound, selectedIds, selectionArea, shapes, camera]) => ({ selectionArea, selectedIds, camera, shapes, bound })),
+  rx.switchMap(({ camera, bound, shapes, selectedIds, selectionArea }) => {
+    const resizeShapesStrategy = getShapesResizeViaBoundStrategy({ selectionArea, selectedIds, shapes, bound: bound })
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
@@ -95,9 +97,9 @@ const shapesResizeFlow$ = mouseDown$.pipe(
       sharedMove$.pipe(
         rx.take(1),
         rx.tap(() => {
-          applyResizeViaBoundCursor(edge)
+          applyResizeViaBoundCursor(bound)
 
-          pressedEdgeSubject$.next(edge)
+          pressedResizeHandlerSubject$.next(bound)
           viewState$.next(goToShapesResize({ selectedIds }))
         }),
         rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
