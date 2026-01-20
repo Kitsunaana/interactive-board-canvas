@@ -178,3 +178,10 @@ export const calcShapeTopBoundAspectResizePatch: CalcShapeFromBoundAspectResizeP
     ...handlers.default({ ...shape, nextWidth, nextHeight })
   }
 }
+
+export const Short = {
+  bottom: calcShapeBottomBoundAspectResizePatch,
+  right: calcShapeRightBoundAspectResizePatch,
+  left: calcShapeLeftBoundAspectResizePatch,
+  top: calcShapeTopBoundAspectResizePatch,
+}

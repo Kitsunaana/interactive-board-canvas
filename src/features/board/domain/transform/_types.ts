@@ -15,16 +15,18 @@ export type CalcShapeFromBoundResizePatch = (
   },
 ) => Partial<Rect>
 
+export type CalcShapeFromBoundAspectResizePatchTransform = {
+  default?: (params: ShapeToAspectResize) => Partial<Rect>
+  frizen?: (params: ShapeToAspectResize) => Partial<Rect>
+  flip?: (params: ShapeToAspectResize) => Partial<Rect>
+}
+
 export type CalcShapeFromBoundAspectResizePatch = (
   params: {
     shape: RectWithId
     cursor: Point
   },
-  transform?: {
-    default?: (params: ShapeToAspectResize) => Partial<Rect>
-    frizen?: (params: ShapeToAspectResize) => Partial<Rect>
-    flip?: (params: ShapeToAspectResize) => Partial<Rect>
-  }
+  transform?: CalcShapeFromBoundAspectResizePatchTransform
 ) => Partial<Rect>
 
 export type CalcSelectionFromBoundReflowPatches = (
@@ -43,6 +45,19 @@ export type CalcSelectionLeftResizeOffsets = (
   }
 ) => Map<string, Partial<Rect>>
 
+export type RectEdges = {
+  bottom: number
+  right: number
+  left: number
+  top: number
+}
+
+export type CalcSelectionFromBoundAspectResizePatchesTransform = {
+  default?: (params: Rect & { scale: number }, areaEdges: RectEdges) => Partial<Rect>
+  frizen?: (params: Rect & { scale: number }, areaEdges: RectEdges) => Partial<Rect>
+  flip?: (params: Rect & { scale: number }, areaEdges: RectEdges) => Partial<Rect>
+}
+
 export type CalcSelectionFromBoundAspectResizePatches = (
   params: {
     selectionArea: Rect
@@ -50,11 +65,7 @@ export type CalcSelectionFromBoundAspectResizePatches = (
     cursor: Point
   },
 
-  transform?: {
-    default?: (params: Rect & { scale: number }) => Partial<Rect>
-    frizen?: (params: Rect & { scale: number }) => Partial<Rect>
-    flip?: (params: Rect & { scale: number }) => Partial<Rect>
-  }
+  transform?: CalcSelectionFromBoundAspectResizePatchesTransform 
 ) => Map<string, Partial<Rect>>
 
 export type ResizeSingleFromBoundParams = {
@@ -74,6 +85,6 @@ export const withDefaultTransformHandlers = <T extends object | undefined>(trans
   default: () => ({}),
   frizen: () => ({}),
   flip: () => ({}),
-  
+
   ...defaultTo(transform, {} as NonNullable<T>)
 })

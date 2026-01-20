@@ -1,164 +1,103 @@
+import { _u } from "@/shared/lib/utils"
+import type { Point, Rect } from "@/shared/type/shared"
+import { defaultTo } from "lodash"
 import type { ShapeToView } from "../../domain/shape"
 import { TransformDomain } from "../../domain/transform"
-import { mapSelectedShapes } from "./_types"
+import type { CalcShapeFromBoundAspectResizePatchTransform, RectWithId } from "../../domain/transform/_types"
 import type { ResizeSingleFromBoundParams } from "./_types"
+import { mapSelectedShapes } from "./_types"
 
+type AnyTransform = {
+  default: (...args: any[]) => Partial<Rect>
+  frizen: (...args: any[]) => Partial<Rect>
+  flip: (...args: any[]) => Partial<Rect>
+}
+
+type AnyCalcShapeFromBound = (
+  params: { shape: RectWithId; cursor: Point },
+  transform?: AnyTransform
+) => Partial<Rect>
+
+const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] = []) => {
+  return ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
+    return mapSelectedShapes(shapes, (shape) => (
+      _u.merge(shape, list.reduce((acc, current, index) => {
+        const transform = defaultTo(rules[index], undefined)
+
+        return {
+          ...acc,
+          ...current({ cursor, shape }, transform)
+        }
+      }, {}))
+    ))
+  }
+}
+
+const Rules = {
+  ScaleToXAxisCenterOppositeBound: {
+    default: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
+    flip: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
+    frizen: (shape) => ({ x: shape.x + shape.width / 2 }),
+  } satisfies CalcShapeFromBoundAspectResizePatchTransform,
+
+  ScaleToYAxisCenterOppositeBound: {
+    default: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
+    flip: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
+    frizen: (shape) => ({ y: shape.y + shape.height / 2 }),
+  } satisfies CalcShapeFromBoundAspectResizePatchTransform
+}
+
+const Resize = TransformDomain.Single.Resize
 
 export const SingleShapeResize = {
   ViaBound: {
     Independent: {
-      bottom: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Independent.calcShapeBottomBoundResizePatch({ cursor, shape }),
-        }))
-      },
-
-      right: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Independent.calcShapeRightBoundResizePatch({ cursor, shape }),
-        }))
-      },
-
-      left: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Independent.calcShapeLeftBoundResizePatch({ cursor, shape }),
-        }))
-      },
-
-      top: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Independent.calcShapeTopBoundResizePatch({ cursor, shape }),
-        }))
-      },
+      bottom: factory([Resize.Independent.Short.bottom]),
+      right: factory([Resize.Independent.Short.right]),
+      left: factory([Resize.Independent.Short.left]),
+      top: factory([Resize.Independent.Short.top]),
     },
 
     Proportional: {
-      bottom: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeBottomBoundAspectResizePatch({ cursor, shape }, {
-            default: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
-            flip: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
-            frizen: (shape) => ({ x: shape.x + shape.width / 2 }),
-          }),
-        }))
-      },
-
-      right: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeRightBoundAspectResizePatch({ cursor, shape }, {
-            default: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
-            flip: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
-            frizen: (shape) => ({ y: shape.y + shape.height / 2 }),
-          }),
-        }))
-      },
-
-      left: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeLeftBoundAspectResizePatch({ cursor, shape }, {
-            default: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
-            flip: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
-            frizen: (shape) => ({ y: shape.y + shape.height / 2 })
-          }),
-        }))
-      },
-
-      top: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeTopBoundAspectResizePatch({ cursor, shape }, {
-            default: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
-            flip: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
-            frizen: (shape) => ({ x: shape.x + shape.width / 2 }),
-          }),
-        }))
-      }
-      ,
+      bottom: factory([Resize.Proportional.Short.bottom], [Rules.ScaleToXAxisCenterOppositeBound]),
+      right: factory([Resize.Proportional.Short.right], [Rules.ScaleToYAxisCenterOppositeBound]),
+      left: factory([Resize.Proportional.Short.left], [Rules.ScaleToYAxisCenterOppositeBound]),
+      top: factory([Resize.Proportional.Short.top], [Rules.ScaleToXAxisCenterOppositeBound]),
     }
   },
 
   ViaCorner: {
     Independent: {
-      bottomRight: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Independent.calcShapeRightBoundResizePatch({ cursor, shape }),
-          ...TransformDomain.Single.Resize.Independent.calcShapeBottomBoundResizePatch({ cursor, shape })
-        }))
-      },
-
-      bottomLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Independent.calcShapeLeftBoundResizePatch({ cursor, shape }),
-          ...TransformDomain.Single.Resize.Independent.calcShapeBottomBoundResizePatch({ cursor, shape })
-        }))
-      },
-
-      topRight: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Independent.calcShapeRightBoundResizePatch({ cursor, shape }),
-          ...TransformDomain.Single.Resize.Independent.calcShapeTopBoundResizePatch({ cursor, shape })
-        }))
-      },
-
-      topLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Independent.calcShapeLeftBoundResizePatch({ cursor, shape }),
-          ...TransformDomain.Single.Resize.Independent.calcShapeTopBoundResizePatch({ cursor, shape })
-        }))
-      },
+      bottomRight: factory([Resize.Independent.Short.right, Resize.Independent.Short.bottom]),
+      bottomLeft: factory([Resize.Independent.Short.left, Resize.Independent.Short.bottom]),
+      topRight: factory([Resize.Independent.Short.right, Resize.Independent.Short.top]),
+      topLeft: factory([Resize.Independent.Short.left, Resize.Independent.Short.top]),
     },
 
     Proportional: {
-      bottomRight: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeBottomBoundAspectResizePatch({ shape, cursor }, {
-            flip: ({ x, nextWidth }) => ({ x: x - nextWidth })
-          })
-        }))
-      },
+      bottomRight: factory([Resize.Proportional.Short.bottom], [{
+        flip: (shape) => ({ x: shape.x - shape.nextWidth }),
+        default: () => ({}),
+        frizen: () => ({}),
+      }]),
 
-      bottomLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeBottomBoundAspectResizePatch({ shape, cursor }, {
-            flip: ({ x, width }) => ({ x: x + width }),
-            frizen: ({ x, width }) => ({ x: x + width }),
-            default: ({ x, width, nextWidth }) => ({ x: x - (nextWidth - width) })
-          })
-        }))
-      },
+      bottomLeft: factory([Resize.Proportional.Short.bottom], [{
+        default: (shape) => ({ x: shape.x - (shape.nextWidth - shape.width) }),
+        frizen: (shape) => ({ x: shape.x + shape.width }),
+        flip: (shape) => ({ x: shape.x + shape.width }),
+      }]),
 
-      topRight: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeTopBoundAspectResizePatch({ shape, cursor }, {
-            flip: ({ x, nextWidth }) => ({ x: x - nextWidth })
-          }),
-        }))
-      },
+      topRight: factory([Resize.Proportional.Short.top], [{
+        flip: (shape) => ({ x: shape.x - shape.nextWidth }),
+        default: () => ({}),
+        frizen: () => ({}),
+      }]),
 
-      topLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
-        return mapSelectedShapes(shapes, (shape) => ({
-          ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeTopBoundAspectResizePatch({ shape, cursor }, {
-            default: ({ x, width, nextWidth }) => ({ x: x - (nextWidth - width) }),
-            frizen: ({ x, width }) => ({ x: x + width }),
-            flip: ({ x, width }) => ({ x: x + width }),
-          }),
-        }))
-      },
+      topLeft: factory([Resize.Proportional.Short.top], [{
+        default: (shape) => ({ x: shape.x - (shape.nextWidth - shape.width) }),
+        frizen: (shape) => ({ x: shape.x + shape.width }),
+        flip: (shape) => ({ x: shape.x + shape.width }),
+      }]),
     }
   },
 }

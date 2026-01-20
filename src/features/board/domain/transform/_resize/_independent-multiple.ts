@@ -199,3 +199,10 @@ export const calcSelectionRightBoundResizePatches = ({ cursor, shapes, selection
 
   return toTransformShapes
 }
+
+export const Short = {
+  bottom: calcSelectionBottomBoundResizePatches,
+  right: calcSelectionRightBoundResizePatches,
+  left: calcSelectionLeftBoundResizePatches,
+  top: calcSelectionTopBoundResizePatches,
+}

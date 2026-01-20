@@ -1,6 +1,6 @@
 import type { Rect } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import type { CalcSelectionFromBoundAspectResizePatches } from "../_types"
+import type { CalcSelectionFromBoundAspectResizePatches, RectEdges } from "../_types"
 import { SELECTION_BOUNDS_PADDING, withDefaultTransformHandlers } from "../_types"
 
 export const calcSelectionRightBoundAspectResizePatches: CalcSelectionFromBoundAspectResizePatches = ({
@@ -14,6 +14,8 @@ export const calcSelectionRightBoundAspectResizePatches: CalcSelectionFromBoundA
   const right = left + selectionArea.width
   const top = selectionArea.y
   const bottom = selectionArea.y + selectionArea.height
+
+  const areaEdges: RectEdges = { bottom, right, left, top }
 
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
   const delta = cursorX - right
@@ -37,7 +39,7 @@ export const calcSelectionRightBoundAspectResizePatches: CalcSelectionFromBoundA
           x: left,
           width: 0,
           height: 0,
-          ...handlers.frizen({ ...shape, scale }),
+          ...handlers.frizen({ ...shape, scale }, areaEdges),
         })
       })
 
@@ -55,7 +57,7 @@ export const calcSelectionRightBoundAspectResizePatches: CalcSelectionFromBoundA
         height: nextHeight,
         y: top + (shape.y - bottom) * scale,
         x: left + (shape.x - right) * scale,
-        ...handlers.flip({ ...shape, scale }),
+        ...handlers.flip({ ...shape, scale }, areaEdges),
       })
     })
 
@@ -73,7 +75,7 @@ export const calcSelectionRightBoundAspectResizePatches: CalcSelectionFromBoundA
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: left + (shape.x - left) * scale,
-      ...handlers.default({ ...shape, scale }),
+      ...handlers.default({ ...shape, scale }, areaEdges),
     })
   })
 
@@ -91,6 +93,8 @@ export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionFromBoundAs
   const right = left + selectionArea.width
   const top = selectionArea.y
   const bottom = top + selectionArea.height
+
+  const areaEdges: RectEdges = { bottom, right, left, top }
 
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
   const delta = left - cursorX
@@ -113,7 +117,7 @@ export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionFromBoundAs
           x: right,
           width: 0,
           height: 0,
-          ...handlers.frizen({ ...shape, scale }),
+          ...handlers.frizen({ ...shape, scale }, areaEdges),
         })
       })
 
@@ -131,7 +135,7 @@ export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionFromBoundAs
         height: nextHeight,
         y: top + (shape.y - bottom) * scale,
         x: right + (shape.x - left) * scale,
-        ...handlers.flip({ ...shape, scale }),
+        ...handlers.flip({ ...shape, scale }, areaEdges),
       })
     })
 
@@ -149,7 +153,7 @@ export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionFromBoundAs
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: right + (shape.x - right) * scale,
-      ...handlers.default({ ...shape, scale }),
+      ...handlers.default({ ...shape, scale }, areaEdges),
     })
   })
 
@@ -167,6 +171,8 @@ export const calcSelectionTopBoundAspectResizePatches: CalcSelectionFromBoundAsp
   const bottom = top + selectionArea.height
   const left = selectionArea.x
   const right = left + selectionArea.width
+
+  const areaEdges: RectEdges = { bottom, right, left, top }
 
   const cursorPositionY = cursor.y + SELECTION_BOUNDS_PADDING
   const delta = top - cursorPositionY
@@ -189,7 +195,7 @@ export const calcSelectionTopBoundAspectResizePatches: CalcSelectionFromBoundAsp
           y: bottom,
           width: 0,
           height: 0,
-          ...handlers.frizen({ ...shape, scale })
+          ...handlers.frizen({ ...shape, scale }, areaEdges)
         })
       })
 
@@ -207,7 +213,7 @@ export const calcSelectionTopBoundAspectResizePatches: CalcSelectionFromBoundAsp
         height: nextHeight,
         x: right + (shape.x - left) * scale,
         y: bottom + (shape.y - top) * scale,
-        ...handlers.flip({ ...shape, scale })
+        ...handlers.flip({ ...shape, scale }, areaEdges)
       })
     })
 
@@ -225,7 +231,7 @@ export const calcSelectionTopBoundAspectResizePatches: CalcSelectionFromBoundAsp
       height: nextHeight,
       x: right + (shape.x - right) * scale,
       y: bottom + (shape.y - bottom) * scale,
-      ...handlers.default({ ...shape, scale })
+      ...handlers.default({ ...shape, scale }, areaEdges)
     })
   })
 
@@ -244,6 +250,8 @@ export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionFromBound
   const bottom = top + selectionArea.height
   const left = selectionArea.x
   const right = left + selectionArea.width
+
+  const areaEdges: RectEdges = { bottom, right, left, top }
 
   const cursorPositionY = cursor.y - SELECTION_BOUNDS_PADDING
   const delta = cursorPositionY - bottom
@@ -268,7 +276,7 @@ export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionFromBound
           x: right,
           width: 0,
           height: 0,
-          ...handlers.frizen({ ...shape, scale })
+          ...handlers.frizen({ ...shape, scale }, areaEdges)
         })
       })
 
@@ -286,7 +294,7 @@ export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionFromBound
         height: nextHeight,
         x: right + (shape.x - left) * scale,
         y: top + (shape.y - bottom) * scale,
-        ...handlers.flip({ ...shape, scale })
+        ...handlers.flip({ ...shape, scale }, areaEdges)
       })
     })
 
@@ -304,9 +312,16 @@ export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionFromBound
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: right + (shape.x - right) * scale,
-      ...handlers.default({ ...shape, scale })
+      ...handlers.default({ ...shape, scale }, areaEdges)
     })
   })
 
   return toTransformShapes
+}
+
+export const Short = {
+  bottom: calcSelectionBottomBoundAspectResizePatches,
+  right: calcSelectionRightBoundAspectResizePatches,
+  left: calcSelectionLeftBoundAspectResizePatches,
+  top: calcSelectionTopBoundAspectResizePatches,
 }

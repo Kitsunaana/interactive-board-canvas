@@ -126,3 +126,10 @@ export const calcShapeTopBoundResizePatch: CalcShapeFromBoundResizePatch = ({ sh
     y: shape.y - delta,
   }
 }
+
+export const Short = {
+  bottom: calcShapeBottomBoundResizePatch,
+  right: calcShapeRightBoundResizePatch,
+  left: calcShapeLeftBoundResizePatch,
+  top: calcShapeTopBoundResizePatch,
+}

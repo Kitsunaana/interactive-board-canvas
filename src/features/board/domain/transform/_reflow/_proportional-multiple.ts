@@ -132,3 +132,10 @@ export const calcSelectionBottomBoundReflowPatches: CalcSelectionFromBoundReflow
 
   return toReflowShapes
 }
+
+export const Short = {
+  bottom: calcSelectionBottomBoundReflowPatches,
+  right: calcSelectionRightBoundReflowPatches,
+  left: calcSelectionLeftBoundReflowPatches,
+  top: calcSelectionTopBoundReflowPatches,
+}

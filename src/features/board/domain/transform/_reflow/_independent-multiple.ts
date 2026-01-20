@@ -96,3 +96,10 @@ export const calcSelectionRightResizeOffsets: CalcSelectionLeftResizeOffsets = (
 
   return toReflowShapes
 }
+
+export const Short = {
+  bottom: calcSelectionBottomResizeOffsets,
+  right: calcSelectionRightResizeOffsets,
+  left: calcSelectionLeftResizeOffsets,
+  top: calcSelectionTopResizeOffsets,
+}

@@ -1,6 +1,9 @@
+import { _u } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
+import { defaultTo } from "lodash"
 import type { ShapeToView } from "../../domain/shape"
 import { TransformDomain } from "../../domain/transform"
+import type { CalcSelectionFromBoundAspectResizePatchesTransform, RectWithId } from "../../domain/transform/_types"
 import { mapSelectedShapes } from "./_types"
 
 export type ResizeMultipleFromBoundParams = {
@@ -10,284 +13,84 @@ export type ResizeMultipleFromBoundParams = {
   cursor: Point
 }
 
+type AnyTransform = {
+  default: (...args: any[]) => Partial<Rect>
+  frizen: (...args: any[]) => Partial<Rect>
+  flip: (...args: any[]) => Partial<Rect>
+}
+
+type AnyCalcShapeFromBound = (
+  params: { selectionArea: Rect; shapes: RectWithId[]; cursor: Point },
+  transform?: AnyTransform
+) => Map<string, Partial<Rect>>
+
+const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] = []) => {
+  return ({ selectedShapes, selectionArea, allShapes, cursor }: ResizeMultipleFromBoundParams): ShapeToView[] => {
+    const patches = list.map((calculate, index) => {
+      const transform = defaultTo(rules[index], undefined)
+
+      return calculate({ cursor, selectionArea, shapes: selectedShapes }, transform)
+    })
+
+    return mapSelectedShapes(allShapes, (shape) => ({
+      ...shape,
+      ...patches.reduce((acc, patcher) => _u.merge(acc, defaultTo(patcher.get(shape.id), {})), {}),
+    }))
+  }
+}
+
+const Rules = {
+  ScaleToXAxisCenterOppositeBound: {
+    default: (shape, aria) => ({ x: aria.right / 2 + (shape.x - aria.right / 2) * shape.scale }),
+    flip: (shape, aria) => ({ x: aria.right / 2 + (shape.x - aria.right / 2) * shape.scale }),
+    frizen: (_, aria) => ({ x: aria.right / 2 })
+  } satisfies CalcSelectionFromBoundAspectResizePatchesTransform,
+
+  ScaleToYAxisCenterOppositeBound: {
+    default: (shape, aria) => ({ y: aria.bottom / 2 + (shape.y - aria.bottom / 2) * shape.scale }),
+    flip: (shape, aria) => ({ y: aria.bottom / 2 + (shape.y - aria.bottom / 2) * shape.scale }),
+    frizen: (_, aria) => ({ y: aria.bottom / 2 })
+  } satisfies CalcSelectionFromBoundAspectResizePatchesTransform
+}
+
+const Resize = TransformDomain.Multiple.Resize
+const Reflow = TransformDomain.Multiple.Reflow
+
 export const MultipleShapesTransform = {
   Resize: {
     ViaBound: {
       Independent: {
-        bottom: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Resize.Independent.calcSelectionBottomBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
-
-        right: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Resize.Independent.calcSelectionRightBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
-
-        left: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Resize.Independent.calcSelectionLeftBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
-
-        top: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Resize.Independent.calcSelectionTopBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
+        bottom: factory([Resize.Independent.Short.bottom]),
+        right: factory([Resize.Independent.Short.right]),
+        left: factory([Resize.Independent.Short.left]),
+        top: factory([Resize.Independent.Short.top]),
       },
 
       Proportional: {
-        bottom: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const right = params.selectionArea.x + params.selectionArea.width
-
-          const pathces = TransformDomain.Multiple.Resize.Proportional.calcSelectionBottomBoundAspectResizePatches(
-            {
-              ...params,
-              shapes: selectedShapes,
-            },
-            {
-              default: (shape) => ({ x: right / 2 + (shape.x - right / 2) * shape.scale }),
-              flip: (shape) => ({ x: right / 2 + (shape.x - right / 2) * shape.scale }),
-              frizen: () => ({ x: right / 2 })
-            })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
-
-        right: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const bottom = params.selectionArea.y + params.selectionArea.height
-
-          const pathces = TransformDomain.Multiple.Resize.Proportional.calcSelectionRightBoundAspectResizePatches(
-            {
-              ...params,
-              shapes: selectedShapes,
-            },
-            {
-              default: (shape) => ({ y: bottom / 2 + (shape.y - bottom / 2) * shape.scale }),
-              flip: (shape) => ({ y: bottom / 2 + (shape.y - bottom / 2) * shape.scale }),
-              frizen: () => ({ y: bottom / 2 })
-            })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
-
-        left: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const bottom = params.selectionArea.y + params.selectionArea.height
-
-          const pathces = TransformDomain.Multiple.Resize.Proportional.calcSelectionLeftBoundAspectResizePatches(
-            {
-              ...params,
-              shapes: selectedShapes,
-            },
-            {
-              default: (shape) => ({ y: bottom / 2 + (shape.y - bottom / 2) * shape.scale }),
-              flip: (shape) => ({ y: bottom / 2 + (shape.y - bottom / 2) * shape.scale }),
-              frizen: () => ({ y: bottom / 2 })
-            })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
-
-        top: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const right = params.selectionArea.x + params.selectionArea.width
-
-          const pathces = TransformDomain.Multiple.Resize.Proportional.calcSelectionTopBoundAspectResizePatches(
-            {
-              ...params,
-              shapes: selectedShapes,
-            },
-            {
-              default: (shape) => ({ x: right / 2 + (shape.x - right / 2) * shape.scale }),
-              flip: (shape) => ({ x: right / 2 + (shape.x - right / 2) * shape.scale }),
-              frizen: () => ({ x: right / 2 })
-            })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
+        bottom: factory([Resize.Proportional.Short.bottom], [Rules.ScaleToXAxisCenterOppositeBound]),
+        right: factory([Resize.Proportional.Short.right], [Rules.ScaleToYAxisCenterOppositeBound]),
+        left: factory([Resize.Proportional.Short.left], [Rules.ScaleToYAxisCenterOppositeBound]),
+        top: factory([Resize.Proportional.Short.top], [Rules.ScaleToXAxisCenterOppositeBound]),
       }
     },
 
     ViaCorner: {
       Independent: {
-        bottomRight: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const patchesY = TransformDomain.Multiple.Resize.Independent.calcSelectionBottomBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          const patchesX = TransformDomain.Multiple.Resize.Independent.calcSelectionRightBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-
-            ...patchesY.get(shape.id),
-            ...patchesX.get(shape.id),
-          }))
-        },
-
-        bottomLeft: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const patchesY = TransformDomain.Multiple.Resize.Independent.calcSelectionBottomBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-          const patchesX = TransformDomain.Multiple.Resize.Independent.calcSelectionLeftBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-
-            ...patchesY.get(shape.id),
-            ...patchesX.get(shape.id),
-          }))
-        },
-
-        topRight: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const patchesY = TransformDomain.Multiple.Resize.Independent.calcSelectionTopBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-          const patchesX = TransformDomain.Multiple.Resize.Independent.calcSelectionRightBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-
-            ...patchesY.get(shape.id),
-            ...patchesX.get(shape.id),
-          }))
-        },
-
-        topLeft: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const patchesY = TransformDomain.Multiple.Resize.Independent.calcSelectionTopBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-          const patchesX = TransformDomain.Multiple.Resize.Independent.calcSelectionLeftBoundResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-
-            ...patchesY.get(shape.id),
-            ...patchesX.get(shape.id),
-          }))
-        }
-        ,
+        bottomRight: factory([Resize.Independent.Short.bottom, Resize.Independent.Short.right]),
+        bottomLeft: factory([Resize.Independent.Short.bottom, Resize.Independent.Short.left]),
+        topRight: factory([Resize.Independent.Short.top, Resize.Independent.Short.right]),
+        topLeft: factory([Resize.Independent.Short.top, Resize.Independent.Short.left]),
       },
 
       Proportional: {
-        bottomRight: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Resize.Proportional.calcSelectionRightBoundAspectResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => {
-            return {
-              ...shape,
-              ...pathces.get(shape.id),
-            }
-          })
-        },
-
-        bottomLeft: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Resize.Proportional.calcSelectionLeftBoundAspectResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => {
-            return {
-              ...shape,
-              ...pathces.get(shape.id),
-            }
-          })
-        },
-
-        topRight: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const top = params.selectionArea.y
-          const bottom = top + params.selectionArea.height
-
-          const pathces = TransformDomain.Multiple.Resize.Proportional.calcSelectionRightBoundAspectResizePatches(
-            {
-              ...params,
-              shapes: selectedShapes,
-            },
-            {
-              default: (shape) => ({ y: bottom + (shape.y - bottom) * shape.scale }),
-              flip: (shape) => ({ y: bottom + (shape.y - top) * shape.scale }),
-              frizen: () => ({ y: bottom }),
-            })
-
-          return mapSelectedShapes(allShapes, (shape) => {
-            return {
-              ...shape,
-              ...pathces.get(shape.id),
-            }
-          })
-        },
-
-        topLeft: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Resize.Proportional.calcSelectionTopBoundAspectResizePatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => {
-            return {
-              ...shape,
-              ...pathces.get(shape.id),
-            }
-          })
-        },
+        bottomRight: factory([Resize.Proportional.Short.right]),
+        bottomLeft: factory([Resize.Proportional.Short.left]),
+        topLeft: factory([Resize.Proportional.Short.top]),
+        topRight: factory([Resize.Proportional.Short.right], [{
+          default: (shape, aria) => ({ y: aria.bottom + (shape.y - aria.bottom) * shape.scale }),
+          flip: (shape, aria) => ({ y: aria.bottom + (shape.y - aria.top) * shape.scale }),
+          frizen: (_, aria) => ({ y: aria.bottom }),
+        }]),
       },
     }
   },
@@ -295,225 +98,33 @@ export const MultipleShapesTransform = {
   Reflow: {
     ViaBound: {
       Independent: {
-        bottom: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const offsets = TransformDomain.Multiple.Reflow.Independent.calcSelectionBottomResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...offsets.get(shape.id),
-          }))
-        },
-
-        right: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const offsets = TransformDomain.Multiple.Reflow.Independent.calcSelectionRightResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...offsets.get(shape.id),
-          }))
-        },
-
-        left: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const offsets = TransformDomain.Multiple.Reflow.Independent.calcSelectionLeftResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...offsets.get(shape.id),
-          }))
-        },
-
-        top: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const offsets = TransformDomain.Multiple.Reflow.Independent.calcSelectionTopResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...offsets.get(shape.id),
-          }))
-        },
+        bottom: factory([Reflow.Independent.Short.bottom]),
+        right: factory([Reflow.Independent.Short.right]),
+        left: factory([Reflow.Independent.Short.left]),
+        top: factory([Reflow.Independent.Short.top]),
       },
 
       Proportional: {
-        bottom: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Reflow.Proportional.calcSelectionBottomBoundReflowPatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
-
-        right: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Reflow.Proportional.calcSelectionRightBoundReflowPatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
-
-        left: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Reflow.Proportional.calcSelectionLeftBoundReflowPatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
-
-        top: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const pathces = TransformDomain.Multiple.Reflow.Proportional.calcSelectionTopBoundReflowPatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...pathces.get(shape.id),
-          }))
-        },
+        bottom: factory([Reflow.Proportional.Short.bottom]),
+        right: factory([Reflow.Proportional.Short.right]),
+        left: factory([Reflow.Proportional.Short.left]),
+        top: factory([Reflow.Proportional.Short.top]),
       }
     },
 
     ViaCorner: {
       Independent: {
-        bottomRight: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const offsetsY = TransformDomain.Multiple.Reflow.Independent.calcSelectionBottomResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-          const offsetsX = TransformDomain.Multiple.Reflow.Independent.calcSelectionRightResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...offsetsY.get(shape.id),
-            ...offsetsX.get(shape.id),
-          }))
-        },
-
-        bottomLeft: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const offsetsY = TransformDomain.Multiple.Reflow.Independent.calcSelectionBottomResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-          const offsetsX = TransformDomain.Multiple.Reflow.Independent.calcSelectionLeftResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...offsetsY.get(shape.id),
-            ...offsetsX.get(shape.id),
-          }))
-        },
-
-        topRight: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const offsetsY = TransformDomain.Multiple.Reflow.Independent.calcSelectionTopResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-          const offsetsX = TransformDomain.Multiple.Reflow.Independent.calcSelectionRightResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...offsetsY.get(shape.id),
-            ...offsetsX.get(shape.id),
-          }))
-        },
-
-        topLeft: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const offsetsY = TransformDomain.Multiple.Reflow.Independent.calcSelectionTopResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-          const offsetsX = TransformDomain.Multiple.Reflow.Independent.calcSelectionLeftResizeOffsets({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...offsetsY.get(shape.id),
-            ...offsetsX.get(shape.id),
-          }))
-        },
+        bottomRight: factory([Reflow.Independent.Short.bottom, Reflow.Independent.Short.right]),
+        bottomLeft: factory([Reflow.Independent.Short.bottom, Reflow.Independent.Short.left]),
+        topRight: factory([Reflow.Independent.Short.top, Reflow.Independent.Short.right]),
+        topLeft: factory([Reflow.Independent.Short.top, Reflow.Independent.Short.left]),
       },
 
       Proportional: {
-        bottomRight: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const patches = TransformDomain.Multiple.Reflow.Proportional.calcSelectionRightBoundReflowPatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...patches.get(shape.id)
-          }))
-        },
-
-        bottomLeft: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const patches = TransformDomain.Multiple.Reflow.Proportional.calcSelectionLeftBoundReflowPatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...patches.get(shape.id)
-          }))
-        },
-
-        topRight: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const patches = TransformDomain.Multiple.Reflow.Proportional.calcSelectionTopBoundReflowPatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...patches.get(shape.id)
-          }))
-        },
-
-        topLeft: ({ allShapes, selectedShapes, ...params }: ResizeMultipleFromBoundParams): ShapeToView[] => {
-          const patches = TransformDomain.Multiple.Reflow.Proportional.calcSelectionTopBoundReflowPatches({
-            ...params,
-            shapes: selectedShapes,
-          })
-
-          return mapSelectedShapes(allShapes, (shape) => ({
-            ...shape,
-            ...patches.get(shape.id)
-          }))
-        },
+        bottomRight: factory([Reflow.Proportional.Short.right]),
+        bottomLeft: factory([Reflow.Proportional.Short.left]),
+        topRight: factory([Reflow.Proportional.Short.top]),
+        topLeft: factory([Reflow.Proportional.Short.top]),
       },
     },
   },
