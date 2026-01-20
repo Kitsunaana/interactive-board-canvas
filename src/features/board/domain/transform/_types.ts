@@ -74,3 +74,10 @@ export const SELECTION_BOUNDS_PADDING = 7
 export const mapSelectedShapes = <T extends ShapeToView, R>(shapes: readonly T[], iteratee: (shape: T) => R): Array<T | R> => {
   return shapes.map((shape) => shape.isSelected ? iteratee(shape) : shape)
 }
+
+export const withDefaultTransformHandlers = (transform: Parameters<CalcShapeFromBoundAspectResizePatch>[1]) => ({
+  default: () => ({}),
+  frizen: () => ({}),
+  flip: () => ({}),
+  ...transform
+})

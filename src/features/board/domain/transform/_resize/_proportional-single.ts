@@ -1,7 +1,8 @@
-import { defaultTo } from "lodash"
-import { SELECTION_BOUNDS_PADDING, type CalcShapeFromBoundAspectResizePatch } from "../_types"
+import { SELECTION_BOUNDS_PADDING, withDefaultTransformHandlers, type CalcShapeFromBoundAspectResizePatch } from "../_types"
 
-export const calcShapeRightBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }) => {
+export const calcShapeRightBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
+  const handlers = withDefaultTransformHandlers(transform)
+
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -24,6 +25,7 @@ export const calcShapeRightBoundAspectResizePatch: CalcShapeFromBoundAspectResiz
       return {
         width: 0,
         height: 0,
+        ...handlers.frizen({ ...shape, nextHeight, nextWidth })
       }
     }
 
@@ -31,16 +33,20 @@ export const calcShapeRightBoundAspectResizePatch: CalcShapeFromBoundAspectResiz
       x: nextX,
       width: nextWidth,
       height: nextHeight,
+      ...handlers.flip({ ...shape, nextHeight, nextWidth })
     }
   }
 
   return {
     width: nextWidth,
     height: nextHeight,
+    ...handlers.default({ ...shape, nextHeight, nextWidth })
   }
 }
 
-export const calcShapeLeftBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }) => {
+export const calcShapeLeftBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
+  const handlers = withDefaultTransformHandlers(transform)
+
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -63,6 +69,7 @@ export const calcShapeLeftBoundAspectResizePatch: CalcShapeFromBoundAspectResize
         width: 0,
         height: 0,
         x: right,
+        ...handlers.frizen({ ...shape, nextHeight, nextWidth }),
       }
     }
 
@@ -70,6 +77,7 @@ export const calcShapeLeftBoundAspectResizePatch: CalcShapeFromBoundAspectResize
       x: right,
       width: nextWidth,
       height: nextHeight,
+      ...handlers.flip({ ...shape, nextHeight, nextWidth }),
     }
   }
 
@@ -77,10 +85,13 @@ export const calcShapeLeftBoundAspectResizePatch: CalcShapeFromBoundAspectResize
     x: shape.x - delta,
     width: nextWidth,
     height: nextHeight,
+    ...handlers.default({ ...shape, nextHeight, nextWidth }),
   }
 }
 
 export const calcShapeBottomBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
+  const handlers = withDefaultTransformHandlers(transform)
+
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const top = shape.y
@@ -104,7 +115,7 @@ export const calcShapeBottomBoundAspectResizePatch: CalcShapeFromBoundAspectResi
         y: top,
         width: 0,
         height: 0,
-        ...defaultTo(transform?.frizen?.({ ...shape, nextWidth, nextHeight }), {})
+        ...handlers.frizen({ ...shape, nextWidth, nextHeight })
       }
     }
 
@@ -112,18 +123,20 @@ export const calcShapeBottomBoundAspectResizePatch: CalcShapeFromBoundAspectResi
       y: nextY,
       width: nextWidth,
       height: nextHeight,
-      ...defaultTo(transform?.flip?.({ ...shape, nextWidth, nextHeight }), {})
+      ...handlers.flip({ ...shape, nextWidth, nextHeight })
     }
   }
 
   return {
     width: nextWidth,
     height: nextHeight,
-    ...defaultTo(transform?.default?.({ ...shape, nextWidth, nextHeight }), {})
+    ...handlers.default({ ...shape, nextWidth, nextHeight })
   }
 }
 
 export const calcShapeTopBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
+  const handlers = withDefaultTransformHandlers(transform)
+
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const top = shape.y
@@ -146,7 +159,7 @@ export const calcShapeTopBoundAspectResizePatch: CalcShapeFromBoundAspectResizeP
         y: bottom,
         width: 0,
         height: 0,
-        ...defaultTo(transform?.frizen?.({ ...shape, nextWidth, nextHeight }), {})
+        ...handlers.frizen({ ...shape, nextWidth, nextHeight })
       }
     }
 
@@ -154,7 +167,7 @@ export const calcShapeTopBoundAspectResizePatch: CalcShapeFromBoundAspectResizeP
       y: bottom,
       width: nextWidth,
       height: nextHeight,
-      ...defaultTo(transform?.flip?.({ ...shape, nextWidth, nextHeight }), {})
+      ...handlers.flip({ ...shape, nextWidth, nextHeight })
     }
   }
 
@@ -162,6 +175,6 @@ export const calcShapeTopBoundAspectResizePatch: CalcShapeFromBoundAspectResizeP
     y: shape.y - delta,
     width: nextWidth,
     height: nextHeight,
-    ...defaultTo(transform?.default?.({ ...shape, nextWidth, nextHeight }), {})
+    ...handlers.default({ ...shape, nextWidth, nextHeight })
   }
 }

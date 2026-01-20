@@ -38,28 +38,45 @@ export const SingleShapeResize = {
       bottom: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeBottomBoundAspectResizePatch({ cursor, shape }),
+          ...TransformDomain.Single.Resize.Proportional.calcShapeBottomBoundAspectResizePatch({ cursor, shape }, {
+            default: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
+            flip: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
+            frizen: (shape) => ({ x: shape.x + shape.width / 2 }),
+          }),
         }))
       },
 
       right: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeRightBoundAspectResizePatch({ cursor, shape }),
+          ...TransformDomain.Single.Resize.Proportional.calcShapeRightBoundAspectResizePatch({ cursor, shape }, {
+            default: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
+            flip: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
+            frizen: (shape) => ({ y: shape.y + shape.height / 2 }),
+          }),
         }))
       },
 
       left: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeLeftBoundAspectResizePatch({ cursor, shape }),
+          ...TransformDomain.Single.Resize.Proportional.calcShapeLeftBoundAspectResizePatch({ cursor, shape }, {
+            default: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
+            flip: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
+            frizen: (shape) => ({ y: shape.y + shape.height / 2 })
+          }),
         }))
       },
 
       top: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
-          ...TransformDomain.Single.Resize.Proportional.calcShapeTopBoundAspectResizePatch({ cursor, shape }),
+
+          ...TransformDomain.Single.Resize.Proportional.calcShapeTopBoundAspectResizePatch({ cursor, shape }, {
+            default: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
+            flip: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
+            frizen: (shape) => ({ x: shape.x + shape.width / 2 }),
+          }),
         }))
       }
       ,
