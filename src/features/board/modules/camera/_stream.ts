@@ -78,7 +78,20 @@ export const camera$ = cameraSubject$.pipe(rx.map(({ camera }) => camera))
 
 export const cameraWithInertia$ = rx.animationFrames().pipe(
   rx.withLatestFrom(cameraSubject$, userActivity$),
-  rx.scan((acc, [_, cameraState, isActive]) => isActive ? cameraState : inertiaCameraUpdate(acc), INITIAL_STATE),
+  rx.map(([_, cameraState, isActive]) => ({ cameraState, isActive })),
+  rx.pairwise(),
+  rx.map(([prev, current]) => ({ prev, current })),
+  rx.scan((acc, { current, prev }) => {
+    const prevX = prev.cameraState.camera.x
+    const currentX = current.cameraState.camera.x
+
+    const prevY = prev.cameraState.camera.y
+    const currentY = current.cameraState.camera.y
+
+    const notNeedApplyInertia = currentX === prevX && currentY === prevY
+
+    return (current.isActive || notNeedApplyInertia) ? current.cameraState : inertiaCameraUpdate(acc)
+  }, INITIAL_STATE),
   rx.distinctUntilChanged(_.isEqual)
 )
 
