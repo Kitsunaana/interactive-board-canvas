@@ -25,7 +25,7 @@ const isDragging$ = rx.merge(pointerDown$.pipe(rx.map(() => true)), pointerUp$.p
 )
 
 const isCtrlPressed$ = rx.merge(pointerMove$, pointerDown$, pointerUp$).pipe(
-  rx.map(event => event.ctrlKey),
+  rx.map(event => event.ctrlKey && !event.shiftKey),
   rx.startWith(false),
   rx.distinctUntilChanged(),
   rx.shareReplay({ bufferSize: 1, refCount: true })

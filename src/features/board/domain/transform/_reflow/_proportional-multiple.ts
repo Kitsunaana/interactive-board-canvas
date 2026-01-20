@@ -1,15 +1,17 @@
-import type { ResizeMultipleFromBoundParams } from "../_shared"
-import { SELECTION_BOUNDS_PADDING, mapSelectedShapes } from "../_shared"
+import type { Rect } from "@/shared/type/shared"
+import { mapSelectedShapes, SELECTION_BOUNDS_PADDING, type CalcSelectionFromBoundReflowPatches } from "../_types"
 
-export const reflowFromRightBound = ({ selectionArea, shapes, cursor }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionRightBoundReflowPatches: CalcSelectionFromBoundReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
-  const top = selectionArea.y
 
+  const centerY = selectionArea.y + selectionArea.height / 2
   const scale = (cursorX - left) / selectionArea.width
 
-  return mapSelectedShapes(shapes, (shape) => {
+  const toReflowShapes = new Map<string, Partial<Rect>>()
+
+  mapSelectedShapes(shapes, (shape) => {
     const centerHeight = shape.height / 2
     const centerWidth = shape.width / 2
 
@@ -20,27 +22,29 @@ export const reflowFromRightBound = ({ selectionArea, shapes, cursor }: ResizeMu
     const easedT = Math.max(0, Math.min(1, t))
 
     const nextCenterX = left + easedT * selectionArea.width * scale
-    const nextCenterY = top + (shapeCenterY - top) * scale
+    const nextCenterY = centerY + (shapeCenterY - centerY) * scale
 
-    return {
-      ...shape,
+    toReflowShapes.set(shape.id, {
       x: nextCenterX - centerWidth,
       y: nextCenterY - centerHeight,
-    }
+    })
   })
+
+  return toReflowShapes
 }
 
-export const reflowFromLeftBound = ({ selectionArea, shapes, cursor }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionLeftBoundReflowPatches: CalcSelectionFromBoundReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
-  const top = selectionArea.y
   const right = left + selectionArea.width
-  const bottom = top + selectionArea.height
 
+  const centerY = selectionArea.y + selectionArea.height / 2
   const scale = (cursorX - right) / selectionArea.width
 
-  return mapSelectedShapes(shapes, (shape) => {
+  const toReflowShapes = new Map<string, Partial<Rect>>()
+
+  mapSelectedShapes(shapes, (shape) => {
     const centerHeight = shape.height / 2
     const centerWidth = shape.width / 2
 
@@ -51,27 +55,30 @@ export const reflowFromLeftBound = ({ selectionArea, shapes, cursor }: ResizeMul
     const easedT = Math.max(0, Math.min(1, t))
 
     const nextCenterX = right + easedT * selectionArea.width * scale
-    const nextCenterY = bottom + (bottom - shapeCenterY) * scale
+    const nextCenterY = centerY + (centerY - shapeCenterY) * scale
 
-    return {
-      ...shape,
+    toReflowShapes.set(shape.id, {
       x: nextCenterX - centerWidth,
       y: nextCenterY - centerHeight,
-    }
+    })
   })
+
+  return toReflowShapes
 }
 
-export const reflowFromTopBound = ({ selectionArea, shapes, cursor }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionTopBoundReflowPatches: CalcSelectionFromBoundReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
   const top = selectionArea.y
-  const right = left + selectionArea.width
   const bottom = top + selectionArea.height
 
+  const centerX = left + selectionArea.width / 2
   const scale = (cursorY - bottom) / selectionArea.height
 
-  return mapSelectedShapes(shapes, (shape) => {
+  const toReflowShapes = new Map<string, Partial<Rect>>()
+
+  mapSelectedShapes(shapes, (shape) => {
     const centerHeight = shape.height / 2
     const centerWidth = shape.width / 2
 
@@ -81,26 +88,29 @@ export const reflowFromTopBound = ({ selectionArea, shapes, cursor }: ResizeMult
     const t = (bottom - shapeCenterY) / selectionArea.height
     const easedT = Math.max(0, Math.min(1, t))
 
-    const nextCenterX = right + (right - shapeCenterX) * scale
+    const nextCenterX = centerX + (centerX - shapeCenterX) * scale
     const nextCenterY = bottom + easedT * selectionArea.height * scale
 
-    return {
-      ...shape,
+    toReflowShapes.set(shape.id, {
       x: nextCenterX - centerWidth,
       y: nextCenterY - centerHeight,
-    }
+    })
   })
+
+  return toReflowShapes
 }
 
-export const reflowFromBottomBound = ({ selectionArea, shapes, cursor }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionBottomBoundReflowPatches: CalcSelectionFromBoundReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
-  const left = selectionArea.x
   const top = selectionArea.y
 
+  const centerX = selectionArea.x + selectionArea.width / 2
   const scale = (cursorY - top) / selectionArea.height
 
-  return mapSelectedShapes(shapes, (shape) => {
+  const toReflowShapes = new Map<string, Partial<Rect>>()
+
+  mapSelectedShapes(shapes, (shape) => {
     const centerWidth = shape.width / 2
     const centerHeight = shape.height / 2
 
@@ -110,13 +120,14 @@ export const reflowFromBottomBound = ({ selectionArea, shapes, cursor }: ResizeM
     const t = (shapeCenterY - top) / selectionArea.height
     const easedT = Math.max(0, Math.min(1, t))
 
-    const nextCenterX = left + (shapeCenterX - left) * scale
+    const nextCenterX = centerX + (shapeCenterX - centerX) * scale
     const nextCenterY = top + easedT * selectionArea.height * scale
 
-    return {
-      ...shape,
+    toReflowShapes.set(shape.id, {
       x: nextCenterX - centerWidth,
       y: nextCenterY - centerHeight,
-    }
+    })
   })
+
+  return toReflowShapes
 }

@@ -1,8 +1,7 @@
 import { defaultTo } from "lodash"
-import type { ApplyBoundResizeParams, ResizeSingleFromBoundParams } from "../_shared"
-import { mapSelectedShapes, SELECTION_BOUNDS_PADDING } from "../_shared"
+import { SELECTION_BOUNDS_PADDING, type CalcShapeFromBoundAspectResizePatch } from "../_types"
 
-export const applyRightBoundResize = ({ shape, cursor }: ApplyBoundResizeParams) => {
+export const calcShapeRightBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -41,7 +40,7 @@ export const applyRightBoundResize = ({ shape, cursor }: ApplyBoundResizeParams)
   }
 }
 
-export const applyLeftBoundResize = ({ shape, cursor }: ApplyBoundResizeParams) => {
+export const calcShapeLeftBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -61,7 +60,6 @@ export const applyLeftBoundResize = ({ shape, cursor }: ApplyBoundResizeParams) 
 
     if (nextWidth <= 0) {
       return {
-        // ...shape,
         width: 0,
         height: 0,
         x: right,
@@ -69,26 +67,20 @@ export const applyLeftBoundResize = ({ shape, cursor }: ApplyBoundResizeParams) 
     }
 
     return {
-      // ...shape,
       x: right,
       width: nextWidth,
       height: nextHeight,
-
-      __flip: true,
     }
   }
 
   return {
-    // ...shape,
     x: shape.x - delta,
     width: nextWidth,
     height: nextHeight,
-
-    __flip: false,
   }
 }
 
-export const applyBottomBoundResize = ({ shape, cursor, ...params }: ApplyBoundResizeParams) => {
+export const calcShapeBottomBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const top = shape.y
@@ -112,7 +104,7 @@ export const applyBottomBoundResize = ({ shape, cursor, ...params }: ApplyBoundR
         y: top,
         width: 0,
         height: 0,
-        ...defaultTo(params.frizen?.({ ...shape, nextWidth, nextHeight }), {})
+        ...defaultTo(transform?.frizen?.({ ...shape, nextWidth, nextHeight }), {})
       }
     }
 
@@ -120,18 +112,18 @@ export const applyBottomBoundResize = ({ shape, cursor, ...params }: ApplyBoundR
       y: nextY,
       width: nextWidth,
       height: nextHeight,
-      ...defaultTo(params.flip?.({ ...shape, nextWidth, nextHeight }), {})
+      ...defaultTo(transform?.flip?.({ ...shape, nextWidth, nextHeight }), {})
     }
   }
 
   return {
     width: nextWidth,
     height: nextHeight,
-    ...defaultTo(params.default?.({ ...shape, nextWidth, nextHeight }), {})
+    ...defaultTo(transform?.default?.({ ...shape, nextWidth, nextHeight }), {})
   }
 }
 
-export const applyTopBoundResize = ({ shape, cursor, ...params }: ApplyBoundResizeParams) => {
+export const calcShapeTopBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const top = shape.y
@@ -154,7 +146,7 @@ export const applyTopBoundResize = ({ shape, cursor, ...params }: ApplyBoundResi
         y: bottom,
         width: 0,
         height: 0,
-        ...defaultTo(params.frizen?.({ ...shape, nextWidth, nextHeight }), {})
+        ...defaultTo(transform?.frizen?.({ ...shape, nextWidth, nextHeight }), {})
       }
     }
 
@@ -162,7 +154,7 @@ export const applyTopBoundResize = ({ shape, cursor, ...params }: ApplyBoundResi
       y: bottom,
       width: nextWidth,
       height: nextHeight,
-      ...defaultTo(params.flip?.({ ...shape, nextWidth, nextHeight }), {})
+      ...defaultTo(transform?.flip?.({ ...shape, nextWidth, nextHeight }), {})
     }
   }
 
@@ -170,34 +162,6 @@ export const applyTopBoundResize = ({ shape, cursor, ...params }: ApplyBoundResi
     y: shape.y - delta,
     width: nextWidth,
     height: nextHeight,
-    ...defaultTo(params.default?.({ ...shape, nextWidth, nextHeight }), {})
+    ...defaultTo(transform?.default?.({ ...shape, nextWidth, nextHeight }), {})
   }
-}
-
-export const resizeFromBottomBound = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    ...applyBottomBoundResize({ cursor, shape }),
-  }))
-}
-
-export const resizeFromRightBound = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    ...applyRightBoundResize({ cursor, shape }),
-  }))
-}
-
-export const resizeFromLeftBound = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    ...applyLeftBoundResize({ cursor, shape }),
-  }))
-}
-
-export const resizeFromTopBound = ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    ...applyTopBoundResize({ cursor, shape }),
-  }))
 }

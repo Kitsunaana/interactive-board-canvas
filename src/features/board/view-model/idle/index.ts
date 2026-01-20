@@ -13,6 +13,7 @@ import { autoSelectionBounds$, pressedResizeHandlerSubject$ } from "../selection
 import { goToIdle, goToNodesDragging, goToShapesResize, isIdle, viewModel$, viewState$ } from "../state"
 import { endMoveShapes, getMovedShapes, startMoveShape } from "./moving"
 import { shapeSelect } from "./selection"
+import type { ShapeToView } from "../../domain/shape"
 
 const applyResizeViaBoundCursor = (node: NodeBound) => {
   document.documentElement.style.cursor = match(node, {
@@ -115,7 +116,7 @@ const shapesResizeFlow$ = mouseDown$.pipe(
             proportional: moveEvent.shiftKey,
             reflow: moveEvent.ctrlKey,
             cursor: canvasPoint,
-          })
+          }) as ShapeToView[]
         }),
         rx.takeUntil(
           rx.merge(pointerUp$, pointerLeave$).pipe(rx.tap(() => {

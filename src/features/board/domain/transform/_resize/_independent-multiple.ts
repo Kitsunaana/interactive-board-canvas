@@ -1,8 +1,8 @@
 import type { ShapeToView } from "../../shape"
-import type { ResizeMultipleFromBoundParams } from "../_shared"
-import { mapSelectedShapes, SELECTION_BOUNDS_PADDING } from "../_shared"
+import type { ResizeMultipleFromBoundParams } from "../_types"
+import { mapSelectedShapes, SELECTION_BOUNDS_PADDING } from "../_types"
 
-export const topWithFlipToBottom = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionTopBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
 
@@ -49,7 +49,7 @@ export const topWithFlipToBottom = ({ cursor, shapes, selectionArea }: ResizeMul
   return toTransformShapes
 }
 
-export const leftWithFlipToRight = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionLeftBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
 
@@ -96,7 +96,7 @@ export const leftWithFlipToRight = ({ cursor, shapes, selectionArea }: ResizeMul
   return toTransformShapes
 }
 
-export const bottomWithFlipToTop = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionBottomBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
 
@@ -144,7 +144,7 @@ export const bottomWithFlipToTop = ({ cursor, shapes, selectionArea }: ResizeMul
   return toTransformShapes
 }
 
-export const rightWithFlipToLeft = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionRightBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
 
@@ -189,42 +189,4 @@ export const rightWithFlipToLeft = ({ cursor, shapes, selectionArea }: ResizeMul
   }
 
   return toTransformShapes
-}
-
-
-
-export const resizeFromLeftBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
-  const resizeXAxisShapes = leftWithFlipToRight({ cursor, shapes, selectionArea })
-
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    ...resizeXAxisShapes.get(shape.id),
-  }))
-}
-
-export const resizeFromRightBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
-  const resizeXAxisShapes = rightWithFlipToLeft({ cursor, shapes, selectionArea })
-
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    ...resizeXAxisShapes.get(shape.id),
-  }))
-}
-
-export const resizeFromTopBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
-  const resizeYAxisShapes = topWithFlipToBottom({ cursor, shapes, selectionArea })
-
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    ...resizeYAxisShapes.get(shape.id),
-  }))
-}
-
-export const resizeFromBottomBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
-  const resizeYAxisShapes = bottomWithFlipToTop({ cursor, shapes, selectionArea })
-
-  return mapSelectedShapes(shapes, (shape) => ({
-    ...shape,
-    ...resizeYAxisShapes.get(shape.id),
-  }))
 }

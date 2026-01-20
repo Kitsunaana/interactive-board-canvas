@@ -72,14 +72,14 @@ const recalculateFromTopLeftCorner = ({ initial, cursor }: RecalculateFromBoundP
   ...recalculateFromTopBound({ initial, cursor }),
 })
 
-export const recalculateSelectionAreaFromBound = {
+export const calcSelectionAreaFromBound = {
   bottom: recalculateFromBottomBound,
   right: recalculateFromRightBound,
   left: recalculateFromLeftBound,
   top: recalculateFromTopBound,
 }
 
-export const recalculateSelectionAreaFromCorner = {
+export const calcSelectionAreaFromCorner = {
   bottomRight: recalculateFromBottomRightCorner,
   bottomLeft: recalculateFromBottomLeftCorner,
   topRight: recalculateFromTopRightCorner,

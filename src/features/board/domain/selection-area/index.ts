@@ -2,4 +2,4 @@ export type { Bound, NodeBound, SelectionArea, Corner, NodeCorner } from "./_typ
 
 export { computeSelectionBoundsArea } from "./_compute"
 
-export { recalculateSelectionAreaFromBound, recalculateSelectionAreaFromCorner } from "./_recalculate"
+export { calcSelectionAreaFromBound as recalculateSelectionAreaFromBound, calcSelectionAreaFromCorner as recalculateSelectionAreaFromCorner } from "./_recalculate"

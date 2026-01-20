@@ -1,8 +1,9 @@
+import type { Rect } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
-import type { RectBounds, ResizeMultipleFromBoundParams } from "../_shared"
-import { SELECTION_BOUNDS_PADDING, mapSelectedShapes } from "../_shared"
+import type { RectBounds, ResizeMultipleFromBoundParams } from "../_types"
+import { SELECTION_BOUNDS_PADDING, mapSelectedShapes } from "../_types"
 
-export const resizeFromRightBound = ({ cursor, shapes, selectionArea, ...params }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionRightBoundAspectResizePatches = ({ cursor, shapes, selectionArea, ...params }: ResizeMultipleFromBoundParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
   const top = selectionArea.y
@@ -18,57 +19,64 @@ export const resizeFromRightBound = ({ cursor, shapes, selectionArea, ...params 
 
   const scale = nextWidth / prevWidth
 
+  const toTransformShapes = new Map<string, Partial<Rect>>()
+
   if (nextWidth <= 0) {
     const delta = left - cursorX
     const nextWidth = delta - SELECTION_BOUNDS_PADDING * 2
     const scale = nextWidth / prevWidth
 
     if (nextWidth <= 0) {
-      return mapSelectedShapes(shapes, (shape) => ({
-        ...shape,
-        y: top,
-        x: left,
-        width: 0,
-        height: 0,
-        ...defaultTo(params.frizen?.(scale, shape, areaBounds), {})
-      }))
+      mapSelectedShapes(shapes, (shape) => {
+        toTransformShapes.set(shape.id, {
+          y: top,
+          x: left,
+          width: 0,
+          height: 0,
+          ...defaultTo(params.frizen?.(scale, shape, areaBounds), {})
+        })
+      })
+
+      return toTransformShapes
     }
 
-    return mapSelectedShapes(shapes, (shape) => {
+    mapSelectedShapes(shapes, (shape) => {
       const aspectRatio = shape.height / shape.width
 
       const nextWidth = shape.width * scale
       const nextHeight = nextWidth * aspectRatio
 
-      return {
-        ...shape,
+      toTransformShapes.set(shape.id, {
         width: nextWidth,
         height: nextHeight,
         y: top + (shape.y - bottom) * scale,
         x: left + (shape.x - right) * scale,
         ...defaultTo(params.flip?.(scale, shape, areaBounds), {})
-      }
+      })
     })
+
+    return toTransformShapes
   }
 
-  return mapSelectedShapes(shapes, (shape) => {
+  mapSelectedShapes(shapes, (shape) => {
     const aspectRatio = shape.height / shape.width
 
     const nextWidth = shape.width * scale
     const nextHeight = nextWidth * aspectRatio
 
-    return {
-      ...shape,
+    toTransformShapes.set(shape.id, {
       width: nextWidth,
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: left + (shape.x - left) * scale,
       ...defaultTo(params.default?.(scale, shape, areaBounds), {})
-    }
+    })
   })
+
+  return toTransformShapes
 }
 
-export const resizeFromLeftBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionLeftBoundAspectResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
   const top = selectionArea.y
@@ -81,54 +89,61 @@ export const resizeFromLeftBound = ({ cursor, shapes, selectionArea }: ResizeMul
   const nextWidth = prevWidth + delta
   const scale = nextWidth / prevWidth
 
+  const toTransformShapes = new Map<string, Partial<Rect>>()
+
   if (nextWidth <= 0) {
     const delta = cursorX - right
     const nextWidth = delta - SELECTION_BOUNDS_PADDING * 2
     const scale = nextWidth / prevWidth
 
     if (nextWidth <= 0) {
-      return mapSelectedShapes(shapes, (shape) => ({
-        ...shape,
-        y: top,
-        x: right,
-        width: 0,
-        height: 0,
-      }))
+      mapSelectedShapes(shapes, (shape) => {
+        toTransformShapes.set(shape.id, {
+          y: top,
+          x: right,
+          width: 0,
+          height: 0,
+        })
+      })
+
+      return toTransformShapes
     }
 
-    return mapSelectedShapes(shapes, (shape) => {
+    mapSelectedShapes(shapes, (shape) => {
       const aspectRatio = shape.height / shape.width
 
       const nextWidth = shape.width * scale
       const nextHeight = nextWidth * aspectRatio
 
-      return {
-        ...shape,
+      toTransformShapes.set(shape.id, {
         width: nextWidth,
         height: nextHeight,
         y: top + (shape.y - bottom) * scale,
         x: right + (shape.x - left) * scale,
-      }
+      })
     })
+
+    return toTransformShapes
   }
 
-  return mapSelectedShapes(shapes, (shape) => {
+  mapSelectedShapes(shapes, (shape) => {
     const aspectRatio = shape.height / shape.width
 
     const nextWidth = shape.width * scale
     const nextHeight = nextWidth * aspectRatio
 
-    return {
-      ...shape,
+    toTransformShapes.set(shape.id, {
       width: nextWidth,
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: right + (shape.x - right) * scale,
-    }
+    })
   })
+
+  return toTransformShapes
 }
 
-export const resizeFromTopBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionTopBoundAspectResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
   const left = selectionArea.x
@@ -141,54 +156,62 @@ export const resizeFromTopBound = ({ cursor, shapes, selectionArea }: ResizeMult
   const nextHeight = prevHeight + delta
   const scale = nextHeight / prevHeight
 
+  const toTransformShapes = new Map<string, Partial<Rect>>()
+
   if (nextHeight <= 0) {
     const delta = cursorPositionY - bottom
     const nextHeight = delta - SELECTION_BOUNDS_PADDING * 2
     const scale = nextHeight / prevHeight
 
     if (nextHeight <= 0) {
-      return mapSelectedShapes(shapes, (shape) => ({
-        ...shape,
-        x: right,
-        y: bottom,
-        width: 0,
-        height: 0,
-      }))
+      mapSelectedShapes(shapes, (shape) => {
+        toTransformShapes.set(shape.id, {
+          x: right,
+          y: bottom,
+          width: 0,
+          height: 0,
+        })
+      })
+
+      return toTransformShapes
     }
 
-    return mapSelectedShapes(shapes, (shape) => {
+    mapSelectedShapes(shapes, (shape) => {
       const aspectRatio = shape.width / shape.height
 
       const nextHeight = shape.height * scale
       const nextWidth = nextHeight * aspectRatio
 
-      return {
-        ...shape,
+      toTransformShapes.set(shape.id, {
         width: nextWidth,
         height: nextHeight,
         y: bottom + (shape.y - top) * scale,
         x: right + (shape.x - left) * scale,
-      }
+      })
     })
+
+    return toTransformShapes
   }
 
-  return mapSelectedShapes(shapes, (shape) => {
+  mapSelectedShapes(shapes, (shape) => {
     const aspectRatio = shape.width / shape.height
 
     const nextHeight = shape.height * scale
     const nextWidth = nextHeight * aspectRatio
 
-    return {
-      ...shape,
+    toTransformShapes.set(shape.id, {
       width: nextWidth,
       height: nextHeight,
       y: bottom + (shape.y - bottom) * scale,
       x: right + (shape.x - right) * scale,
-    }
+    })
   })
+
+
+  return toTransformShapes
 }
 
-export const resizeFromBottomBound = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionBottomBoundAspectResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
   const left = selectionArea.x
@@ -202,6 +225,8 @@ export const resizeFromBottomBound = ({ cursor, shapes, selectionArea }: ResizeM
 
   const scale = nextHeight / prevHeight
 
+  const toTransformShapes = new Map<string, Partial<Rect>>()
+
   if (nextHeight <= 0) {
     const delta = top - cursorPositionY
     const nextHeight = delta - SELECTION_BOUNDS_PADDING * 2
@@ -209,43 +234,48 @@ export const resizeFromBottomBound = ({ cursor, shapes, selectionArea }: ResizeM
     const scale = nextHeight / prevHeight
 
     if (nextHeight <= 0) {
-      return mapSelectedShapes(shapes, (shape) => ({
-        ...shape,
-        y: top,
-        x: right,
-        width: 0,
-        height: 0,
-      }))
+      mapSelectedShapes(shapes, (shape) => {
+        toTransformShapes.set(shape.id, {
+          y: top,
+          x: right,
+          width: 0,
+          height: 0,
+        })
+      })
+
+      return toTransformShapes
     }
 
-    return mapSelectedShapes(shapes, (shape) => {
+    mapSelectedShapes(shapes, (shape) => {
       const aspectRatio = shape.width / shape.height
 
       const nextHeight = shape.height * scale
       const nextWidth = nextHeight * aspectRatio
 
-      return {
-        ...shape,
+      toTransformShapes.set(shape.id, {
         width: nextWidth,
         height: nextHeight,
         x: right + (shape.x - left) * scale,
         y: top + (shape.y - bottom) * scale,
-      }
+      })
     })
+
+    return toTransformShapes
   }
 
-  return mapSelectedShapes(shapes, (shape) => {
+  mapSelectedShapes(shapes, (shape) => {
     const aspectRatio = shape.width / shape.height
 
     const nextHeight = shape.height * scale
     const nextWidth = nextHeight * aspectRatio
 
-    return {
-      ...shape,
+    toTransformShapes.set(shape.id, {
       width: nextWidth,
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: right + (shape.x - right) * scale,
-    }
+    })
   })
+
+  return toTransformShapes
 }
