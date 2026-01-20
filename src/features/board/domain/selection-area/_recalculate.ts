@@ -1,5 +1,5 @@
 import type { Point } from "@/shared/type/shared"
-import type { SelectionArea } from "./_type"
+import type { SelectionArea } from "./_types"
 
 export const SELECTION_BOUNDS_PADDING = 7
 
@@ -52,24 +52,24 @@ const recalculateFromBottomBound = ({ initial, cursor }: RecalculateFromBoundPar
   }
 }
 
-const recalculateFromBottomRightCorner = ({ initial, cursor }: RecalculateFromBoundParams) => ({
-  ...recalculateFromRightBound({ initial, cursor }),
-  ...recalculateFromBottomBound({ initial, cursor }),
+const recalculateFromBottomRightCorner = (params: RecalculateFromBoundParams) => ({
+  ...recalculateFromRightBound(params),
+  ...recalculateFromBottomBound(params),
 })
 
-const recalculateFromBottomLeftCorner = ({ initial, cursor }: RecalculateFromBoundParams) => ({
-  ...recalculateFromLeftBound({ initial, cursor }),
-  ...recalculateFromBottomBound({ initial, cursor }),
+const recalculateFromBottomLeftCorner = (params: RecalculateFromBoundParams) => ({
+  ...recalculateFromLeftBound(params),
+  ...recalculateFromBottomBound(params),
 })
 
-const recalculateFromTopRightCorner = ({ initial, cursor }: RecalculateFromBoundParams) => ({
-  ...recalculateFromRightBound({ initial, cursor }),
-  ...recalculateFromTopBound({ initial, cursor }),
+const recalculateFromTopRightCorner = (params: RecalculateFromBoundParams) => ({
+  ...recalculateFromRightBound(params),
+  ...recalculateFromTopBound(params),
 })
 
-const recalculateFromTopLeftCorner = ({ initial, cursor }: RecalculateFromBoundParams) => ({
-  ...recalculateFromLeftBound({ initial, cursor }),
-  ...recalculateFromTopBound({ initial, cursor }),
+const recalculateFromTopLeftCorner = (params: RecalculateFromBoundParams) => ({
+  ...recalculateFromLeftBound(params),
+  ...recalculateFromTopBound(params),
 })
 
 export const calcSelectionAreaFromBound = {

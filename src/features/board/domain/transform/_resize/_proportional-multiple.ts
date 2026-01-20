@@ -1,15 +1,19 @@
 import type { Rect } from "@/shared/type/shared"
-import { defaultTo } from "lodash"
-import type { RectBounds, ResizeMultipleFromBoundParams } from "../_types"
-import { SELECTION_BOUNDS_PADDING, mapSelectedShapes } from "../_types"
+import { forEach } from "lodash"
+import type { CalcSelectionFromBoundAspectResizePatches } from "../_types"
+import { SELECTION_BOUNDS_PADDING, withDefaultTransformHandlers } from "../_types"
 
-export const calcSelectionRightBoundAspectResizePatches = ({ cursor, shapes, selectionArea, ...params }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionRightBoundAspectResizePatches: CalcSelectionFromBoundAspectResizePatches = ({
+  selectionArea,
+  cursor,
+  shapes,
+}, transform) => {
+  const handlers = withDefaultTransformHandlers(transform)
+
   const left = selectionArea.x
   const right = left + selectionArea.width
   const top = selectionArea.y
   const bottom = selectionArea.y + selectionArea.height
-
-  const areaBounds: RectBounds = { bottom, right, left, top }
 
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
   const delta = cursorX - right
@@ -27,20 +31,20 @@ export const calcSelectionRightBoundAspectResizePatches = ({ cursor, shapes, sel
     const scale = nextWidth / prevWidth
 
     if (nextWidth <= 0) {
-      mapSelectedShapes(shapes, (shape) => {
+      forEach(shapes, (shape) => {
         toTransformShapes.set(shape.id, {
           y: top,
           x: left,
           width: 0,
           height: 0,
-          ...defaultTo(params.frizen?.(scale, shape, areaBounds), {})
+          ...handlers.frizen({ ...shape, scale }),
         })
       })
 
       return toTransformShapes
     }
 
-    mapSelectedShapes(shapes, (shape) => {
+    forEach(shapes, (shape) => {
       const aspectRatio = shape.height / shape.width
 
       const nextWidth = shape.width * scale
@@ -51,14 +55,14 @@ export const calcSelectionRightBoundAspectResizePatches = ({ cursor, shapes, sel
         height: nextHeight,
         y: top + (shape.y - bottom) * scale,
         x: left + (shape.x - right) * scale,
-        ...defaultTo(params.flip?.(scale, shape, areaBounds), {})
+        ...handlers.flip({ ...shape, scale }),
       })
     })
 
     return toTransformShapes
   }
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const aspectRatio = shape.height / shape.width
 
     const nextWidth = shape.width * scale
@@ -69,14 +73,20 @@ export const calcSelectionRightBoundAspectResizePatches = ({ cursor, shapes, sel
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: left + (shape.x - left) * scale,
-      ...defaultTo(params.default?.(scale, shape, areaBounds), {})
+      ...handlers.default({ ...shape, scale }),
     })
   })
 
   return toTransformShapes
 }
 
-export const calcSelectionLeftBoundAspectResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionFromBoundAspectResizePatches = ({
+  selectionArea,
+  cursor,
+  shapes,
+}, transform) => {
+  const handlers = withDefaultTransformHandlers(transform)
+
   const left = selectionArea.x
   const right = left + selectionArea.width
   const top = selectionArea.y
@@ -97,19 +107,20 @@ export const calcSelectionLeftBoundAspectResizePatches = ({ cursor, shapes, sele
     const scale = nextWidth / prevWidth
 
     if (nextWidth <= 0) {
-      mapSelectedShapes(shapes, (shape) => {
+      forEach(shapes, (shape) => {
         toTransformShapes.set(shape.id, {
           y: top,
           x: right,
           width: 0,
           height: 0,
+          ...handlers.frizen({ ...shape, scale }),
         })
       })
 
       return toTransformShapes
     }
 
-    mapSelectedShapes(shapes, (shape) => {
+    forEach(shapes, (shape) => {
       const aspectRatio = shape.height / shape.width
 
       const nextWidth = shape.width * scale
@@ -120,13 +131,14 @@ export const calcSelectionLeftBoundAspectResizePatches = ({ cursor, shapes, sele
         height: nextHeight,
         y: top + (shape.y - bottom) * scale,
         x: right + (shape.x - left) * scale,
+        ...handlers.flip({ ...shape, scale }),
       })
     })
 
     return toTransformShapes
   }
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const aspectRatio = shape.height / shape.width
 
     const nextWidth = shape.width * scale
@@ -137,13 +149,20 @@ export const calcSelectionLeftBoundAspectResizePatches = ({ cursor, shapes, sele
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: right + (shape.x - right) * scale,
+      ...handlers.default({ ...shape, scale }),
     })
   })
 
   return toTransformShapes
 }
 
-export const calcSelectionTopBoundAspectResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionTopBoundAspectResizePatches: CalcSelectionFromBoundAspectResizePatches = ({
+  selectionArea,
+  cursor,
+  shapes,
+}, transform) => {
+  const handlers = withDefaultTransformHandlers(transform)
+
   const top = selectionArea.y
   const bottom = top + selectionArea.height
   const left = selectionArea.x
@@ -164,19 +183,20 @@ export const calcSelectionTopBoundAspectResizePatches = ({ cursor, shapes, selec
     const scale = nextHeight / prevHeight
 
     if (nextHeight <= 0) {
-      mapSelectedShapes(shapes, (shape) => {
+      forEach(shapes, (shape) => {
         toTransformShapes.set(shape.id, {
           x: right,
           y: bottom,
           width: 0,
           height: 0,
+          ...handlers.frizen({ ...shape, scale })
         })
       })
 
       return toTransformShapes
     }
 
-    mapSelectedShapes(shapes, (shape) => {
+    forEach(shapes, (shape) => {
       const aspectRatio = shape.width / shape.height
 
       const nextHeight = shape.height * scale
@@ -185,15 +205,16 @@ export const calcSelectionTopBoundAspectResizePatches = ({ cursor, shapes, selec
       toTransformShapes.set(shape.id, {
         width: nextWidth,
         height: nextHeight,
-        y: bottom + (shape.y - top) * scale,
         x: right + (shape.x - left) * scale,
+        y: bottom + (shape.y - top) * scale,
+        ...handlers.flip({ ...shape, scale })
       })
     })
 
     return toTransformShapes
   }
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const aspectRatio = shape.width / shape.height
 
     const nextHeight = shape.height * scale
@@ -202,8 +223,9 @@ export const calcSelectionTopBoundAspectResizePatches = ({ cursor, shapes, selec
     toTransformShapes.set(shape.id, {
       width: nextWidth,
       height: nextHeight,
-      y: bottom + (shape.y - bottom) * scale,
       x: right + (shape.x - right) * scale,
+      y: bottom + (shape.y - bottom) * scale,
+      ...handlers.default({ ...shape, scale })
     })
   })
 
@@ -211,7 +233,13 @@ export const calcSelectionTopBoundAspectResizePatches = ({ cursor, shapes, selec
   return toTransformShapes
 }
 
-export const calcSelectionBottomBoundAspectResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionFromBoundAspectResizePatches = ({
+  selectionArea,
+  cursor,
+  shapes,
+}, transform) => {
+  const handlers = withDefaultTransformHandlers(transform)
+
   const top = selectionArea.y
   const bottom = top + selectionArea.height
   const left = selectionArea.x
@@ -234,19 +262,20 @@ export const calcSelectionBottomBoundAspectResizePatches = ({ cursor, shapes, se
     const scale = nextHeight / prevHeight
 
     if (nextHeight <= 0) {
-      mapSelectedShapes(shapes, (shape) => {
+      forEach(shapes, (shape) => {
         toTransformShapes.set(shape.id, {
           y: top,
           x: right,
           width: 0,
           height: 0,
+          ...handlers.frizen({ ...shape, scale })
         })
       })
 
       return toTransformShapes
     }
 
-    mapSelectedShapes(shapes, (shape) => {
+    forEach(shapes, (shape) => {
       const aspectRatio = shape.width / shape.height
 
       const nextHeight = shape.height * scale
@@ -257,13 +286,14 @@ export const calcSelectionBottomBoundAspectResizePatches = ({ cursor, shapes, se
         height: nextHeight,
         x: right + (shape.x - left) * scale,
         y: top + (shape.y - bottom) * scale,
+        ...handlers.flip({ ...shape, scale })
       })
     })
 
     return toTransformShapes
   }
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const aspectRatio = shape.width / shape.height
 
     const nextHeight = shape.height * scale
@@ -274,6 +304,7 @@ export const calcSelectionBottomBoundAspectResizePatches = ({ cursor, shapes, se
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: right + (shape.x - right) * scale,
+      ...handlers.default({ ...shape, scale })
     })
   })
 

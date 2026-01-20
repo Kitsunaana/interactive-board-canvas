@@ -1,41 +1,43 @@
+import type { ShapeToView } from "../../domain/shape"
 import { TransformDomain } from "../../domain/transform"
-import { mapSelectedShapes, type ResizeSingleFromBoundParams } from "../../domain/transform/_types"
+import { mapSelectedShapes } from "./_types"
+import type { ResizeSingleFromBoundParams } from "./_types"
+
 
 export const SingleShapeResize = {
   ViaBound: {
     Independent: {
-      bottom: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      bottom: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Independent.calcShapeBottomBoundResizePatch({ cursor, shape }),
         }))
       },
 
-      right: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      right: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Independent.calcShapeRightBoundResizePatch({ cursor, shape }),
         }))
       },
 
-      left: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      left: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Independent.calcShapeLeftBoundResizePatch({ cursor, shape }),
         }))
       },
 
-      top: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      top: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Independent.calcShapeTopBoundResizePatch({ cursor, shape }),
         }))
-      }
-      ,
+      },
     },
 
     Proportional: {
-      bottom: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      bottom: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Proportional.calcShapeBottomBoundAspectResizePatch({ cursor, shape }, {
@@ -46,7 +48,7 @@ export const SingleShapeResize = {
         }))
       },
 
-      right: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      right: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Proportional.calcShapeRightBoundAspectResizePatch({ cursor, shape }, {
@@ -57,7 +59,7 @@ export const SingleShapeResize = {
         }))
       },
 
-      left: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      left: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Proportional.calcShapeLeftBoundAspectResizePatch({ cursor, shape }, {
@@ -68,10 +70,9 @@ export const SingleShapeResize = {
         }))
       },
 
-      top: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      top: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
-
           ...TransformDomain.Single.Resize.Proportional.calcShapeTopBoundAspectResizePatch({ cursor, shape }, {
             default: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
             flip: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
@@ -85,7 +86,7 @@ export const SingleShapeResize = {
 
   ViaCorner: {
     Independent: {
-      bottomRight: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      bottomRight: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Independent.calcShapeRightBoundResizePatch({ cursor, shape }),
@@ -93,7 +94,7 @@ export const SingleShapeResize = {
         }))
       },
 
-      bottomLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      bottomLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Independent.calcShapeLeftBoundResizePatch({ cursor, shape }),
@@ -101,7 +102,7 @@ export const SingleShapeResize = {
         }))
       },
 
-      topRight: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      topRight: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Independent.calcShapeRightBoundResizePatch({ cursor, shape }),
@@ -109,7 +110,7 @@ export const SingleShapeResize = {
         }))
       },
 
-      topLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      topLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Independent.calcShapeLeftBoundResizePatch({ cursor, shape }),
@@ -119,7 +120,7 @@ export const SingleShapeResize = {
     },
 
     Proportional: {
-      bottomRight: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      bottomRight: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Proportional.calcShapeBottomBoundAspectResizePatch({ shape, cursor }, {
@@ -128,7 +129,7 @@ export const SingleShapeResize = {
         }))
       },
 
-      bottomLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      bottomLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Proportional.calcShapeBottomBoundAspectResizePatch({ shape, cursor }, {
@@ -139,7 +140,7 @@ export const SingleShapeResize = {
         }))
       },
 
-      topRight: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      topRight: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Proportional.calcShapeTopBoundAspectResizePatch({ shape, cursor }, {
@@ -148,7 +149,7 @@ export const SingleShapeResize = {
         }))
       },
 
-      topLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams) => {
+      topLeft: ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
         return mapSelectedShapes(shapes, (shape) => ({
           ...shape,
           ...TransformDomain.Single.Resize.Proportional.calcShapeTopBoundAspectResizePatch({ shape, cursor }, {

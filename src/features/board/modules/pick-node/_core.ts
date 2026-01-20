@@ -9,7 +9,7 @@ import type { Camera } from "../camera"
 import { CANVAS_COLOR_ID } from "./_ui"
 import type { Bound } from "../../domain/selection-area"
 import type { Shape } from "../../domain/shape"
-import type { Corner } from "../../domain/selection-area/_type"
+import type { Corner } from "../../domain/selection-area/_types"
 import type { ResizeHandler } from "../../view-model/shape-sketch"
 
 export type BoundLinesColor = Record<Bound, string>

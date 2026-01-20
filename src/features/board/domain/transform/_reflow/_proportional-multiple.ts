@@ -1,5 +1,6 @@
 import type { Rect } from "@/shared/type/shared"
-import { mapSelectedShapes, SELECTION_BOUNDS_PADDING, type CalcSelectionFromBoundReflowPatches } from "../_types"
+import { forEach } from "lodash"
+import { SELECTION_BOUNDS_PADDING, type CalcSelectionFromBoundReflowPatches } from "../_types"
 
 export const calcSelectionRightBoundReflowPatches: CalcSelectionFromBoundReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
@@ -11,7 +12,7 @@ export const calcSelectionRightBoundReflowPatches: CalcSelectionFromBoundReflowP
 
   const toReflowShapes = new Map<string, Partial<Rect>>()
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const centerHeight = shape.height / 2
     const centerWidth = shape.width / 2
 
@@ -44,7 +45,7 @@ export const calcSelectionLeftBoundReflowPatches: CalcSelectionFromBoundReflowPa
 
   const toReflowShapes = new Map<string, Partial<Rect>>()
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const centerHeight = shape.height / 2
     const centerWidth = shape.width / 2
 
@@ -78,7 +79,7 @@ export const calcSelectionTopBoundReflowPatches: CalcSelectionFromBoundReflowPat
 
   const toReflowShapes = new Map<string, Partial<Rect>>()
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const centerHeight = shape.height / 2
     const centerWidth = shape.width / 2
 
@@ -110,7 +111,7 @@ export const calcSelectionBottomBoundReflowPatches: CalcSelectionFromBoundReflow
 
   const toReflowShapes = new Map<string, Partial<Rect>>()
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const centerWidth = shape.width / 2
     const centerHeight = shape.height / 2
 

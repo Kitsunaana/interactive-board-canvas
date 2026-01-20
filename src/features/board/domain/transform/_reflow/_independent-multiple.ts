@@ -1,5 +1,6 @@
+import { forEach } from "lodash"
 import type { ShapeToView } from "../../shape"
-import { mapSelectedShapes, SELECTION_BOUNDS_PADDING, type CalcSelectionLeftResizeOffsets } from "../_types"
+import { SELECTION_BOUNDS_PADDING, type CalcSelectionLeftResizeOffsets } from "../_types"
 
 export const calcSelectionLeftResizeOffsets: CalcSelectionLeftResizeOffsets = ({ cursor, shapes, selectionArea }) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
@@ -9,7 +10,7 @@ export const calcSelectionLeftResizeOffsets: CalcSelectionLeftResizeOffsets = ({
 
   const toReflowShapes = new Map<string, Partial<ShapeToView>>()
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const shapeLeft = shape.x
     const shapeCenter = shapeLeft + shape.width / 2
 
@@ -33,7 +34,7 @@ export const calcSelectionTopResizeOffsets: CalcSelectionLeftResizeOffsets = ({ 
 
   const toReflowShapes = new Map<string, Partial<ShapeToView>>()
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const shapeTop = shape.y
     const shapeCenter = shapeTop + shape.height / 2
 
@@ -57,7 +58,7 @@ export const calcSelectionBottomResizeOffsets: CalcSelectionLeftResizeOffsets = 
 
   const toReflowShapes = new Map<string, Partial<ShapeToView>>()
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const shapeTop = shape.y
     const shapeCenter = shapeTop + shape.height / 2
 
@@ -81,7 +82,7 @@ export const calcSelectionRightResizeOffsets: CalcSelectionLeftResizeOffsets = (
 
   const toReflowShapes = new Map<string, Partial<ShapeToView>>()
 
-  mapSelectedShapes(shapes, (shape) => {
+  forEach(shapes, (shape) => {
     const shapeLeft = shape.x
     const shapeCenter = shapeLeft + shape.width / 2
 

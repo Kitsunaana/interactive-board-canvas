@@ -3,7 +3,7 @@ import { isNotNull } from "@/shared/lib/utils.ts";
 import type { Point, Rect } from "@/shared/type/shared";
 import * as rx from "rxjs";
 import type { NodeBound, NodeCorner, SelectionArea } from "../domain/selection-area";
-import { computeSelectionBoundsArea, recalculateSelectionAreaFromCorner, recalculateSelectionAreaFromBound } from "../domain/selection-area";
+import { computeSelectionBoundsArea, calcSelectionAreaFromCorner, calcSelectionAreaFromBound } from "../domain/selection-area";
 import { camera$ } from "../modules/camera";
 import { selectedShapesIds$, viewModel$ } from "./state";
 
@@ -57,8 +57,8 @@ const manualSelectionBounds$ = rx.combineLatest({
   rx.map(({ initialBounds, activeHandler }) => ({
     initialBounds,
     recalculateSelectionArea: ({
-      bound: (recalculateSelectionAreaFromBound as Record<string, ((params: RecalculateFromBoundParams) => Partial<Rect>)>),
-      corner: (recalculateSelectionAreaFromCorner as Record<string, ((params: RecalculateFromBoundParams) => Partial<Rect>)>)
+      bound: (calcSelectionAreaFromBound as Record<string, ((params: RecalculateFromBoundParams) => Partial<Rect>)>),
+      corner: (calcSelectionAreaFromCorner as Record<string, ((params: RecalculateFromBoundParams) => Partial<Rect>)>)
     })[activeHandler.type][activeHandler.id]
   })),
   rx.switchMap(({ initialBounds, recalculateSelectionArea }) => pointerMove$.pipe(

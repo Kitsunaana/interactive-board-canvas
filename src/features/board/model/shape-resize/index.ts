@@ -1,21 +1,30 @@
 import { _u } from "@/shared/lib/utils"
-import type { Rect } from "@/shared/type/shared"
-import { SingleShapeResize } from "../../model/shape-resize/_single"
-import type { Selection } from "../selection"
-import type { NodeBound, NodeCorner } from "../selection-area"
-import type { ShapeToView } from "../shape"
-import type { ResizeInteraction, ResizeMultipleFromBoundParams } from "./_shared"
-import { MultipleShapesTransform } from "../../model/shape-resize/_multiple"
+import type { Point, Rect } from "@/shared/type/shared"
+import type { NodeBound, NodeCorner } from "../../domain/selection-area"
+import type { ShapeToView } from "../../domain/shape"
+import { MultipleShapesTransform } from "./_multiple"
+import { SingleShapeResize } from "./_single"
 
-export const getShapesResizeViaBoundStrategy = ({ selectedIds, shapes, bound, ...props }: {
+type ResizeInteraction = {
+  proportional: boolean
+  reflow: boolean
+  cursor: Point
+}
+
+export const getShapesResizeViaBoundStrategy = ({ shapes, bound, ...props }: {
   selectionArea: Rect
-  selectedIds: Selection
   shapes: ShapeToView[]
   bound: NodeBound
 }) => {
-  if (selectedIds.size > 1) {
+  const selectedShapes = shapes.filter((shape) => shape.isSelected)
+
+  if (selectedShapes.length > 1) {
     return ({ reflow, proportional, cursor }: ResizeInteraction) => {
-      const toResize: ResizeMultipleFromBoundParams = _u.merge(props, { cursor, shapes })
+      const toResize = _u.merge(props, {
+        allShapes: shapes,
+        selectedShapes,
+        cursor,
+      })
 
       if (proportional && reflow) return MultipleShapesTransform.Reflow.ViaBound.Proportional[bound.id](toResize)
       if (proportional) return MultipleShapesTransform.Resize.ViaBound.Proportional[bound.id](toResize)
@@ -32,15 +41,20 @@ export const getShapesResizeViaBoundStrategy = ({ selectedIds, shapes, bound, ..
   }
 }
 
-export const getShapesResizeViaCornerStrategy = ({ corner, shapes, selectedIds, ...props }: {
-  selectedIds: Selection
+export const getShapesResizeViaCornerStrategy = ({ corner, shapes, ...props }: {
   shapes: ShapeToView[]
   selectionArea: Rect
   corner: NodeCorner
 }) => {
-  if (selectedIds.size > 1) {
+  const selectedShapes = shapes.filter((shape) => shape.isSelected)
+
+  if (selectedShapes.length > 1) {
     return ({ cursor, reflow, proportional }: ResizeInteraction) => {
-      const toResize: ResizeMultipleFromBoundParams = _u.merge(props, { cursor, shapes })
+      const toResize = _u.merge(props, {
+        allShapes: shapes,
+        selectedShapes,
+        cursor,
+      })
 
       if (proportional && reflow) return MultipleShapesTransform.Reflow.ViaCorner.Proportional[corner.id](toResize)
       if (proportional) return MultipleShapesTransform.Resize.ViaCorner.Proportional[corner.id](toResize)

@@ -4,16 +4,15 @@ import { isRectIntersectionV2 } from "@/shared/lib/rect"
 import { isNotNull } from "@/shared/lib/utils"
 import * as rx from "rxjs"
 import { isBound, isCanvas, isResizeHandler, isShape } from "../../domain/is"
-import { getShapesResizeViaBoundStrategy, getShapesResizeViaCornerStrategy } from "../../domain/resize"
 import type { NodeBound } from "../../domain/selection-area"
 import { shapes$ } from "../../model"
+import { getShapesResizeViaBoundStrategy, getShapesResizeViaCornerStrategy } from "../../model/shape-resize"
 import { camera$ } from "../../modules/camera"
 import { mouseDown$, mouseUp$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../../modules/pick-node"
 import { autoSelectionBounds$, pressedResizeHandlerSubject$ } from "../selection-bounds"
 import { goToIdle, goToNodesDragging, goToShapesResize, isIdle, viewModel$, viewState$ } from "../state"
 import { endMoveShapes, getMovedShapes, startMoveShape } from "./moving"
 import { shapeSelect } from "./selection"
-import type { ShapeToView } from "../../domain/shape"
 
 const applyResizeViaBoundCursor = (node: NodeBound) => {
   document.documentElement.style.cursor = match(node, {
@@ -41,7 +40,7 @@ const shapesResizeViaResizeHanlderFlow$ = mouseDown$.pipe(
   rx.switchMap(({ camera, corner, shapes, selectedIds, selectionArea }) => {
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
-    const resizeShapesStrategy = getShapesResizeViaCornerStrategy({ selectionArea, selectedIds, corner, shapes })
+    const resizeShapesStrategy = getShapesResizeViaCornerStrategy({ selectionArea, corner, shapes })
 
     return rx.merge(
       sharedMove$.pipe(
@@ -90,7 +89,7 @@ const shapesResizeFlow$ = mouseDown$.pipe(
   ),
   rx.map(([bound, selectedIds, selectionArea, shapes, camera]) => ({ selectionArea, selectedIds, camera, shapes, bound })),
   rx.switchMap(({ camera, bound, shapes, selectedIds, selectionArea }) => {
-    const resizeShapesStrategy = getShapesResizeViaBoundStrategy({ selectionArea, selectedIds, shapes, bound: bound })
+    const resizeShapesStrategy = getShapesResizeViaBoundStrategy({ selectionArea, shapes, bound: bound })
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
@@ -116,7 +115,7 @@ const shapesResizeFlow$ = mouseDown$.pipe(
             proportional: moveEvent.shiftKey,
             reflow: moveEvent.ctrlKey,
             cursor: canvasPoint,
-          }) as ShapeToView[]
+          })
         }),
         rx.takeUntil(
           rx.merge(pointerUp$, pointerLeave$).pipe(rx.tap(() => {

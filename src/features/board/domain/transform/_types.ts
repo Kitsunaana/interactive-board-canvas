@@ -1,34 +1,36 @@
 import type { Point, Rect } from "@/shared/type/shared";
-import type { ShapeToView } from "../shape";
+import { defaultTo } from "lodash";
 
-export type ShapeToTransform = Rect & {
+export type RectWithId = Rect & { id: string }
+
+export type ShapeToAspectResize = Rect & {
   nextWidth: number
   nextHeight: number
 }
 
 export type CalcShapeFromBoundResizePatch = (
   params: {
+    shape: RectWithId
     cursor: Point
-    shape: Rect
   },
 ) => Partial<Rect>
 
 export type CalcShapeFromBoundAspectResizePatch = (
   params: {
+    shape: RectWithId
     cursor: Point
-    shape: Rect
   },
   transform?: {
-    default?: (params: ShapeToTransform) => Partial<Rect>
-    frizen?: (params: ShapeToTransform) => Partial<Rect>
-    flip?: (params: ShapeToTransform) => Partial<Rect>
+    default?: (params: ShapeToAspectResize) => Partial<Rect>
+    frizen?: (params: ShapeToAspectResize) => Partial<Rect>
+    flip?: (params: ShapeToAspectResize) => Partial<Rect>
   }
 ) => Partial<Rect>
 
 export type CalcSelectionFromBoundReflowPatches = (
   params: {
     selectionArea: Rect
-    shapes: ShapeToView[]
+    shapes: RectWithId[]
     cursor: Point
   }
 ) => Map<string, Partial<Rect>>
@@ -36,48 +38,42 @@ export type CalcSelectionFromBoundReflowPatches = (
 export type CalcSelectionLeftResizeOffsets = (
   params: {
     selectionArea: Rect
-    shapes: ShapeToView[]
+    shapes: RectWithId[]
     cursor: Point
   }
 ) => Map<string, Partial<Rect>>
 
-export type ResizeSingleFromBoundParams = {
-  shapes: ShapeToView[]
-  cursor: Point
-}
+export type CalcSelectionFromBoundAspectResizePatches = (
+  params: {
+    selectionArea: Rect
+    shapes: RectWithId[]
+    cursor: Point
+  },
 
-export type RectBounds = {
-  top: number
-  left: number
-  right: number
-  bottom: number
+  transform?: {
+    default?: (params: Rect & { scale: number }) => Partial<Rect>
+    frizen?: (params: Rect & { scale: number }) => Partial<Rect>
+    flip?: (params: Rect & { scale: number }) => Partial<Rect>
+  }
+) => Map<string, Partial<Rect>>
+
+export type ResizeSingleFromBoundParams = {
+  shapes: RectWithId[]
+  cursor: Point
 }
 
 export type ResizeMultipleFromBoundParams = {
-  shapes: ShapeToView[]
   selectionArea: Rect
-  cursor: Point
-
-  default?: (scale: number, shape: ShapeToView, area: RectBounds) => Partial<ShapeToView>
-  frizen?: (scale: number, shape: ShapeToView, area: RectBounds) => Partial<ShapeToView>
-  flip?: (scale: number, shape: ShapeToView, area: RectBounds) => Partial<ShapeToView>
-}
-
-export type ResizeInteraction = {
-  proportional: boolean
-  reflow: boolean
+  shapes: RectWithId[]
   cursor: Point
 }
 
 export const SELECTION_BOUNDS_PADDING = 7
 
-export const mapSelectedShapes = <T extends ShapeToView, R>(shapes: readonly T[], iteratee: (shape: T) => R): Array<T | R> => {
-  return shapes.map((shape) => shape.isSelected ? iteratee(shape) : shape)
-}
-
-export const withDefaultTransformHandlers = (transform: Parameters<CalcShapeFromBoundAspectResizePatch>[1]) => ({
+export const withDefaultTransformHandlers = <T extends object | undefined>(transform: T) => ({
   default: () => ({}),
   frizen: () => ({}),
   flip: () => ({}),
-  ...transform
+  
+  ...defaultTo(transform, {} as NonNullable<T>)
 })
