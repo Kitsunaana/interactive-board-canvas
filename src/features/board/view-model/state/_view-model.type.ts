@@ -1,6 +1,6 @@
 import type { Point, Rect } from "@/shared/type/shared";
 import React from "react";
-import type { ShapeToView } from "../../domain/shape";
+import type { Shape, ShapeToView } from "../../domain/shape";
 
 export type IdleViewState = {
   selectedIds: Set<string>

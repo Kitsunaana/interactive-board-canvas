@@ -1,5 +1,5 @@
 ﻿import { canvas, resize$ } from "@/shared/lib/initial-canvas"
-import { _u, getCanvasSizes } from "@/shared/lib/utils"
+import { getCanvasSizes } from "@/shared/lib/utils"
 import * as _ from "lodash"
 import * as rx from "rxjs"
 import { INITIAL_STATE } from "./_const"
@@ -25,15 +25,17 @@ export const zoomTrigger$ = new rx.Subject<ZoomAction>()
 export const gridTypeSubject$ = new rx.BehaviorSubject<"lines" | "dots">("lines")
 export const cameraSubject$ = new rx.BehaviorSubject(INITIAL_STATE)
 
-export const activityStart$ = rx.merge(pointerDown$, wheel$, zoomTrigger$).pipe(rx.map(() => true))
-export const activityEnd$ = pointerUp$.pipe(rx.map(() => false))
+const activityStart$ = rx.merge(pointerDown$, wheel$, zoomTrigger$).pipe(rx.map(() => true))
+const activityEnd$ = pointerUp$.pipe(rx.map(() => false))
 
-export const userActivity$ = rx.merge(activityStart$, activityEnd$).pipe(
+const userActivity$ = rx.merge(activityStart$, activityEnd$).pipe(
   rx.startWith(false),
   rx.shareReplay(1)
 )
 
-export const pan$ = pointerDown$.pipe(
+export const camera$ = cameraSubject$.pipe(rx.map(({ camera }) => camera))
+
+const pan$ = pointerDown$.pipe(
   rx.filter(canStartPan),
   rx.withLatestFrom(cameraSubject$),
   rx.map(([startEvent, dragState]) => toStartPanState({ startEvent, dragState })),
@@ -51,32 +53,20 @@ export const pan$ = pointerDown$.pipe(
   ))
 )
 
-export const wheelCamera$ = rx.merge(
-  wheel$.pipe(
-    rx.withLatestFrom(cameraSubject$),
-    rx.map(([event, cameraState]) => _u.merge(cameraState, { camera: changeZoom(cameraState.camera, event) })),
-    rx.shareReplay(1)
-  ),
-  zoomTrigger$.pipe(
-    rx.withLatestFrom(cameraSubject$),
-    rx.map(([{ action: __event }, cameraState]) => _u.merge(cameraState, {
-      camera: ({ zoomIn, zoomOut })[__event](cameraState.camera)
-    }))
+const wheelCamera$ = wheel$.pipe(
+  rx.withLatestFrom(camera$),
+  rx.map(([event, camera]) => changeZoom(camera, event)),
+  rx.shareReplay(1)
+)
+
+const animateZoom$ = zoomTrigger$.pipe(rx.withLatestFrom(camera$), rx.switchMap(([{ action }, camera]) => (
+  rx.animationFrames().pipe(
+    rx.scan((acc) => ({ zoomIn, zoomOut })[action](acc, 0.05), camera),
+    rx.takeUntil(rx.timer(100))
   )
-)
+)))
 
-export const cameraState$ = rx.merge(wheelCamera$, pan$).pipe(
-  rx.startWith(INITIAL_STATE),
-  rx.scan((camera, updated) => (
-    _u.merge(_u.merge(camera, updated), {
-      camera: _u.merge(camera.camera, updated.camera)
-    })
-  )),
-)
-
-export const camera$ = cameraSubject$.pipe(rx.map(({ camera }) => camera))
-
-export const cameraWithInertia$ = rx.animationFrames().pipe(
+const cameraWithInertia$ = rx.animationFrames().pipe(
   rx.withLatestFrom(cameraSubject$, userActivity$),
   rx.map(([_, cameraState, isActive]) => ({ cameraState, isActive })),
   rx.pairwise(),
@@ -95,8 +85,11 @@ export const cameraWithInertia$ = rx.animationFrames().pipe(
   rx.distinctUntilChanged(_.isEqual)
 )
 
-cameraState$.subscribe(cameraSubject$)
+pan$.subscribe(cameraSubject$)
 cameraWithInertia$.subscribe(cameraSubject$)
+
+wheelCamera$.subscribe((camera) => cameraSubject$.next({ ...cameraSubject$.getValue(), camera }))
+animateZoom$.subscribe((camera) => cameraSubject$.next({ ...cameraSubject$.getValue(), camera }))
 
 export const canvasSizes$ = resize$.pipe(
   rx.map(getCanvasSizes),
@@ -104,6 +97,4 @@ export const canvasSizes$ = resize$.pipe(
   rx.tap((canvasSizes) => Object.assign(canvas, canvasSizes)),
 )
 
-export const canvasSegment$ = rx.combineLatest({ camera: camera$, sizes: canvasSizes$ }).pipe(
-  rx.map(getWorldPoints)
-)
+export const canvasSegment$ = rx.combineLatest({ camera: camera$, sizes: canvasSizes$ }).pipe(rx.map(getWorldPoints))

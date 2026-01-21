@@ -1,4 +1,4 @@
-import type { Point } from "@/shared/type/shared.ts";
+import type { Point, Rect } from "@/shared/type/shared.ts";
 import * as _ from "lodash";
 import { CONFIG } from "./const";
 
@@ -118,7 +118,8 @@ export const generateSketchyOutline = ({ basePoints, rand }: {
   })
 }
 
-export const getRectangleBasePoints = (x: number, y: number, w: number, h: number, samples: number = 36) => {
+export const getRectangleBasePoints = (rect: Rect, samples: number = 36) => {
+  const { x, y, height: h, width: w } = rect
   const points = []
   const perSide = Math.floor(samples / 4)
 
@@ -133,7 +134,9 @@ export const getRectangleBasePoints = (x: number, y: number, w: number, h: numbe
   return points
 }
 
-export const getEllipseBasePoints = (cx: number, cy: number, rx: number, ry: number, segments: number = 60) => {
+export const getEllipseBasePoints = (rect: Rect, segments: number = 60) => {
+  const { x: cx, y: cy, height: ry, width: rx } = rect
+
   const points = []
 
   for (let i = 0; i < segments; i++) {

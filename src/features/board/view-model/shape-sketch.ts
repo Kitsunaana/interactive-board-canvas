@@ -4,24 +4,33 @@ import type { Corner } from "../domain/selection-area";
 import type { Circle, Rectangle } from "../domain/shape.ts";
 import type { Camera } from "../modules/camera/index.ts";
 
-export const generateRectangleSketchProps = (shape: Rectangle) => ({
-  hachureFill: true,
-  strokeColor: '#8b5cf6',
-  ...generateSketchProps({
-    basePoints: getRectangleBasePoints(shape.x, shape.y, shape.width, shape.height),
-    rect: shape
-  })
-})
+export const generateRectangleSketchProps = (shape: Rectangle) => {
+  return {
+    hachureFill: true,
+    strokeColor: '#8b5cf6',
+    ...generateSketchProps({
+      basePoints: getRectangleBasePoints(shape),
+      rect: shape
+    })
+  }
+}
 
 export const generateEllipseSketchProps = (shape: Circle) => {
   const radiusY = shape.height / 2
   const radiusX = shape.width / 2
 
+  const rect: Rect = {
+    x: shape.x + radiusX,
+    y: shape.y + radiusY,
+    height: radiusY,
+    width: radiusX,
+  }
+
   return {
     hachureFill: true,
     strokeColor: '#df3182ff',
     ...generateSketchProps({
-      basePoints: getEllipseBasePoints(shape.x + radiusX, shape.y + radiusY, radiusX, radiusY),
+      basePoints: getEllipseBasePoints(rect),
       rect: shape
     })
   }

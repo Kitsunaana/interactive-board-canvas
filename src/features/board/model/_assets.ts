@@ -29,7 +29,7 @@ export const shapes: Shape[] = [
     width: 250,
     height: 100,
     type: "rectangle",
-    sketch: true,
+    sketch: true, // true,
     colorId: generateRandomColor(),
   },
   {
@@ -38,7 +38,7 @@ export const shapes: Shape[] = [
     y: 0,
     width: 200,
     height: 200,
-    sketch: true,
+    sketch: true, // true,
     type: "circle",
     colorId: generateRandomColor(),
   },
