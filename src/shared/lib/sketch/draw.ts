@@ -2,7 +2,7 @@ import { context } from "@/shared/lib/initial-canvas.ts";
 import type { Point } from "@/shared/type/shared.ts";
 import { CONFIG } from "./const";
 
-export type SketchShapeProperties = {
+export type SketchProperties = {
   hachureLines: Array<Point[]>
   outlines: Array<Point[]>
   layerOffsets: Point[]
@@ -61,7 +61,7 @@ export const drawSmoothWobblyLine = (points: Point[]) => {
   context.stroke()
 }
 
-export const drawSketchShape = ({ hachureFill, hachureLines, layerOffsets, outlines, strokeColor }: SketchShapeProperties) => {
+export const drawSketchShape = ({ hachureFill, hachureLines, layerOffsets, outlines, strokeColor }: SketchProperties) => {
   context.save()
 
   const mainOffset = layerOffsets[0]

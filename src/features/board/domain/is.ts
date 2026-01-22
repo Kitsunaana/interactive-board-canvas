@@ -1,4 +1,5 @@
 import type { NodeBound, NodeCorner } from "./selection-area"
+import type { ShapeToRender } from "./shape"
 
 export const isBound = (candidate: { id: string }): candidate is NodeBound => (
   candidate.id === "bottom" ||
@@ -7,14 +8,14 @@ export const isBound = (candidate: { id: string }): candidate is NodeBound => (
   candidate.id === "top"
 )
 
-export const isResizeHandler = (candidate: { id: string }): candidate is NodeCorner => (
+export const isCorner = (candidate: { id: string }): candidate is NodeCorner => (
   candidate.id === "bottomRight" ||
   candidate.id === "bottomLeft" ||
   candidate.id === "topRight" ||
   candidate.id === "topLeft"
 )
 
-export const isShape = <T extends { type: string }>(candidate: T) => {
+export const isShape = (candidate: { type: string }): candidate is ShapeToRender => {
   return (
     candidate.type === "rectangle" ||
     candidate.type === "circle" ||

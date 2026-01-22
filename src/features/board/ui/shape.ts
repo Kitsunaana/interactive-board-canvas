@@ -1,9 +1,9 @@
 import { context } from "@/shared/lib/initial-canvas.ts";
 import { match } from "@/shared/lib/match.ts";
 import { drawSketchShape } from "@/shared/lib/sketch";
-import type { ShapeToView } from "../domain/shape";
+import type { ShapeToRender } from "../domain/shape";
 
-export const getShapeDrawer = (shape: ShapeToView) => {
+export const getShapeDrawer = (shape: ShapeToRender) => {
   match(shape, {
     circle: (shape) => {
       if (shape.sketch) return drawSketchShape(shape)

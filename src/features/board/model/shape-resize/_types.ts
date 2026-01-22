@@ -1,11 +1,11 @@
 import type { Point } from "@/shared/type/shared"
-import type { ShapeToView } from "../../domain/shape"
+import type { ShapeToRender } from "../../domain/shape"
 
 export type ResizeSingleFromBoundParams = {
-  shapes: ShapeToView[]
+  shapes: ShapeToRender[]
   cursor: Point
 }
 
-export const mapSelectedShapes = <T extends ShapeToView, R>(shapes: readonly T[], iteratee: (shape: T) => R): Array<T | R> => {
+export const mapSelectedShapes = <T extends ShapeToRender, R>(shapes: readonly T[], iteratee: (shape: T) => R): Array<T | R> => {
   return shapes.map((shape) => shape.isSelected ? iteratee(shape) : shape)
 }

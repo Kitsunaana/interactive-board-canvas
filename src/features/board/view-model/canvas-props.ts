@@ -7,7 +7,7 @@ export const gridProps$ = canvasSegment$.pipe(
   rx.withLatestFrom(camera$),
   rx.map(([canvasProps, camera]) => (
     LEVELS
-      .map(level => toDrawOneLevel({ ...canvasProps, camera, level }))
+      .map((level) => toDrawOneLevel({ ...canvasProps, camera, level }))
       .filter(isNotNull)
   ))
 )

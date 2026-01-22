@@ -1,6 +1,6 @@
 import type { Point, Rect } from "@/shared/type/shared";
 import React from "react";
-import type { Shape, ShapeToView } from "../../domain/shape";
+import type { ShapeToView } from "../../domain/shape";
 
 export type IdleViewState = {
   selectedIds: Set<string>
@@ -12,6 +12,7 @@ export type ShapesDraggingViewState = {
   selectedIds: Set<string>
   needToDeselect: boolean
   type: "shapesDragging"
+  startPoint: Point
 }
 
 export type ShapesResizeViewState = {
@@ -51,10 +52,14 @@ export const goToIdle = (state: Partial<IdleViewState> = {}): IdleViewState => (
   ...state,
 })
 
-export const goToNodesDragging = (state: Partial<ShapesDraggingViewState> = {}): ShapesDraggingViewState => ({
+export const goToShapesDragging = (state: Partial<ShapesDraggingViewState> = {}): ShapesDraggingViewState => ({
   selectedIds: new Set(),
   needToDeselect: false,
   type: "shapesDragging",
+  startPoint: {
+    x: 0,
+    y: 0
+  },
   ...state,
 })
 

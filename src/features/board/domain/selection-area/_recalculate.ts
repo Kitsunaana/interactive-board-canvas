@@ -1,10 +1,10 @@
 import type { Point } from "@/shared/type/shared"
-import type { SelectionArea } from "./_types"
+import type { SelectionBounds } from "./_types"
 
 export const SELECTION_BOUNDS_PADDING = 7
 
 export type RecalculateFromBoundParams = {
-  initial: SelectionArea
+  initial: SelectionBounds
   cursor: Point
 }
 

@@ -1,6 +1,6 @@
 export { drawSketchShape } from "./draw"
 
-export type { SketchShapeProperties } from "./draw"
+export type { SketchProperties as SketchShapeProperties } from "./draw"
 
 export { generateSketchProps } from "./shape"
 

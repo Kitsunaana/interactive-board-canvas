@@ -22,20 +22,6 @@ export const shapesToRecord$ = shapes$.pipe(
   rx.shareReplay({ refCount: true, bufferSize: 1 })
 )
 
-const cache = <Fn extends (...args: any[]) => any>(fn: Fn) => {
-  const map = new Map<string, ReturnType<Fn>>()
-
-  return (...args: Parameters<Fn>): ReturnType<Fn> => {
-    const read = map.get(JSON.stringify(args))
-    if (isNotUndefined(read)) return read
-
-    const result = fn(...args)
-    map.set(JSON.stringify(args), result)
-
-    return result
-  }
-}
-
 const CacheShapes = new Map<string, ShapeToView>()
 
 const watchedShapeProps: (keyof ShapeToView)[] = ["x", "y", "width", "height"]

@@ -1,8 +1,8 @@
 import { calculateLimitPoints, inferRect } from "@/shared/lib/rect"
 import type { Rect } from "@/shared/type/shared"
-import type { ShapeToView } from "../shape"
+import type { ShapeToRender } from "../shape"
 
-export const computeSelectionBoundsArea = (shapes: ShapeToView[]) => {
+export const computeSelectionBoundsArea = (shapes: ShapeToRender[]) => {
   const selectedShapes = shapes.filter(shape => shape.isSelected)
 
   if (selectedShapes.length === 1) {

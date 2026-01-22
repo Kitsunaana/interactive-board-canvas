@@ -3,15 +3,15 @@ import { calculateLimitPoints, isRectIntersection, unscaleRect } from "@/shared/
 import { _u, getBoundingClientRect, getCanvasSizes } from "@/shared/lib/utils"
 import type { LimitPoints, Point, Rect, Sizes } from "@/shared/type/shared"
 import type { Camera, CameraState } from "../camera"
-import { MINI_MAP_UNSCALE } from "./_const"
+import { MINI_MAP_UNSCALE_HEIGHT, MINI_MAP_UNSCALE_WIDTH } from "./_const"
 import { getPointInMiniMap } from "./_domain"
 
 export const getUnscaledMiniMapSizes = () => {
   const canvasSizes = getCanvasSizes()
 
   return {
-    height: Math.round(canvasSizes.height / MINI_MAP_UNSCALE),
-    width: Math.round(canvasSizes.width / MINI_MAP_UNSCALE),
+    height: Math.round(canvasSizes.height / MINI_MAP_UNSCALE_HEIGHT),
+    width: Math.round(canvasSizes.width / MINI_MAP_UNSCALE_WIDTH),
   }
 }
 

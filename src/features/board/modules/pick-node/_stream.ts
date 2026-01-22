@@ -24,17 +24,20 @@ export const selectionBoundsToPick$ = autoSelectionBounds$.pipe(rx.map((selectio
 }))
 
 const resizeHandlersPropertiesToPick$ = autoSelectionBounds$.pipe(
-  rx.filter(isNotNull),
   rx.withLatestFrom(camera$),
-  rx.map(([selectionArea, camera]) => ({
-    resizeHandlers: getResizeHandlersPositions({ rect: selectionArea.area, radius: 10, camera }),
-    linesColor: {
-      bottomRight: generateRandomColor(),
-      bottomLeft: generateRandomColor(),
-      topRight: generateRandomColor(),
-      topLeft: generateRandomColor(),
+  rx.map(([selectionArea, camera]) => {
+    if (isNull(selectionArea)) return null
+
+    return {
+      resizeHandlers: getResizeHandlersPositions({ rect: selectionArea.area, radius: 10, camera }),
+      linesColor: {
+        bottomRight: generateRandomColor(),
+        bottomLeft: generateRandomColor(),
+        topRight: generateRandomColor(),
+        topLeft: generateRandomColor(),
+      }
     }
-  })),
+  }),
   rx.startWith(null)
 )
 

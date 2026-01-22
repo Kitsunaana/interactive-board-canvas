@@ -1,5 +1,5 @@
 import { forEach } from "lodash"
-import type { ShapeToView } from "../../shape"
+import type { ShapeToRender } from "../../shape"
 import { SELECTION_BOUNDS_PADDING, type CalcSelectionLeftResizeOffsets } from "../_types"
 
 export const calcSelectionLeftResizeOffsets: CalcSelectionLeftResizeOffsets = ({ cursor, shapes, selectionArea }) => {
@@ -8,7 +8,7 @@ export const calcSelectionLeftResizeOffsets: CalcSelectionLeftResizeOffsets = ({
   const right = left + selectionArea.width
   const delta = cursorX - left
 
-  const toReflowShapes = new Map<string, Partial<ShapeToView>>()
+  const toReflowShapes = new Map<string, Partial<ShapeToRender>>()
 
   forEach(shapes, (shape) => {
     const shapeLeft = shape.x
@@ -32,7 +32,7 @@ export const calcSelectionTopResizeOffsets: CalcSelectionLeftResizeOffsets = ({ 
   const bottom = top + selectionArea.height
   const delta = cursorY - top
 
-  const toReflowShapes = new Map<string, Partial<ShapeToView>>()
+  const toReflowShapes = new Map<string, Partial<ShapeToRender>>()
 
   forEach(shapes, (shape) => {
     const shapeTop = shape.y
@@ -56,7 +56,7 @@ export const calcSelectionBottomResizeOffsets: CalcSelectionLeftResizeOffsets = 
   const bottom = top + selectionArea.height
   const delta = cursorY - bottom
 
-  const toReflowShapes = new Map<string, Partial<ShapeToView>>()
+  const toReflowShapes = new Map<string, Partial<ShapeToRender>>()
 
   forEach(shapes, (shape) => {
     const shapeTop = shape.y
@@ -80,7 +80,7 @@ export const calcSelectionRightResizeOffsets: CalcSelectionLeftResizeOffsets = (
   const right = left + selectionArea.width
   const delta = cursorX - right
 
-  const toReflowShapes = new Map<string, Partial<ShapeToView>>()
+  const toReflowShapes = new Map<string, Partial<ShapeToRender>>()
 
   forEach(shapes, (shape) => {
     const shapeLeft = shape.x

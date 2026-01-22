@@ -1,5 +1,5 @@
 import type { SketchShapeProperties } from "@/shared/lib/sketch"
-import type { Rect, Simplify } from "@/shared/type/shared"
+import type { Point, Rect, Simplify } from "@/shared/type/shared"
 
 export type BaseShapeProperties = {
   colorId: string
@@ -33,17 +33,12 @@ export type SquareToView = Square
 export type Arrow = Rect & {
   type: "arrow"
 
+  id: string
   colorId: string
   sketch: boolean
-  id: string
-  start: {
-    x: number
-    y: number
-  }
-  end: {
-    x: number
-    y: number
-  }
+
+  start: Point
+  end: Point
 }
 
 export type ArrowToView = Arrow
@@ -54,8 +49,15 @@ export type Shape =
   | Circle
   | Arrow
 
+export type ShapeToView =
+  (
+    | RectangleToView
+    | SquareToView
+    | CircleToView
+    | ArrowToView
+  )
 
-export type ShapeToView = Simplify<
+export type ShapeToRender =
   (
     | RectangleToView
     | SquareToView
@@ -63,5 +65,8 @@ export type ShapeToView = Simplify<
     | ArrowToView
   ) & {
     isSelected?: boolean
+
+    onMouseDown?: (event: PointerEvent) => void
+    onMouseMove?: (event: PointerEvent) => void
+    onMouseUp?: (event: PointerEvent) => void
   }
->

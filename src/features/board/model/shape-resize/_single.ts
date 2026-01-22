@@ -1,7 +1,7 @@
 import { _u } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
-import type { ShapeToView } from "../../domain/shape"
+import type { ShapeToRender } from "../../domain/shape"
 import { TransformDomain } from "../../domain/transform"
 import type { CalcShapeFromBoundAspectResizePatchTransform, RectWithId } from "../../domain/transform/_types"
 import type { ResizeSingleFromBoundParams } from "./_types"
@@ -19,7 +19,7 @@ type AnyCalcShapeFromBound = (
 ) => Partial<Rect>
 
 const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] = []) => {
-  return ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToView[] => {
+  return ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToRender[] => {
     return mapSelectedShapes(shapes, (shape) => (
       _u.merge(shape, list.reduce((acc, current, index) => {
         const transform = defaultTo(rules[index], undefined)

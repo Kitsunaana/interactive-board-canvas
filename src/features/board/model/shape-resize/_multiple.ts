@@ -1,14 +1,14 @@
 import { _u } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
-import type { ShapeToView } from "../../domain/shape"
+import type { ShapeToRender } from "../../domain/shape"
 import { TransformDomain } from "../../domain/transform"
 import type { CalcSelectionFromBoundAspectResizePatchesTransform, RectWithId } from "../../domain/transform/_types"
 import { mapSelectedShapes } from "./_types"
 
 export type ResizeMultipleFromBoundParams = {
-  selectedShapes: ShapeToView[]
-  allShapes: ShapeToView[]
+  selectedShapes: ShapeToRender[]
+  allShapes: ShapeToRender[]
   selectionArea: Rect
   cursor: Point
 }
@@ -25,7 +25,7 @@ type AnyCalcShapeFromBound = (
 ) => Map<string, Partial<Rect>>
 
 const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] = []) => {
-  return ({ selectedShapes, selectionArea, allShapes, cursor }: ResizeMultipleFromBoundParams): ShapeToView[] => {
+  return ({ selectedShapes, selectionArea, allShapes, cursor }: ResizeMultipleFromBoundParams): ShapeToRender[] => {
     const patches = list.map((calculate, index) => {
       const transform = defaultTo(rules[index], undefined)
 

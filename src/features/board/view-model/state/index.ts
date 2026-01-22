@@ -17,7 +17,7 @@ export type {
 } from "./_view-model.type"
 
 export {
-  goToNodesDragging,
+  goToShapesDragging,
   goToShapesResize,
   goToIdle,
 

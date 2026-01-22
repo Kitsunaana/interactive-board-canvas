@@ -1,21 +1,25 @@
 import { _u } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
 import type { NodeBound, NodeCorner } from "../../domain/selection-area"
-import type { ShapeToView } from "../../domain/shape"
+import type { ShapeToRender } from "../../domain/shape"
 import { MultipleShapesTransform } from "./_multiple"
 import { SingleShapeResize } from "./_single"
 
-type ResizeInteraction = {
+export type ResizeInteraction = {
   proportional: boolean
   reflow: boolean
   cursor: Point
 }
 
-export const getShapesResizeViaBoundStrategy = ({ shapes, bound, ...props }: {
+export type ResizeStrategyContext<Handler> = {
   selectionArea: Rect
-  shapes: ShapeToView[]
-  bound: NodeBound
-}) => {
+  shapes: ShapeToRender[]
+  handler: Handler
+}
+
+export type ShapeResizeStrategy = (params: ResizeInteraction) => ShapeToRender[]
+
+export const getShapesResizeViaBoundStrategy = ({ shapes, handler, ...props }: ResizeStrategyContext<NodeBound>) => {
   const selectedShapes = shapes.filter((shape) => shape.isSelected)
 
   if (selectedShapes.length > 1) {
@@ -26,26 +30,22 @@ export const getShapesResizeViaBoundStrategy = ({ shapes, bound, ...props }: {
         cursor,
       })
 
-      if (proportional && reflow) return MultipleShapesTransform.Reflow.ViaBound.Proportional[bound.id](toResize)
-      if (proportional) return MultipleShapesTransform.Resize.ViaBound.Proportional[bound.id](toResize)
-      if (reflow) return MultipleShapesTransform.Reflow.ViaBound.Independent[bound.id](toResize)
+      if (proportional && reflow) return MultipleShapesTransform.Reflow.ViaBound.Proportional[handler.id](toResize)
+      if (proportional) return MultipleShapesTransform.Resize.ViaBound.Proportional[handler.id](toResize)
+      if (reflow) return MultipleShapesTransform.Reflow.ViaBound.Independent[handler.id](toResize)
 
-      return MultipleShapesTransform.Resize.ViaBound.Independent[bound.id](toResize)
+      return MultipleShapesTransform.Resize.ViaBound.Independent[handler.id](toResize)
     }
   }
 
   return ({ proportional, cursor }: ResizeInteraction) => {
-    if (proportional) return SingleShapeResize.ViaBound.Proportional[bound.id]({ cursor, shapes })
+    if (proportional) return SingleShapeResize.ViaBound.Proportional[handler.id]({ cursor, shapes })
 
-    return SingleShapeResize.ViaBound.Independent[bound.id]({ cursor, shapes })
+    return SingleShapeResize.ViaBound.Independent[handler.id]({ cursor, shapes })
   }
 }
 
-export const getShapesResizeViaCornerStrategy = ({ corner, shapes, ...props }: {
-  shapes: ShapeToView[]
-  selectionArea: Rect
-  corner: NodeCorner
-}) => {
+export const getShapesResizeViaCornerStrategy = ({ handler, shapes, ...props }: ResizeStrategyContext<NodeCorner>) => {
   const selectedShapes = shapes.filter((shape) => shape.isSelected)
 
   if (selectedShapes.length > 1) {
@@ -56,17 +56,17 @@ export const getShapesResizeViaCornerStrategy = ({ corner, shapes, ...props }: {
         cursor,
       })
 
-      if (proportional && reflow) return MultipleShapesTransform.Reflow.ViaCorner.Proportional[corner.id](toResize)
-      if (proportional) return MultipleShapesTransform.Resize.ViaCorner.Proportional[corner.id](toResize)
-      if (reflow) return MultipleShapesTransform.Reflow.ViaCorner.Independent[corner.id](toResize)
+      if (proportional && reflow) return MultipleShapesTransform.Reflow.ViaCorner.Proportional[handler.id](toResize)
+      if (proportional) return MultipleShapesTransform.Resize.ViaCorner.Proportional[handler.id](toResize)
+      if (reflow) return MultipleShapesTransform.Reflow.ViaCorner.Independent[handler.id](toResize)
 
-      return MultipleShapesTransform.Resize.ViaCorner.Independent[corner.id](toResize)
+      return MultipleShapesTransform.Resize.ViaCorner.Independent[handler.id](toResize)
     }
   }
 
   return ({ cursor, proportional }: ResizeInteraction) => {
-    if (proportional) return SingleShapeResize.ViaCorner.Proportional[corner.id]({ cursor, shapes })
+    if (proportional) return SingleShapeResize.ViaCorner.Proportional[handler.id]({ cursor, shapes })
 
-    return SingleShapeResize.ViaCorner.Independent[corner.id]({ cursor, shapes })
+    return SingleShapeResize.ViaCorner.Independent[handler.id]({ cursor, shapes })
   }
 }

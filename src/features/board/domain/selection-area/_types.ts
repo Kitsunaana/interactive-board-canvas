@@ -14,7 +14,7 @@ export type NodeCorner = {
   type: "corner"
 }
 
-export type SelectionArea = {
+export type SelectionBounds = {
   bounds: Rect[]
   area: Rect
 }
