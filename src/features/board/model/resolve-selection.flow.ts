@@ -4,6 +4,7 @@ import { isCanvas, isShape } from "../domain/is"
 import { selectItems } from "../domain/selection"
 import { mouseUp$ } from "../modules/pick-node"
 import { goToIdle, viewState$, type IdleViewState } from "../view-model/state"
+import { spacePressed$ } from "../modules/camera"
 
 const shapeSelect = ({ event, shapeId, idleState }: {
   idleState: IdleViewState
@@ -22,10 +23,26 @@ const shapeSelect = ({ event, shapeId, idleState }: {
   }
 }
 
+const isValidSelectionMouseUp = (node: any, event: PointerEvent) => {
+  return (
+    (!event.shiftKey && event.button === 0) &&
+    (isShape(node) || isCanvas(node))
+  )
+}
+
 export const resolveShapeSelectionFlow$ = mouseUp$.pipe(
-  rx.filter(({ event }) => !event.shiftKey && event.button === 0),
-  rx.filter(({ node }) => isShape(node) || isCanvas(node)),
+  rx.filter(({ event, node }) => isValidSelectionMouseUp(node, event)),
+
+  rx.switchMap((downEvent) => {
+    return rx.of(downEvent).pipe(
+      rx.withLatestFrom(spacePressed$),
+      rx.filter(([_, spacePressed]) => spacePressed === false),
+      rx.map(() => downEvent)
+    )
+  }),
+
   rx.withLatestFrom(viewState$),
+
   rx.map(([upEvent, state]) => ({ ...upEvent, state })),
   rx.switchMap(({ node, event, state }) => match(state, {
     shapesResize: (state) => rx.of(state),

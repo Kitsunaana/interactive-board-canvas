@@ -3,7 +3,7 @@ import type { Camera } from "./_domain"
 
 export const VELOCITY_SCALE = 0.2
 export const MIN_VELOCITY = 5
-export const FRICTION = 0.85
+export const FRICTION = 0.90
 
 export const DEFAULT_POINT: Point = {
   x: 0,

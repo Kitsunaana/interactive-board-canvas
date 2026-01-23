@@ -6,5 +6,7 @@ export {
   camera$,
 
   canvasSizes$,
-  canvasSegment$
+  canvasSegment$,
+
+  spacePressed$,
 } from "./_stream"

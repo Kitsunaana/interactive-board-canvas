@@ -8,7 +8,7 @@ import { isShape } from "../domain/is"
 import type { Selection } from "../domain/selection"
 import type { SelectionArea } from "../domain/selection-area"
 import type { Shape } from "../domain/shape"
-import { type Camera, camera$ } from "../modules/camera"
+import { type Camera, camera$, spacePressed$ } from "../modules/camera"
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../modules/pick-node"
 import { autoSelectionBounds$ } from "../view-model/selection-bounds"
 import { goToShapesDragging, isIdle, isShapesDragging, viewState$ } from "../view-model/state"
@@ -50,6 +50,14 @@ export const shapesDraggingFlow$ = mouseDown$.pipe(
   rx.withLatestFrom(viewState$.pipe(rx.filter(isIdle))),
 
   rx.filter(([{ event }]) => event.button === 0),
+
+  rx.switchMap(([downEvent, viewState]) => {
+    return rx.of({ downEvent, viewState }).pipe(
+      rx.withLatestFrom(spacePressed$),
+      rx.filter(([_, spacePressed]) => spacePressed === false),
+      rx.map(() => [downEvent]),
+    )
+  }),
 
   rx.switchMap(([mouseDown]) => rx.of(mouseDown).pipe(
     rx.withLatestFrom(autoSelectionBounds$),

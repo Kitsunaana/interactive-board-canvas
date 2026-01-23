@@ -10,8 +10,8 @@ import {
 } from "./_const";
 import type { Camera, CameraState } from "./_domain";
 
-export const canStartPan = (event: PointerEvent) => {
-  return event.button === 1 && event.ctrlKey === false
+export const canStartPan = (event: PointerEvent, spacePressed: boolean) => {
+  return (event.button === 1 && event.ctrlKey === false) || (spacePressed && event.button === 0)
 }
 
 export const zoomIn = (camera: Camera, intensity = ZOOM_INTENSITY) => {

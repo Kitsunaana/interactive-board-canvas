@@ -1,6 +1,7 @@
 ﻿import { canvas, resize$ } from "@/shared/lib/initial-canvas"
 import { getCanvasSizes } from "@/shared/lib/utils"
 import * as _ from "lodash"
+import type { KeyboardEvent } from "react"
 import * as rx from "rxjs"
 import { INITIAL_STATE } from "./_const"
 import {
@@ -35,8 +36,34 @@ const userActivity$ = rx.merge(activityStart$, activityEnd$).pipe(
 
 export const camera$ = cameraSubject$.pipe(rx.map(({ camera }) => camera))
 
+const keyboardDown$ = rx.fromEvent<KeyboardEvent>(window, "keydown")
+const keyboardUp$ = rx.fromEvent<KeyboardEvent>(window, "keyup")
+
+export const spacePressed$ = rx.merge(
+  keyboardDown$.pipe(rx.map(event => event.code === "Space")),
+  keyboardUp$.pipe(rx.filter(event => event.code === "Space"), rx.map(() => false)),
+).pipe(
+  rx.startWith(false),
+  rx.shareReplay({
+    refCount: true,
+    bufferSize: 1
+  }),
+  rx.distinctUntilChanged()
+)
+
+spacePressed$.subscribe()
+
 const pan$ = pointerDown$.pipe(
-  rx.filter(canStartPan),
+  rx.switchMap((event) => {
+    return rx.of(event).pipe(
+      rx.withLatestFrom(spacePressed$),
+      rx.filter(([event, spacePressed]) => {
+        return canStartPan(event, spacePressed)
+      }),
+      rx.map(() => event)
+    )
+  }),
+
   rx.withLatestFrom(cameraSubject$),
   rx.map(([startEvent, dragState]) => toStartPanState({ startEvent, dragState })),
 
