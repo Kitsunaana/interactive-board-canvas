@@ -1,6 +1,6 @@
-import { SELECTION_BOUNDS_PADDING, type CalcShapeFromBoundResizePatch } from "../_types"
+import { SELECTION_BOUNDS_PADDING, type CalcShapeResizePatch } from "../_types"
 
-export const calcShapeRightBoundResizePatch: CalcShapeFromBoundResizePatch = ({ shape, cursor }) => {
+export const calcShapeRightBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -31,7 +31,7 @@ export const calcShapeRightBoundResizePatch: CalcShapeFromBoundResizePatch = ({ 
   }
 }
 
-export const calcShapeLeftBoundResizePatch: CalcShapeFromBoundResizePatch = ({ shape, cursor }) => {
+export const calcShapeLeftBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
   const left = shape.x
@@ -63,7 +63,7 @@ export const calcShapeLeftBoundResizePatch: CalcShapeFromBoundResizePatch = ({ s
   }
 }
 
-export const calcShapeBottomBoundResizePatch: CalcShapeFromBoundResizePatch = ({ shape, cursor }) => {
+export const calcShapeBottomBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const top = shape.y
@@ -95,7 +95,7 @@ export const calcShapeBottomBoundResizePatch: CalcShapeFromBoundResizePatch = ({
   }
 }
 
-export const calcShapeTopBoundResizePatch: CalcShapeFromBoundResizePatch = ({ shape, cursor }) => {
+export const calcShapeTopBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const top = shape.y

@@ -1,8 +1,8 @@
 import type { Rect } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import { SELECTION_BOUNDS_PADDING, type CalcSelectionFromBoundReflowPatches } from "../_types"
+import { SELECTION_BOUNDS_PADDING, type CalcSelectionReflowPatches } from "../_types"
 
-export const calcSelectionRightBoundReflowPatches: CalcSelectionFromBoundReflowPatches = ({ selectionArea, shapes, cursor }) => {
+export const calcSelectionRightBoundReflowPatches: CalcSelectionReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
@@ -34,7 +34,7 @@ export const calcSelectionRightBoundReflowPatches: CalcSelectionFromBoundReflowP
   return toReflowShapes
 }
 
-export const calcSelectionLeftBoundReflowPatches: CalcSelectionFromBoundReflowPatches = ({ selectionArea, shapes, cursor }) => {
+export const calcSelectionLeftBoundReflowPatches: CalcSelectionReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
@@ -67,7 +67,7 @@ export const calcSelectionLeftBoundReflowPatches: CalcSelectionFromBoundReflowPa
   return toReflowShapes
 }
 
-export const calcSelectionTopBoundReflowPatches: CalcSelectionFromBoundReflowPatches = ({ selectionArea, shapes, cursor }) => {
+export const calcSelectionTopBoundReflowPatches: CalcSelectionReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x
@@ -101,7 +101,7 @@ export const calcSelectionTopBoundReflowPatches: CalcSelectionFromBoundReflowPat
   return toReflowShapes
 }
 
-export const calcSelectionBottomBoundReflowPatches: CalcSelectionFromBoundReflowPatches = ({ selectionArea, shapes, cursor }) => {
+export const calcSelectionBottomBoundReflowPatches: CalcSelectionReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const top = selectionArea.y

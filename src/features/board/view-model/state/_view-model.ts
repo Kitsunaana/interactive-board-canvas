@@ -1,10 +1,8 @@
 import { match } from "@/shared/lib/match.ts";
-import { _u, isNotUndefined } from "@/shared/lib/utils.ts";
-import { isEqual, isUndefined, pick } from "lodash";
+import { isNotUndefined } from "@/shared/lib/utils.ts";
 import * as rx from "rxjs";
-import type { Shape, ShapeToView } from "../../domain/shape.ts";
-import { shapes$ } from "../../model/index.ts";
-import { generateEllipseSketchProps, generateRectangleSketchProps } from "../shape-sketch.ts";
+import { shapes$ } from "../../model/shapes.ts";
+import { getCachedShapeToView } from "./_get-cached-shape.ts";
 import type { ViewModel, ViewModelState } from "./_view-model.type.ts";
 import { goToIdle } from "./_view-model.type.ts";
 
@@ -22,37 +20,10 @@ export const shapesToRecord$ = shapes$.pipe(
   rx.shareReplay({ refCount: true, bufferSize: 1 })
 )
 
-const CacheShapes = new Map<string, ShapeToView>()
-
-const watchedShapeProps: (keyof ShapeToView)[] = ["x", "y", "width", "height"]
-
-export const shapesToView$ = shapes$.pipe(
-  rx.map((shapes) => shapes.map((shape) => {
-    if (isUndefined(CacheShapes.get(shape.id))) CacheShapes.set(shape.id, addSketchPropertiesToShape(shape))
-    const readFromCache = CacheShapes.get(shape.id)
-
-    if (isEqual(pick(shape, watchedShapeProps), pick(readFromCache, watchedShapeProps))) {
-      return readFromCache
-    }
-
-    const updatedShape = addSketchPropertiesToShape(shape)
-    CacheShapes.set(shape.id, updatedShape)
-
-    return updatedShape
-  }) as ShapeToView[]),
-  rx.shareReplay({ refCount: true, bufferSize: 1 })
-)
-
-function addSketchPropertiesToShape(shape: Shape) {
-  return match(shape, {
-    rectangle: (shape) => shape.sketch ? _u.merge(shape, generateRectangleSketchProps(shape)) : shape,
-    circle: (shape) => shape.sketch ? _u.merge(shape, generateEllipseSketchProps(shape)) : shape,
-    square: (square) => square,
-    arrow: (arrow) => arrow,
-  }) as ShapeToView
-}
-
-export const viewModel$ = rx.combineLatest([viewState$, shapesToView$]).pipe(
+export const viewModel$ = rx.combineLatest([
+  viewState$, 
+  shapes$.pipe(rx.map((shapes) => shapes.map(getCachedShapeToView)))
+]).pipe(
   rx.map(([state, nodes]) => match(state, {
     shapesDragging: (state): ViewModel => ({
       actions: {},

@@ -1,8 +1,8 @@
 import { forEach } from "lodash"
 import type { ShapeToRender } from "../../shape"
-import { SELECTION_BOUNDS_PADDING, type CalcSelectionLeftResizeOffsets } from "../_types"
+import { SELECTION_BOUNDS_PADDING, type CalcSelectionResizeOffsets } from "../_types"
 
-export const calcSelectionLeftResizeOffsets: CalcSelectionLeftResizeOffsets = ({ cursor, shapes, selectionArea }) => {
+export const calcSelectionLeftResizeOffsets: CalcSelectionResizeOffsets = ({ cursor, shapes, selectionArea }) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
   const left = selectionArea.x
   const right = left + selectionArea.width
@@ -25,7 +25,7 @@ export const calcSelectionLeftResizeOffsets: CalcSelectionLeftResizeOffsets = ({
   return toReflowShapes
 }
 
-export const calcSelectionTopResizeOffsets: CalcSelectionLeftResizeOffsets = ({ cursor, shapes, selectionArea }) => {
+export const calcSelectionTopResizeOffsets: CalcSelectionResizeOffsets = ({ cursor, shapes, selectionArea }) => {
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
   const top = selectionArea.y
@@ -49,7 +49,7 @@ export const calcSelectionTopResizeOffsets: CalcSelectionLeftResizeOffsets = ({ 
   return toReflowShapes
 }
 
-export const calcSelectionBottomResizeOffsets: CalcSelectionLeftResizeOffsets = ({ cursor, shapes, selectionArea }) => {
+export const calcSelectionBottomResizeOffsets: CalcSelectionResizeOffsets = ({ cursor, shapes, selectionArea }) => {
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
   const top = selectionArea.y
@@ -73,7 +73,7 @@ export const calcSelectionBottomResizeOffsets: CalcSelectionLeftResizeOffsets = 
   return toReflowShapes
 }
 
-export const calcSelectionRightResizeOffsets: CalcSelectionLeftResizeOffsets = ({ cursor, shapes, selectionArea }) => {
+export const calcSelectionRightResizeOffsets: CalcSelectionResizeOffsets = ({ cursor, shapes, selectionArea }) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
   const left = selectionArea.x

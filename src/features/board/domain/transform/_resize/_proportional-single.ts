@@ -1,6 +1,6 @@
-import { SELECTION_BOUNDS_PADDING, withDefaultTransformHandlers, type CalcShapeFromBoundAspectResizePatch } from "../_types"
+import { SELECTION_BOUNDS_PADDING, withDefaultTransformHandlers, type CalcShapeAspectResizePatch } from "../_types"
 
-export const calcShapeRightBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
+export const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }, transform) => {
   const handlers = withDefaultTransformHandlers(transform)
 
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
@@ -44,7 +44,7 @@ export const calcShapeRightBoundAspectResizePatch: CalcShapeFromBoundAspectResiz
   }
 }
 
-export const calcShapeLeftBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
+export const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }, transform) => {
   const handlers = withDefaultTransformHandlers(transform)
 
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
@@ -89,7 +89,7 @@ export const calcShapeLeftBoundAspectResizePatch: CalcShapeFromBoundAspectResize
   }
 }
 
-export const calcShapeBottomBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
+export const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }, transform) => {
   const handlers = withDefaultTransformHandlers(transform)
 
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
@@ -134,7 +134,7 @@ export const calcShapeBottomBoundAspectResizePatch: CalcShapeFromBoundAspectResi
   }
 }
 
-export const calcShapeTopBoundAspectResizePatch: CalcShapeFromBoundAspectResizePatch = ({ shape, cursor }, transform) => {
+export const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }, transform) => {
   const handlers = withDefaultTransformHandlers(transform)
 
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING

@@ -7,7 +7,7 @@ import { drawSelectionBoundsArea } from "./features/board/ui/selection-area.ts";
 import { getShapeDrawer } from "./features/board/ui/shape.ts";
 import { gridProps$ } from "./features/board/view-model/canvas-props.ts";
 import { selectionBounds$ } from "./features/board/view-model/selection-bounds.ts";
-import { getResizeHandlersPositions } from "./features/board/view-model/shape-sketch.ts";
+import { getResizeCorners } from "./features/board/view-model/shape-sketch.ts";
 import { shapesToRender$ } from "./features/board/view-model/state/_view-model.ts";
 import { context } from "./shared/lib/initial-canvas.ts";
 import { isNotNull } from "./shared/lib/utils.ts";
@@ -83,7 +83,7 @@ export function drawResizeHandlers({ context, camera, rect }: {
   context.fillStyle = "#ffffff"
   context.strokeStyle = "#aaaaaa"
 
-  getResizeHandlersPositions({ camera, rect }).forEach((dot) => {
+  getResizeCorners({ camera, rect }).forEach((dot) => {
     context.beginPath()
     context.lineWidth = dotLineWidth
     context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)

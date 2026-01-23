@@ -1,4 +1,4 @@
-import type { Point } from "@/shared/type/shared"
+import type { Point, Rect } from "@/shared/type/shared"
 import type { SelectionBounds } from "./_types"
 
 export const SELECTION_BOUNDS_PADDING = 7
@@ -72,14 +72,14 @@ const recalculateFromTopLeftCorner = (params: RecalculateFromBoundParams) => ({
   ...recalculateFromTopBound(params),
 })
 
-export const calcSelectionAreaFromBound = {
+export const calcSelectionAreaFromBound: Record<string, (params: RecalculateFromBoundParams) => Partial<Rect>> = {
   bottom: recalculateFromBottomBound,
   right: recalculateFromRightBound,
   left: recalculateFromLeftBound,
   top: recalculateFromTopBound,
 }
 
-export const calcSelectionAreaFromCorner = {
+export const calcSelectionAreaFromCorner: Record<string, (params: RecalculateFromBoundParams) => Partial<Rect>> = {
   bottomRight: recalculateFromBottomRightCorner,
   bottomLeft: recalculateFromBottomLeftCorner,
   topRight: recalculateFromTopRightCorner,

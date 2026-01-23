@@ -42,7 +42,7 @@ export const BASE_RADIUS = 5
 export const SCALE_POWER = 0.75
 export const BASE_LINE_WIDTH = 0.45
 
-export type ResizeHandler = {
+export type ResizeCorner = {
   strokeWidth: number
   radius: number
   corner: Corner
@@ -50,11 +50,11 @@ export type ResizeHandler = {
   y: number
 }
 
-export const getResizeHandlersPositions = ({ rect, camera, radius = BASE_RADIUS }: {
+export const getResizeCorners = ({ rect, camera, radius = BASE_RADIUS }: {
   radius?: number
   camera: Camera
   rect: Rect
-}): ResizeHandler[] => [
+}): ResizeCorner[] => [
     {
       strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),
       radius: radius / Math.pow(camera.scale, SCALE_POWER),

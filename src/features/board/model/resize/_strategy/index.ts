@@ -1,7 +1,7 @@
 import { _u } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
-import type { NodeBound, NodeCorner } from "../../domain/selection-area"
-import type { ShapeToRender } from "../../domain/shape"
+import type { NodeBound, NodeCorner } from "../../../domain/selection-area"
+import type { ShapeToRender } from "../../../domain/shape"
 import { MultipleShapesTransform } from "./_multiple"
 import { SingleShapeResize } from "./_single"
 

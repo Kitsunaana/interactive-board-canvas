@@ -10,7 +10,7 @@ import { CANVAS_COLOR_ID } from "./_ui"
 import type { Bound } from "../../domain/selection-area"
 import type { Shape } from "../../domain/shape"
 import type { Corner } from "../../domain/selection-area/_types"
-import type { ResizeHandler } from "../../view-model/shape-sketch"
+import type { ResizeCorner } from "../../view-model/shape-sketch"
 
 export type BoundLinesColor = Record<Bound, string>
 
@@ -23,7 +23,7 @@ export type SelectionBoundsToPick = {
 }
 
 export type ResizeHandlersPropertiesToPick = {
-  resizeHandlers: ResizeHandler[]
+  resizeHandlers: ResizeCorner[]
   linesColor: CornerLinesColor
 }
 

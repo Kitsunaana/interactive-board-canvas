@@ -8,28 +8,28 @@ export type ShapeToAspectResize = Rect & {
   nextHeight: number
 }
 
-export type CalcShapeFromBoundResizePatch = (
+export type CalcShapeResizePatch = (
   params: {
     shape: RectWithId
     cursor: Point
   },
 ) => Partial<Rect>
 
-export type CalcShapeFromBoundAspectResizePatchTransform = {
+export type CalcShapeAspectResizePatchTransform = {
   default?: (params: ShapeToAspectResize) => Partial<Rect>
   frizen?: (params: ShapeToAspectResize) => Partial<Rect>
   flip?: (params: ShapeToAspectResize) => Partial<Rect>
 }
 
-export type CalcShapeFromBoundAspectResizePatch = (
+export type CalcShapeAspectResizePatch = (
   params: {
     shape: RectWithId
     cursor: Point
   },
-  transform?: CalcShapeFromBoundAspectResizePatchTransform
+  transform?: CalcShapeAspectResizePatchTransform
 ) => Partial<Rect>
 
-export type CalcSelectionFromBoundReflowPatches = (
+export type CalcSelectionReflowPatches = (
   params: {
     selectionArea: Rect
     shapes: RectWithId[]
@@ -37,7 +37,7 @@ export type CalcSelectionFromBoundReflowPatches = (
   }
 ) => Map<string, Partial<Rect>>
 
-export type CalcSelectionLeftResizeOffsets = (
+export type CalcSelectionResizeOffsets = (
   params: {
     selectionArea: Rect
     shapes: RectWithId[]
@@ -52,28 +52,28 @@ export type RectEdges = {
   top: number
 }
 
-export type CalcSelectionFromBoundAspectResizePatchesTransform = {
+export type CalcSelectionAspectResizePatchesTransform = {
   default?: (params: Rect & { scale: number }, areaEdges: RectEdges) => Partial<Rect>
   frizen?: (params: Rect & { scale: number }, areaEdges: RectEdges) => Partial<Rect>
   flip?: (params: Rect & { scale: number }, areaEdges: RectEdges) => Partial<Rect>
 }
 
-export type CalcSelectionFromBoundAspectResizePatches = (
+export type CalcSelectionAspectResizePatches = (
   params: {
     selectionArea: Rect
     shapes: RectWithId[]
     cursor: Point
   },
 
-  transform?: CalcSelectionFromBoundAspectResizePatchesTransform 
+  transform?: CalcSelectionAspectResizePatchesTransform 
 ) => Map<string, Partial<Rect>>
 
-export type ResizeSingleFromBoundParams = {
+export type ResizeSingleParams = {
   shapes: RectWithId[]
   cursor: Point
 }
 
-export type ResizeMultipleFromBoundParams = {
+export type ResizeMultipleParams = {
   selectionArea: Rect
   shapes: RectWithId[]
   cursor: Point

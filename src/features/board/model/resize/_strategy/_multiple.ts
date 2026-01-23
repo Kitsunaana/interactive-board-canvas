@@ -1,9 +1,9 @@
 import { _u } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
-import type { ShapeToRender } from "../../domain/shape"
-import { TransformDomain } from "../../domain/transform"
-import type { CalcSelectionFromBoundAspectResizePatchesTransform, RectWithId } from "../../domain/transform/_types"
+import type { ShapeToRender } from "../../../domain/shape"
+import { TransformDomain } from "../../../domain/transform"
+import type { CalcSelectionAspectResizePatchesTransform, RectWithId } from "../../../domain/transform/_types"
 import { mapSelectedShapes } from "./_types"
 
 export type ResizeMultipleFromBoundParams = {
@@ -44,13 +44,13 @@ const Rules = {
     default: (shape, aria) => ({ x: aria.right / 2 + (shape.x - aria.right / 2) * shape.scale }),
     flip: (shape, aria) => ({ x: aria.right / 2 + (shape.x - aria.right / 2) * shape.scale }),
     frizen: (_, aria) => ({ x: aria.right / 2 })
-  } satisfies CalcSelectionFromBoundAspectResizePatchesTransform,
+  } satisfies CalcSelectionAspectResizePatchesTransform,
 
   ScaleToYAxisCenterOppositeBound: {
     default: (shape, aria) => ({ y: aria.bottom / 2 + (shape.y - aria.bottom / 2) * shape.scale }),
     flip: (shape, aria) => ({ y: aria.bottom / 2 + (shape.y - aria.bottom / 2) * shape.scale }),
     frizen: (_, aria) => ({ y: aria.bottom / 2 })
-  } satisfies CalcSelectionFromBoundAspectResizePatchesTransform
+  } satisfies CalcSelectionAspectResizePatchesTransform
 }
 
 const Resize = TransformDomain.Multiple.Resize

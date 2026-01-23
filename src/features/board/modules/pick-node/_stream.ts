@@ -3,9 +3,9 @@ import { left, right } from "@/shared/lib/either.ts";
 import { _u, isNotNull, isNotUndefined } from "@/shared/lib/utils.ts";
 import { isNull } from "lodash";
 import * as rx from "rxjs";
-import { shapes$ } from "../../model";
+import { shapes$ } from "../../model/shapes.ts";
 import { autoSelectionBounds$ } from "../../view-model/selection-bounds.ts";
-import { getResizeHandlersPositions } from "../../view-model/shape-sketch.ts";
+import { getResizeCorners } from "../../view-model/shape-sketch.ts";
 import { camera$ } from "../camera/index.ts";
 import { context, createFormatterFoundNode, getPickedColor, isPickedCanvas, isPickedResizeHandler, isPickedSelectionBound, isPickedShape } from "./_core.ts";
 import { drawScene } from "./_ui.ts";
@@ -29,7 +29,7 @@ const resizeHandlersPropertiesToPick$ = autoSelectionBounds$.pipe(
     if (isNull(selectionArea)) return null
 
     return {
-      resizeHandlers: getResizeHandlersPositions({ rect: selectionArea.area, radius: 10, camera }),
+      resizeHandlers: getResizeCorners({ rect: selectionArea.area, radius: 10, camera }),
       linesColor: {
         bottomRight: generateRandomColor(),
         bottomLeft: generateRandomColor(),

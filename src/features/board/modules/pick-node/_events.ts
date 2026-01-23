@@ -12,7 +12,7 @@ export const pointerLeave$ = rx.fromEvent<PointerEvent>(window, "pointerleave")
 export const pointerMove$ = rx.fromEvent<PointerEvent>(window, "pointermove")
 export const pointerDown$ = rx.fromEvent<PointerEvent>(window, "pointerdown")
 export const pointerUp$ = rx.fromEvent<PointerEvent>(window, "pointerup")
-export const wheel$ = rx.fromEvent<WheelEvent>(window, "wheel")
+export const wheel$ = rx.fromEvent<WheelEvent>(window, "wheel", { passive: true })
 
 export const mouseDown$ = createPointerNodePick$(pointerDown$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))
 export const mouseMove$ = createPointerNodePick$(pointerMove$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))

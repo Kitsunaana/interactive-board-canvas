@@ -1,9 +1,9 @@
 import type { Rect } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import type { ResizeMultipleFromBoundParams } from "../_types"
+import type { ResizeMultipleParams } from "../_types"
 import { SELECTION_BOUNDS_PADDING } from "../_types"
 
-export const calcSelectionTopBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionTopBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
 
@@ -52,7 +52,7 @@ export const calcSelectionTopBoundResizePatches = ({ cursor, shapes, selectionAr
   return toTransformShapes
 }
 
-export const calcSelectionLeftBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionLeftBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
 
@@ -101,7 +101,7 @@ export const calcSelectionLeftBoundResizePatches = ({ cursor, shapes, selectionA
   return toTransformShapes
 }
 
-export const calcSelectionBottomBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionBottomBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleParams) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
 
@@ -151,7 +151,7 @@ export const calcSelectionBottomBoundResizePatches = ({ cursor, shapes, selectio
   return toTransformShapes
 }
 
-export const calcSelectionRightBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleFromBoundParams) => {
+export const calcSelectionRightBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleParams) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
 

@@ -1,9 +1,9 @@
 import type { Rect } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import type { CalcSelectionFromBoundAspectResizePatches, RectEdges } from "../_types"
+import type { CalcSelectionAspectResizePatches, RectEdges } from "../_types"
 import { SELECTION_BOUNDS_PADDING, withDefaultTransformHandlers } from "../_types"
 
-export const calcSelectionRightBoundAspectResizePatches: CalcSelectionFromBoundAspectResizePatches = ({
+export const calcSelectionRightBoundAspectResizePatches: CalcSelectionAspectResizePatches = ({
   selectionArea,
   cursor,
   shapes,
@@ -82,7 +82,7 @@ export const calcSelectionRightBoundAspectResizePatches: CalcSelectionFromBoundA
   return toTransformShapes
 }
 
-export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionFromBoundAspectResizePatches = ({
+export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionAspectResizePatches = ({
   selectionArea,
   cursor,
   shapes,
@@ -160,7 +160,7 @@ export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionFromBoundAs
   return toTransformShapes
 }
 
-export const calcSelectionTopBoundAspectResizePatches: CalcSelectionFromBoundAspectResizePatches = ({
+export const calcSelectionTopBoundAspectResizePatches: CalcSelectionAspectResizePatches = ({
   selectionArea,
   cursor,
   shapes,
@@ -239,7 +239,7 @@ export const calcSelectionTopBoundAspectResizePatches: CalcSelectionFromBoundAsp
   return toTransformShapes
 }
 
-export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionFromBoundAspectResizePatches = ({
+export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionAspectResizePatches = ({
   selectionArea,
   cursor,
   shapes,

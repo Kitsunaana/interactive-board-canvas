@@ -12,7 +12,6 @@ export type ShapesDraggingViewState = {
   selectedIds: Set<string>
   needToDeselect: boolean
   type: "shapesDragging"
-  startPoint: Point
 }
 
 export type ShapesResizeViewState = {
@@ -56,10 +55,6 @@ export const goToShapesDragging = (state: Partial<ShapesDraggingViewState> = {})
   selectedIds: new Set(),
   needToDeselect: false,
   type: "shapesDragging",
-  startPoint: {
-    x: 0,
-    y: 0
-  },
   ...state,
 })
 

@@ -18,7 +18,7 @@ const pointerLeave$ = rx.fromEvent<PointerEvent>(canvas, "pointerleave")
 const pointerDown$ = rx.fromEvent<PointerEvent>(canvas, "pointerdown")
 const pointerMove$ = rx.fromEvent<PointerEvent>(canvas, "pointermove")
 const pointerUp$ = rx.fromEvent<PointerEvent>(canvas, "pointerup")
-const wheel$ = rx.fromEvent<WheelEvent>(canvas, "wheel")
+const wheel$ = rx.fromEvent<WheelEvent>(canvas, "wheel", { passive: true })
 
 export const zoomTrigger$ = new rx.Subject<ZoomAction>()
 

@@ -3,7 +3,7 @@ import { _u, isNotUndefined } from "@/shared/lib/utils";
 import type { Point } from "@/shared/type/shared";
 import { bind } from "@react-rxjs/core";
 import * as rx from "rxjs";
-import { shapes$ } from "../model";
+import { shapes$ } from "../model/shapes";
 import { camera$ } from "../modules/camera/_stream";
 import { viewState$ } from "./state";
 

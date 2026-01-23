@@ -1,5 +1,5 @@
 import type { Point } from "@/shared/type/shared"
-import type { ShapeToRender } from "../../domain/shape"
+import type { ShapeToRender } from "../../../domain/shape"
 
 export type ResizeSingleFromBoundParams = {
   shapes: ShapeToRender[]

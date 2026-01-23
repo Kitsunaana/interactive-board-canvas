@@ -1,4 +1,5 @@
 ﻿import { generateRandomColor } from "@/shared/lib/color";
+import * as rx from "rxjs";
 import type { Shape } from "../domain/shape";
 
 export const shapes: Shape[] = [
@@ -74,3 +75,6 @@ export const shapes: Shape[] = [
   }
 ]
 
+
+
+export const shapes$ = new rx.BehaviorSubject(shapes)

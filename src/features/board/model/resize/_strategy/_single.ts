@@ -1,9 +1,9 @@
 import { _u } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
-import type { ShapeToRender } from "../../domain/shape"
-import { TransformDomain } from "../../domain/transform"
-import type { CalcShapeFromBoundAspectResizePatchTransform, RectWithId } from "../../domain/transform/_types"
+import type { ShapeToRender } from "../../../domain/shape"
+import { TransformDomain } from "../../../domain/transform"
+import type { CalcShapeAspectResizePatchTransform, RectWithId } from "../../../domain/transform/_types"
 import type { ResizeSingleFromBoundParams } from "./_types"
 import { mapSelectedShapes } from "./_types"
 
@@ -38,13 +38,13 @@ const Rules = {
     default: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
     flip: (shape) => ({ x: shape.x - (shape.nextWidth / 2 - shape.width / 2) }),
     frizen: (shape) => ({ x: shape.x + shape.width / 2 }),
-  } satisfies CalcShapeFromBoundAspectResizePatchTransform,
+  } satisfies CalcShapeAspectResizePatchTransform,
 
   ScaleToYAxisCenterOppositeBound: {
     default: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
     flip: (shape) => ({ y: shape.y - (shape.nextHeight / 2 - shape.height / 2) }),
     frizen: (shape) => ({ y: shape.y + shape.height / 2 }),
-  } satisfies CalcShapeFromBoundAspectResizePatchTransform
+  } satisfies CalcShapeAspectResizePatchTransform
 }
 
 const Resize = TransformDomain.Single.Resize

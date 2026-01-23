@@ -5,7 +5,7 @@ import { _u, getBoundingClientRect, isNegative, isNotNull } from "@/shared/lib/u
 import type { Point, Rect } from "@/shared/type/shared";
 import * as _ from "lodash"
 import * as rx from "rxjs";
-import { shapes$ } from "../../model";
+import { shapes$ } from "../../model/shapes";
 import { cameraSubject$, type Camera } from "../camera";
 import {
   calculateMiniMapCameraRect,
