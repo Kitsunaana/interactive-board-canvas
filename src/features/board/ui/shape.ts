@@ -13,6 +13,8 @@ export const getShapeDrawer = (shape: ShapeToRender) => {
 
       context.save()
 
+      context.translate(shape.x + radiusX, shape.y + radiusY)
+
       context.shadowColor = 'rgba(0, 0, 0, 0.2)'
       context.shadowOffsetX = 2
       context.shadowOffsetY = 2
@@ -30,17 +32,28 @@ export const getShapeDrawer = (shape: ShapeToRender) => {
       if (shape.sketch) return drawSketchShape(shape)
 
       context.save()
+
+      context.fillStyle = "#fff8ac"
+
+      context.translate(shape.x + shape.width / 2, shape.y + shape.height / 2)
+
       context.shadowColor = 'rgba(0, 0, 0, 0.2)'
       context.shadowOffsetX = 2
       context.shadowOffsetY = 2
       context.shadowBlur = 11
 
-      context.fillStyle = '#4f46e5'
-
+      context.rotate(0)
       context.beginPath()
-      context.fillStyle = "#fff8ac"
-      context.rect(shape.x, shape.y, shape.width, shape.height)
+      context.rect(-shape.width / 2, -shape.height / 2, shape.width, shape.height)
+      context.closePath()
       context.fill()
+
+      // context.fillStyle = "#000"
+      // context.font = "16px Arial"
+      // context.textAlign = "center"
+      // context.textBaseline = "middle"
+      // context.fillText("Hello World", 0, 0);
+
       context.restore()
     }
   })

@@ -8,22 +8,25 @@ import { getShapeDrawer } from "./features/board/ui/shape.ts";
 import { gridProps$ } from "./features/board/view-model/canvas-props.ts";
 import { selectionBounds$ } from "./features/board/view-model/selection-bounds.ts";
 import { getResizeCorners } from "./features/board/view-model/shape-sketch.ts";
-import { shapesToRender$ } from "./features/board/view-model/state/_view-model.ts";
+import { selectionWindow$, shapesToRender$ } from "./features/board/view-model/state/_view-model.ts";
 import { context } from "./shared/lib/initial-canvas.ts";
-import { isNotNull } from "./shared/lib/utils.ts";
-import type { Rect } from "./shared/type/shared.ts";
+import { isNotNull, isNotUndefined } from "./shared/lib/utils.ts";
+import type { Point, Rect } from "./shared/type/shared.ts";
+import { screenToCanvas } from "./shared/lib/point.ts";
 
 export const renderLoop$ = rx.animationFrames().pipe(
   rx.withLatestFrom(
     gridTypeSubject$,
     selectionBounds$,
+    selectionWindow$,
     shapesToRender$,
     canvasSizes$,
     gridProps$,
     camera$,
   ),
-  rx.map(([_, gridType, selectionArea, shapes, canvasSizes, gridProps, camera]) => ({
-    selectionArea,
+  rx.map(([_, gridType, selectionBounds, selectionWindow, shapes, canvasSizes, gridProps, camera]) => ({
+    selectionBounds,
+    selectionWindow,
     canvasSizes,
     gridProps,
     gridType,
@@ -32,7 +35,14 @@ export const renderLoop$ = rx.animationFrames().pipe(
   }))
 )
 
-renderLoop$.subscribe(({ selectionArea, canvasSizes, gridType, gridProps, camera, shapes }) => {
+function screenToWorld(point: Point, camera: Camera) {
+  return {
+    x: (point.x - camera.x) / camera.scale,
+    y: (point.y - camera.y) / camera.scale,
+  }
+}
+
+renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType, gridProps, camera, shapes }) => {
   context.save()
 
   context.clearRect(0, 0, canvasSizes.width, canvasSizes.height)
@@ -44,10 +54,26 @@ renderLoop$.subscribe(({ selectionArea, canvasSizes, gridType, gridProps, camera
 
   drawShapes({ context, shapes })
 
-  if (isNotNull(selectionArea)) {
-    drawSelectionBoundsArea({ context, rects: selectionArea.bounds.concat(selectionArea.area) })
-    drawResizeHandlers({ context, camera, rect: selectionArea.area })
+  if (isNotNull(selectionBounds)) {
+    drawSelectionBoundsArea({ context, rects: selectionBounds.bounds.concat(selectionBounds.area) })
+    drawResizeHandlers({ context, camera, rect: selectionBounds.area })
   }
+
+  if (isNotUndefined(selectionWindow)) {
+    context.save()
+    context.beginPath()
+    context.fillStyle = "#3859ff"
+    context.strokeStyle = "#3859ff"
+    context.rect(selectionWindow.x, selectionWindow.y, selectionWindow.width, selectionWindow.height)
+    context.closePath()
+    context.globalAlpha = 0.1
+    context.fill()
+    context.globalAlpha = 1
+    context.lineWidth = 0.5
+    context.stroke()
+    context.restore()
+  }
+
 
   context.restore()
 })
