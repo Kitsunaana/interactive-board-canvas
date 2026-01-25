@@ -8,12 +8,22 @@ export const [, canvas] = initialCanvas({
   canvasId: "canvas",
 })
 
-export const pointerLeave$ = rx.fromEvent<PointerEvent>(window, "pointerleave")
-export const pointerMove$ = rx.fromEvent<PointerEvent>(window, "pointermove")
-export const pointerDown$ = rx.fromEvent<PointerEvent>(window, "pointerdown")
-export const pointerUp$ = rx.fromEvent<PointerEvent>(window, "pointerup")
-export const wheel$ = rx.fromEvent<WheelEvent>(window, "wheel", { passive: true })
+export const windowPointerLeave$ = rx.fromEvent<PointerEvent>(window, "pointerleave")
+export const windowPointerMove$ = rx.fromEvent<PointerEvent>(window, "pointermove")
+export const windowPointerDown$ = rx.fromEvent<PointerEvent>(window, "pointerdown")
+export const windowPointerUp$ = rx.fromEvent<PointerEvent>(window, "pointerup")
+export const windowWheel$ = rx.fromEvent<WheelEvent>(window, "wheel", { passive: true })
 
-export const mouseDown$ = createPointerNodePick$(pointerDown$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))
-export const mouseMove$ = createPointerNodePick$(pointerMove$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))
-export const mouseUp$ = createPointerNodePick$(pointerUp$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))
+export const windowMouseDown$ = createPointerNodePick$(windowPointerDown$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))
+export const windowMouseMove$ = createPointerNodePick$(windowPointerMove$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))
+export const windowMouseUp$ = createPointerNodePick$(windowPointerUp$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))
+
+export const cavnasPointerLeave$ = rx.fromEvent<PointerEvent>(canvas, "pointerleave")
+export const canvasPointerMove$ = rx.fromEvent<PointerEvent>(canvas, "pointermove")
+export const canvasPointerDown$ = rx.fromEvent<PointerEvent>(canvas, "pointerdown")
+export const canvasPointerUp$ = rx.fromEvent<PointerEvent>(canvas, "pointerup")
+export const canvasWheel$ = rx.fromEvent<WheelEvent>(canvas, "wheel", { passive: true })
+
+export const canvasMouseDown$ = createPointerNodePick$(canvasPointerDown$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))
+export const canvasMouseMove$ = createPointerNodePick$(canvasPointerMove$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))
+export const canvasMouseUp$ = createPointerNodePick$(canvasPointerUp$).pipe(rx.shareReplay({ refCount: true, bufferSize: 1 }))

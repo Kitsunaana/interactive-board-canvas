@@ -1,11 +1,11 @@
 export {
-  mouseDown$,
-  mouseMove$,
-  mouseUp$,
+  windowMouseDown$ as mouseDown$,
+  windowMouseMove$ as mouseMove$,
+  windowMouseUp$ as mouseUp$,
 
-  pointerLeave$,
-  pointerMove$,
-  pointerDown$,
-  pointerUp$,
-  wheel$
+  windowPointerLeave$ as pointerLeave$,
+  windowPointerMove$ as pointerMove$,
+  windowPointerDown$ as pointerDown$,
+  windowPointerUp$ as pointerUp$,
+  windowWheel$ as wheel$
 } from "./_events";

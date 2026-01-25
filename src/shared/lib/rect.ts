@@ -1,6 +1,7 @@
 import * as _ from "lodash"
 import type { LimitPoints, Point, Rect } from "../type/shared";
 import { screenToCanvas, type Camera } from "./point";
+import { isNegative } from "./utils";
 
 export const unscaleRect = (rect: Rect, unscale: number): Rect => ({
   height: rect.height / unscale,
@@ -73,4 +74,44 @@ export const calculateLimitPoints = ({ rects }: { rects: Rect[] }) => {
       min: { x, y },
     } satisfies LimitPoints
   )
+}
+
+export const rectBorderPointsStep = (rect: Rect, step = 5) => {
+  const { x, y, width, height } = rect
+  const points = []
+
+  for (let i = 0; i < width; i += step) {
+    points.push({ x: x + i, y })
+    points.push({ x: x + i, y: y + height - 1 })
+  }
+
+  for (let i = step; i < height - step; i += step) {
+    points.push({ x, y: y + i })
+    points.push({ x: x + width - 1, y: y + i })
+  }
+
+  return points
+}
+
+export const worldRectToScreenRect = (rect: Rect, camera: Camera & { scale: number }) => {
+  const x = Math.round((rect.x * camera.scale) + camera.x)
+  const y = Math.round((rect.y * camera.scale) + camera.y)
+  const height = Math.round(rect.height * camera.scale)
+  const width = Math.round(rect.width * camera.scale)
+
+  return {
+    x: isNegative(width) ? x - Math.abs(width) : x,
+    y: isNegative(height) ? y - Math.abs(height) : y,
+    width: Math.abs(width),
+    height: Math.abs(height),
+  }
+}
+
+export const normalizeRect = ({ height, width, x, y }: Rect) => {
+  return {
+    x: isNegative(width) ? x - Math.abs(width) : x,
+    y: isNegative(height) ? y - Math.abs(height) : y,
+    width: Math.abs(width),
+    height: Math.abs(height),
+  }
 }
