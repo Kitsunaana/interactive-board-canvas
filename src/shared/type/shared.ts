@@ -10,9 +10,20 @@ export type Rect = {
   y: number
 }
 
+export type RectWithId = Rect & {
+  id: string
+}
+
 export type Sizes = {
   height: number
   width: number
+}
+
+export type RectEdges = {
+  bottom: number
+  right: number
+  left: number
+  top: number
 }
 
 export type LimitPoints = {

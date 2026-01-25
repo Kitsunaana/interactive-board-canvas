@@ -3,7 +3,7 @@ import type { Rect } from "@/shared/type/shared"
 import type { ShapeToRender } from "../shape"
 
 export const computeSelectionBoundsArea = (shapes: ShapeToRender[]) => {
-  const selectedShapes = shapes.filter(shape => shape.isSelected)
+  const selectedShapes = shapes.filter((shape) => shape.isSelected)
 
   if (selectedShapes.length === 1) {
     return {
@@ -13,13 +13,14 @@ export const computeSelectionBoundsArea = (shapes: ShapeToRender[]) => {
   }
 
   if (selectedShapes.length > 1) {
-    const rectsFromShape = selectedShapes.map(inferRect)
+    const rectsFromShapes = selectedShapes.map(inferRect)
+    
     const limitPoints = calculateLimitPoints({
-      rects: rectsFromShape
+      rects: rectsFromShapes
     })
 
     return {
-      bounds: rectsFromShape,
+      bounds: rectsFromShapes,
       area: {
         height: limitPoints.max.y - limitPoints.min.y,
         width: limitPoints.max.x - limitPoints.min.x,

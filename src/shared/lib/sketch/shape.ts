@@ -1,10 +1,10 @@
 import { getRandFromId } from "@/shared/lib/seed.ts";
-import type { Point, Rect } from "@/shared/type/shared.ts";
-import * as _ from "lodash"
+import type { Point, RectWithId } from "@/shared/type/shared.ts";
+import * as _ from "lodash";
 import { CONFIG } from "./const";
 import { generateHachureLines, generateLayerOffsets, generateSketchyOutline } from "./generate";
 
-export const generateSketchProps = <T extends Rect & { id: string }>({ rect, basePoints }: {
+export const generateSketchProps = <T extends RectWithId>({ rect, basePoints }: {
   basePoints: Point[]
   rect: T
 }) => {
@@ -13,10 +13,12 @@ export const generateSketchProps = <T extends Rect & { id: string }>({ rect, bas
   const outlines = _.times(CONFIG.layers).map(() => generateSketchyOutline({ basePoints, rand }))
 
   const layerOffsets = generateLayerOffsets({ rand })
+  const firtLayerOffset = layerOffsets[0]
+
   const hachureLines = generateHachureLines({
     outlinePoints: outlines[0],
-    offsetX: layerOffsets[0].x,
-    offsetY: layerOffsets[0].y,
+    offsetX: firtLayerOffset.x,
+    offsetY: firtLayerOffset.y,
     rand,
   })
 

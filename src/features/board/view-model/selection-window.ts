@@ -7,7 +7,7 @@ import type { Point } from "@/shared/type/shared";
 import { isNull } from "lodash";
 import * as rx from "rxjs";
 import { isCanvas } from "../domain/is";
-import type { ShapeToView } from "../domain/shape";
+import type { ShapeToRender } from "../domain/shape";
 import { camera$, type Camera } from "../modules/camera";
 import { pointerUp$ } from "../modules/pick-node";
 import { context, isPickedShape } from "../modules/pick-node/_core";
@@ -17,7 +17,7 @@ import { shapesToRender$, viewState$ } from "./state";
 import { goToSelectionWindow, isIdle } from "./state/_view-model.type";
 
 const resolveSelectionWindowSelection = ({ startPoint, endPoint, shapes, camera }: {
-  shapes: ShapeToView[]
+  shapes: ShapeToRender[]
   startPoint: Point
   endPoint: Point
   camera: Camera

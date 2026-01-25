@@ -1,12 +1,12 @@
+import type { ShapeDomain } from "@/entities/shape"
 import { match } from "@/shared/lib/match"
 import type { Rect, Sizes } from "@/shared/type/shared"
-import type { Shape } from "../../domain/shape"
 
 export const drawMiniMap = ({ shapes, sizes, context, unscale, cameraRect }: {
   context: CanvasRenderingContext2D
+  shapes: ShapeDomain.Shape[]
   cameraRect: Rect
   unscale: number
-  shapes: Shape[]
   sizes: Sizes
 }) => {
   context.save()
@@ -55,12 +55,12 @@ function drawViewport({ context, cameraRect }: {
 
 function drawShapes({ context, shapes }: {
   context: CanvasRenderingContext2D
-  shapes: Shape[]
+  shapes: ShapeDomain.Shape[]
 }) {
   context.save()
   shapes.forEach((shape) => {
     match(shape, {
-      circle: ({ height, width, x, y }) => {
+      ellipse: ({ height, width, x, y }) => {
         const radiusY = height / 2
         const radiusX = width / 2
 

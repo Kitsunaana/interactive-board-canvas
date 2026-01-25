@@ -1,3 +1,4 @@
+import type { ShapeDomain } from "@/entities/shape"
 import { addPoint, distance, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
 import { isRectIntersectionV2 } from "@/shared/lib/rect"
 import { _u } from "@/shared/lib/utils"
@@ -6,8 +7,7 @@ import { isNull } from "lodash"
 import * as rx from "rxjs"
 import { isShape } from "../domain/is"
 import type { Selection } from "../domain/selection"
-import type { SelectionArea } from "../domain/selection-area"
-import type { Shape } from "../domain/shape"
+import type { SelectionBounds } from "../domain/selection-area"
 import { type Camera, camera$, spacePressed$ } from "../modules/camera"
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../modules/pick-node"
 import { autoSelectionBounds$ } from "../view-model/selection-bounds"
@@ -15,7 +15,7 @@ import { goToShapesDragging, isIdle, isShapesDragging, viewState$ } from "../vie
 import { shapes$ } from "./shapes"
 
 const isValidShapeInteraction = ({ selectionBounds, point, node }: {
-  selectionBounds: SelectionArea | null
+  selectionBounds: SelectionBounds | null
   point: Point
   node: any
 }) => {
@@ -28,10 +28,10 @@ const isValidShapeInteraction = ({ selectionBounds, point, node }: {
 }
 
 const mapPointerMoveToMovedShapes = ({ event, camera, shapes, startPoint, selectedIds }: {
+  shapes: ShapeDomain.Shape[]
   selectedIds: Selection
   event: PointerEvent
   startPoint: Point
-  shapes: Shape[]
   camera: Camera
 }) => {
   const distance = subtractPoint(startPoint, screenToCanvas({

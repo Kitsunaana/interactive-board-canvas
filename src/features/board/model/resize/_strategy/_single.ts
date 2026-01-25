@@ -1,11 +1,10 @@
 import { _u } from "@/shared/lib/utils"
-import type { Point, Rect } from "@/shared/type/shared"
+import type { Point, Rect, RectWithId } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
 import type { ShapeToRender } from "../../../domain/shape"
-import { TransformDomain } from "../../../domain/transform"
-import type { CalcShapeAspectResizePatchTransform, RectWithId } from "../../../domain/transform/_types"
-import type { ResizeSingleFromBoundParams } from "./_types"
-import { mapSelectedShapes } from "./_types"
+import type { ResizeSingleFromBoundParams } from "./_lib"
+import { mapSelectedShapes } from "./_lib"
+import { TransformDomain } from "@/entities/shape"
 
 type AnyTransform = {
   default: (...args: any[]) => Partial<Rect>
@@ -32,6 +31,8 @@ const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] =
     ))
   }
 }
+
+type CalcShapeAspectResizePatchTransform = NonNullable<Parameters<typeof TransformDomain.Single.Resize.Proportional.Short.bottom>[1]>
 
 const Rules = {
   ScaleToXAxisCenterOppositeBound: {

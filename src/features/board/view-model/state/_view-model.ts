@@ -2,9 +2,9 @@ import { match } from "@/shared/lib/match.ts";
 import type { Rect } from "@/shared/type/shared.ts";
 import * as rx from "rxjs";
 import { shapes$ } from "../../model/shapes.ts";
-import { getCachedShapeToView } from "./_get-cached-shape.ts";
 import type { ViewModel, ViewModelState } from "./_view-model.type.ts";
 import { goToIdle, isSelectionWindow } from "./_view-model.type.ts";
+import { getShapeToViewFromCache } from "@/entities/shape/index.ts";
 
 export const viewState$ = new rx.BehaviorSubject<ViewModelState>(goToIdle())
 
@@ -22,7 +22,7 @@ export const shapesToRecord$ = shapes$.pipe(
 
 export const viewModel$ = rx.combineLatest([
   viewState$,
-  shapes$.pipe(rx.map((shapes) => shapes.map(getCachedShapeToView)))
+  shapes$.pipe(rx.map((shapes) => shapes.map(getShapeToViewFromCache)))
 ]).pipe(
   rx.map(([state, nodes]) => match(state, {
     shapesDragging: (state): ViewModel => ({

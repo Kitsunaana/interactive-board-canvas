@@ -1,6 +1,14 @@
-import type { Rect } from "@/shared/type/shared"
+import type { Point, Rect, RectWithId } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import { SELECTION_BOUNDS_PADDING, type CalcSelectionReflowPatches } from "../_types"
+import { SELECTION_BOUNDS_PADDING } from "../_const"
+
+export type CalcSelectionReflowPatchesParams = {
+  selectionArea: Rect
+  shapes: RectWithId[]
+  cursor: Point
+}
+
+export type CalcSelectionReflowPatches = (params: CalcSelectionReflowPatchesParams) => Map<string, Partial<Rect>>
 
 export const calcSelectionRightBoundReflowPatches: CalcSelectionReflowPatches = ({ selectionArea, shapes, cursor }) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING

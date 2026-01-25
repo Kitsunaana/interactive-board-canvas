@@ -1,4 +1,27 @@
-import { SELECTION_BOUNDS_PADDING, withDefaultTransformHandlers, type CalcShapeAspectResizePatch } from "../_types"
+import type { Point, Rect, RectWithId } from "@/shared/type/shared"
+import { SELECTION_BOUNDS_PADDING } from "../_const"
+import { withDefaultTransformHandlers } from "../_lib"
+
+export type ShapeToAspectResize = Rect & {
+  nextWidth: number
+  nextHeight: number
+}
+
+export type CalcShapeAspectResizePatchTransform = {
+  default?: (params: ShapeToAspectResize) => Partial<Rect>
+  frizen?: (params: ShapeToAspectResize) => Partial<Rect>
+  flip?: (params: ShapeToAspectResize) => Partial<Rect>
+}
+
+export type CalcShapeAspectResizePatchParms = {
+  shape: RectWithId
+  cursor: Point
+}
+
+export type CalcShapeAspectResizePatch = (
+  params: CalcShapeAspectResizePatchParms,
+  transform?: CalcShapeAspectResizePatchTransform
+) => Partial<Rect>
 
 export const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }, transform) => {
   const handlers = withDefaultTransformHandlers(transform)

@@ -1,4 +1,12 @@
-import { SELECTION_BOUNDS_PADDING, type CalcShapeResizePatch } from "../_types"
+import type { Point, Rect, RectWithId } from "@/shared/type/shared"
+import { SELECTION_BOUNDS_PADDING } from "../_const"
+
+export type CalcShapeResizePatchParams = {
+  shape: RectWithId
+  cursor: Point
+}
+
+export type CalcShapeResizePatch = (params: CalcShapeResizePatchParams) => Partial<Rect>
 
 export const calcShapeRightBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING

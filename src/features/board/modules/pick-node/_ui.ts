@@ -1,10 +1,9 @@
+import { SELECTION_BOUNDS_PADDING, type ShapeDomain } from "@/entities/shape/index.ts";
 import { generateRandomColor } from "@/shared/lib/color.ts";
 import { initialCanvas } from "@/shared/lib/initial-canvas.ts";
 import { match } from "@/shared/lib/match.ts";
 import { isNotNull } from "@/shared/lib/utils.ts";
 import type { Rect } from "@/shared/type/shared.ts";
-import type { Circle, Rectangle, Shape } from "../../domain/shape.ts";
-import { SELECTION_BOUNDS_PADDING } from "../../ui/selection-area.ts";
 import type { Camera } from "../camera/index.ts";
 import type { BoundLinesColor, ResizeHandlersPropertiesToPick, SelectionBoundsToPick } from "./_core.ts";
 
@@ -20,7 +19,7 @@ export function drawScene({ camera, context, shapes, selectionBounds, resizeHand
   selectionBounds: SelectionBoundsToPick | null
   resizeHandlers: ResizeHandlersPropertiesToPick | null
   context: CanvasRenderingContext2D
-  shapes: Shape[]
+  shapes: ShapeDomain.Shape[]
   camera: Camera
 }) {
   context.save()
@@ -107,14 +106,14 @@ function drawSelectionBounds({ context, lineColors, rect }: {
 
 function drawShapes({ context, shapes }: {
   context: CanvasRenderingContext2D
-  shapes: Shape[]
+  shapes: ShapeDomain.Shape[]
 }) {
   context.save()
 
   shapes.forEach((shape) => {
     match(shape, {
       rectangle: (shape) => drawRectangle({ shape, context }),
-      circle: (shape) => drawCircle({ shape, context }),
+      ellipse: (shape) => drawCircle({ shape, context }),
       square: () => { },
       arrow: () => { },
     })
@@ -125,7 +124,7 @@ function drawShapes({ context, shapes }: {
 
 function drawRectangle({ context, shape }: {
   context: CanvasRenderingContext2D
-  shape: Rectangle
+  shape: ShapeDomain.Rectangle
 }) {
   context.save()
   context.beginPath()
@@ -137,7 +136,7 @@ function drawRectangle({ context, shape }: {
 
 function drawCircle({ context, shape }: {
   context: CanvasRenderingContext2D
-  shape: Circle
+  shape: ShapeDomain.Ellipse
 }) {
   const radiusX = shape.width / 2
   const radiusY = shape.height / 2

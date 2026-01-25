@@ -12,8 +12,8 @@ export type ResizeInteraction = {
 }
 
 export type ResizeStrategyContext<Handler> = {
-  selectionArea: Rect
   shapes: ShapeToRender[]
+  selectionArea: Rect
   handler: Handler
 }
 

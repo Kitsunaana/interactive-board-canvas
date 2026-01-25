@@ -1,9 +1,16 @@
-import type { Rect } from "@/shared/type/shared"
+import type { Point, Rect, RectWithId } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import type { ResizeMultipleParams } from "../_types"
-import { SELECTION_BOUNDS_PADDING } from "../_types"
+import { SELECTION_BOUNDS_PADDING } from "../_const"
 
-export const calcSelectionTopBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleParams) => {
+export type CalcSelectionResizePatchesParams = {
+  selectionArea: Rect
+  shapes: RectWithId[]
+  cursor: Point
+}
+
+export type CalcSelectionResizePatches = (params: CalcSelectionResizePatchesParams) => Map<string, Partial<Rect>>
+
+export const calcSelectionTopBoundResizePatches: CalcSelectionResizePatches = ({ cursor, shapes, selectionArea }) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
 
@@ -52,7 +59,7 @@ export const calcSelectionTopBoundResizePatches = ({ cursor, shapes, selectionAr
   return toTransformShapes
 }
 
-export const calcSelectionLeftBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleParams) => {
+export const calcSelectionLeftBoundResizePatches: CalcSelectionResizePatches = ({ cursor, shapes, selectionArea }) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
 
@@ -101,7 +108,7 @@ export const calcSelectionLeftBoundResizePatches = ({ cursor, shapes, selectionA
   return toTransformShapes
 }
 
-export const calcSelectionBottomBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleParams) => {
+export const calcSelectionBottomBoundResizePatches: CalcSelectionResizePatches = ({ cursor, shapes, selectionArea }) => {
   const top = selectionArea.y
   const bottom = top + selectionArea.height
 
@@ -151,7 +158,7 @@ export const calcSelectionBottomBoundResizePatches = ({ cursor, shapes, selectio
   return toTransformShapes
 }
 
-export const calcSelectionRightBoundResizePatches = ({ cursor, shapes, selectionArea }: ResizeMultipleParams) => {
+export const calcSelectionRightBoundResizePatches: CalcSelectionResizePatches = ({ cursor, shapes, selectionArea }) => {
   const left = selectionArea.x
   const right = left + selectionArea.width
 

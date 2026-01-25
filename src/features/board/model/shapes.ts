@@ -1,16 +1,21 @@
-﻿import { generateRandomColor } from "@/shared/lib/color";
+﻿import type { ShapeDomain } from "@/entities/shape";
+import { generateRandomColor } from "@/shared/lib/color";
 import * as rx from "rxjs";
-import type { Shape } from "../domain/shape";
 
-export const shapes: Shape[] = [
+export const shapes: ShapeDomain.Shape[] = [
   {
     id: "1",
     x: 250,
     y: 250,
+    angle: 0,
     width: 250,
+    opacity: 1,
     height: 125,
-    type: "rectangle",
     sketch: false,
+    borderRadius: 0,
+    type: "rectangle",
+    fillColor: "yellow",
+    strokeColor: "orange",
     colorId: generateRandomColor(),
   },
   {
@@ -22,6 +27,12 @@ export const shapes: Shape[] = [
     type: "rectangle",
     sketch: true,
     colorId: generateRandomColor(),
+
+    angle: 0,
+    opacity: 1,
+    borderRadius: 0,
+    fillColor: "yellow",
+    strokeColor: "orange",
   },
   {
     id: "3",
@@ -30,8 +41,14 @@ export const shapes: Shape[] = [
     width: 250,
     height: 100,
     type: "rectangle",
-    sketch: true, // true,
+    sketch: true,
     colorId: generateRandomColor(),
+
+    angle: 0,
+    opacity: 1,
+    borderRadius: 0,
+    fillColor: "yellow",
+    strokeColor: "orange",
   },
   {
     id: "7",
@@ -39,9 +56,14 @@ export const shapes: Shape[] = [
     y: 0,
     width: 200,
     height: 200,
-    sketch: true, // true,
-    type: "circle",
+    sketch: true,
+    type: "ellipse",
     colorId: generateRandomColor(),
+
+    angle: 0,
+    opacity: 1,
+    fillColor: "yellow",
+    strokeColor: "orange",
   },
   {
     id: "4",
@@ -52,6 +74,12 @@ export const shapes: Shape[] = [
     type: "rectangle",
     sketch: false,
     colorId: generateRandomColor(),
+
+    angle: 0,
+    opacity: 1,
+    borderRadius: 0,
+    fillColor: "yellow",
+    strokeColor: "orange",
   },
   {
     id: "5",
@@ -62,6 +90,12 @@ export const shapes: Shape[] = [
     type: "rectangle",
     sketch: false,
     colorId: generateRandomColor(),
+
+    angle: 0,
+    opacity: 1,
+    borderRadius: 0,
+    fillColor: "yellow",
+    strokeColor: "orange",
   },
   {
     id: "6",
@@ -72,6 +106,12 @@ export const shapes: Shape[] = [
     type: "rectangle",
     sketch: false,
     colorId: generateRandomColor(),
+
+    angle: 0,
+    opacity: 1,
+    borderRadius: 0,
+    fillColor: "yellow",
+    strokeColor: "orange",
   }
 ]
 

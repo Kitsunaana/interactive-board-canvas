@@ -1,7 +1,25 @@
-import type { Rect } from "@/shared/type/shared"
+import type { Point, Rect, RectEdges, RectWithId } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import type { CalcSelectionAspectResizePatches, RectEdges } from "../_types"
-import { SELECTION_BOUNDS_PADDING, withDefaultTransformHandlers } from "../_types"
+import { SELECTION_BOUNDS_PADDING } from "../_const"
+import { withDefaultTransformHandlers } from "../_lib"
+
+export type CalcSelectionAspectResizePatchesTransform = {
+  default?: (params: Rect, areaEdges: RectEdges, scale: number) => Partial<Rect>
+  frizen?: (params: Rect, areaEdges: RectEdges, scale: number) => Partial<Rect>
+  flip?: (params: Rect, areaEdges: RectEdges, scale: number) => Partial<Rect>
+}
+
+export type CalcSelectionAspectResizePatchesParams = {
+  selectionArea: Rect
+  shapes: RectWithId[]
+  cursor: Point
+}
+
+export type CalcSelectionAspectResizePatches = (
+  params: CalcSelectionAspectResizePatchesParams,
+  transform?: CalcSelectionAspectResizePatchesTransform
+) => Map<string, Partial<Rect>>
+
 
 export const calcSelectionRightBoundAspectResizePatches: CalcSelectionAspectResizePatches = ({
   selectionArea,
@@ -39,7 +57,7 @@ export const calcSelectionRightBoundAspectResizePatches: CalcSelectionAspectResi
           x: left,
           width: 0,
           height: 0,
-          ...handlers.frizen({ ...shape, scale }, areaEdges),
+          ...handlers.frizen(shape, areaEdges, scale),
         })
       })
 
@@ -57,7 +75,7 @@ export const calcSelectionRightBoundAspectResizePatches: CalcSelectionAspectResi
         height: nextHeight,
         y: top + (shape.y - bottom) * scale,
         x: left + (shape.x - right) * scale,
-        ...handlers.flip({ ...shape, scale }, areaEdges),
+        ...handlers.flip(shape, areaEdges, scale),
       })
     })
 
@@ -75,7 +93,7 @@ export const calcSelectionRightBoundAspectResizePatches: CalcSelectionAspectResi
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: left + (shape.x - left) * scale,
-      ...handlers.default({ ...shape, scale }, areaEdges),
+      ...handlers.default(shape, areaEdges, scale),
     })
   })
 
@@ -117,7 +135,7 @@ export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionAspectResiz
           x: right,
           width: 0,
           height: 0,
-          ...handlers.frizen({ ...shape, scale }, areaEdges),
+          ...handlers.frizen(shape, areaEdges, scale),
         })
       })
 
@@ -135,7 +153,7 @@ export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionAspectResiz
         height: nextHeight,
         y: top + (shape.y - bottom) * scale,
         x: right + (shape.x - left) * scale,
-        ...handlers.flip({ ...shape, scale }, areaEdges),
+        ...handlers.flip(shape, areaEdges, scale),
       })
     })
 
@@ -153,7 +171,7 @@ export const calcSelectionLeftBoundAspectResizePatches: CalcSelectionAspectResiz
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: right + (shape.x - right) * scale,
-      ...handlers.default({ ...shape, scale }, areaEdges),
+      ...handlers.default(shape, areaEdges, scale),
     })
   })
 
@@ -195,7 +213,7 @@ export const calcSelectionTopBoundAspectResizePatches: CalcSelectionAspectResize
           y: bottom,
           width: 0,
           height: 0,
-          ...handlers.frizen({ ...shape, scale }, areaEdges)
+          ...handlers.frizen(shape, areaEdges, scale)
         })
       })
 
@@ -213,7 +231,7 @@ export const calcSelectionTopBoundAspectResizePatches: CalcSelectionAspectResize
         height: nextHeight,
         x: right + (shape.x - left) * scale,
         y: bottom + (shape.y - top) * scale,
-        ...handlers.flip({ ...shape, scale }, areaEdges)
+        ...handlers.flip(shape, areaEdges, scale)
       })
     })
 
@@ -231,7 +249,7 @@ export const calcSelectionTopBoundAspectResizePatches: CalcSelectionAspectResize
       height: nextHeight,
       x: right + (shape.x - right) * scale,
       y: bottom + (shape.y - bottom) * scale,
-      ...handlers.default({ ...shape, scale }, areaEdges)
+      ...handlers.default(shape, areaEdges, scale)
     })
   })
 
@@ -276,7 +294,7 @@ export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionAspectRes
           x: right,
           width: 0,
           height: 0,
-          ...handlers.frizen({ ...shape, scale }, areaEdges)
+          ...handlers.frizen(shape, areaEdges, scale)
         })
       })
 
@@ -294,7 +312,7 @@ export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionAspectRes
         height: nextHeight,
         x: right + (shape.x - left) * scale,
         y: top + (shape.y - bottom) * scale,
-        ...handlers.flip({ ...shape, scale }, areaEdges)
+        ...handlers.flip(shape, areaEdges, scale)
       })
     })
 
@@ -312,7 +330,7 @@ export const calcSelectionBottomBoundAspectResizePatches: CalcSelectionAspectRes
       height: nextHeight,
       y: top + (shape.y - top) * scale,
       x: right + (shape.x - right) * scale,
-      ...handlers.default({ ...shape, scale }, areaEdges)
+      ...handlers.default(shape, areaEdges, scale)
     })
   })
 

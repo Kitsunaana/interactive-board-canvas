@@ -1,18 +1,17 @@
 import * as rx from "rxjs";
-import type { ShapeToView } from "./features/board/domain/shape.ts";
+import { ShapeDrawer } from "./entities/shape/index.ts";
+import type { ShapeToRender } from "./features/board/domain/shape.ts";
 import { type Camera } from "./features/board/modules/camera/_domain.ts";
 import { camera$, canvasSizes$, gridTypeSubject$ } from "./features/board/modules/camera/_stream.ts";
 import { gridTypeVariants } from "./features/board/ui/cavnas.ts";
 import { drawSelectionBoundsArea } from "./features/board/ui/selection-area.ts";
-import { getShapeDrawer } from "./features/board/ui/shape.ts";
 import { gridProps$ } from "./features/board/view-model/canvas-props.ts";
 import { selectionBounds$ } from "./features/board/view-model/selection-bounds.ts";
 import { getResizeCorners } from "./features/board/view-model/shape-sketch.ts";
 import { selectionWindow$, shapesToRender$ } from "./features/board/view-model/state/_view-model.ts";
 import { context } from "./shared/lib/initial-canvas.ts";
 import { isNotNull, isNotUndefined } from "./shared/lib/utils.ts";
-import type { Point, Rect } from "./shared/type/shared.ts";
-import { screenToCanvas } from "./shared/lib/point.ts";
+import type { Rect } from "./shared/type/shared.ts";
 
 export const renderLoop$ = rx.animationFrames().pipe(
   rx.withLatestFrom(
@@ -34,13 +33,6 @@ export const renderLoop$ = rx.animationFrames().pipe(
     shapes,
   }))
 )
-
-function screenToWorld(point: Point, camera: Camera) {
-  return {
-    x: (point.x - camera.x) / camera.scale,
-    y: (point.y - camera.y) / camera.scale,
-  }
-}
 
 renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType, gridProps, camera, shapes }) => {
   context.save()
@@ -80,10 +72,10 @@ renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType
 
 export function drawShapes({ context, shapes }: {
   context: CanvasRenderingContext2D
-  shapes: ShapeToView[]
+  shapes: ShapeToRender[]
 }) {
   shapes.forEach((rect) => {
-    getShapeDrawer(rect)
+    ShapeDrawer.drawShape(context, rect)
 
     context.font = "16px Arial"
     context.textAlign = "center"

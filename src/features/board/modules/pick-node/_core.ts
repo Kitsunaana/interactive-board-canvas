@@ -1,3 +1,4 @@
+import type { ShapeDomain } from "@/entities/shape"
 import { toRGB } from "@/shared/lib/color"
 import { left, right } from "@/shared/lib/either"
 import { initialCanvas } from "@/shared/lib/initial-canvas"
@@ -5,12 +6,11 @@ import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
 import { isNotNull, isNotUndefined } from "@/shared/lib/utils"
 import type { Point, Rect } from "@/shared/type/shared"
 import * as _ from "lodash"
-import type { Camera } from "../camera"
-import { CANVAS_COLOR_ID } from "./_ui"
 import type { Bound } from "../../domain/selection-area"
-import type { Shape } from "../../domain/shape"
 import type { Corner } from "../../domain/selection-area/_types"
 import type { ResizeCorner } from "../../view-model/shape-sketch"
+import type { Camera } from "../camera"
+import { CANVAS_COLOR_ID } from "./_ui"
 
 export type BoundLinesColor = Record<Bound, string>
 
@@ -96,7 +96,7 @@ export const isPickedResizeHandler = (colorId: string, resizeHandlers: ResizeHan
   return left(null)
 }
 
-export const isPickedShape = (colorId: string, shapes: Shape[]) => {
+export const isPickedShape = (colorId: string, shapes: ShapeDomain.Shape[]) => {
   const shape = shapes.find((node) => node.colorId === colorId)
   if (isNotUndefined(shape)) return right(shape)
 

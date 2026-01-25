@@ -18,7 +18,7 @@ export const isCorner = (candidate: { id: string }): candidate is NodeCorner => 
 export const isShape = (candidate: { type: string }): candidate is ShapeToRender => {
   return (
     candidate.type === "rectangle" ||
-    candidate.type === "circle" ||
+    candidate.type === "ellipse" ||
     candidate.type === "square"
   )
 }

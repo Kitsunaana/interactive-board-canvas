@@ -1,7 +1,6 @@
+import { SELECTION_BOUNDS_PADDING } from "@/entities/shape"
 import type { Point, Rect } from "@/shared/type/shared"
 import type { SelectionBounds } from "./_types"
-
-export const SELECTION_BOUNDS_PADDING = 7
 
 export type RecalculateFromBoundParams = {
   initial: SelectionBounds

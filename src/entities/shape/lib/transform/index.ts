@@ -26,5 +26,3 @@ export const TransformDomain = {
     },
   },
 }
-
-export { SELECTION_BOUNDS_PADDING } from "./_types"

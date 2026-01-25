@@ -1,6 +1,5 @@
-﻿import type { Rect } from "@/shared/type/shared.ts";
-
-export const SELECTION_BOUNDS_PADDING = 7
+﻿import { SELECTION_BOUNDS_PADDING } from "@/entities/shape";
+import type { Rect } from "@/shared/type/shared.ts";
 
 export const drawSelectionBoundsArea = ({ context, rects }: {
   context: CanvasRenderingContext2D

@@ -1,0 +1,1 @@
+export const SELECTION_BOUNDS_PADDING = 7

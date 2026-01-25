@@ -1,14 +1,24 @@
+import type { Point, Rect, RectWithId } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import type { ShapeToRender } from "../../shape"
-import { SELECTION_BOUNDS_PADDING, type CalcSelectionResizeOffsets } from "../_types"
+import { SELECTION_BOUNDS_PADDING } from "../_const"
+
+export type CalcSelectionResizeOffsetsParams = {
+  selectionArea: Rect
+  shapes: RectWithId[]
+  cursor: Point
+}
+
+export type CalcSelectionResizeOffsets = (params: CalcSelectionResizeOffsetsParams) => Map<string, Partial<Rect>>
 
 export const calcSelectionLeftResizeOffsets: CalcSelectionResizeOffsets = ({ cursor, shapes, selectionArea }) => {
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
+
   const left = selectionArea.x
   const right = left + selectionArea.width
+
   const delta = cursorX - left
 
-  const toReflowShapes = new Map<string, Partial<ShapeToRender>>()
+  const toReflowShapes = new Map<string, Partial<Rect>>()
 
   forEach(shapes, (shape) => {
     const shapeLeft = shape.x
@@ -30,9 +40,10 @@ export const calcSelectionTopResizeOffsets: CalcSelectionResizeOffsets = ({ curs
 
   const top = selectionArea.y
   const bottom = top + selectionArea.height
+
   const delta = cursorY - top
 
-  const toReflowShapes = new Map<string, Partial<ShapeToRender>>()
+  const toReflowShapes = new Map<string, Partial<Rect>>()
 
   forEach(shapes, (shape) => {
     const shapeTop = shape.y
@@ -54,9 +65,10 @@ export const calcSelectionBottomResizeOffsets: CalcSelectionResizeOffsets = ({ c
 
   const top = selectionArea.y
   const bottom = top + selectionArea.height
+
   const delta = cursorY - bottom
 
-  const toReflowShapes = new Map<string, Partial<ShapeToRender>>()
+  const toReflowShapes = new Map<string, Partial<Rect>>()
 
   forEach(shapes, (shape) => {
     const shapeTop = shape.y
@@ -78,9 +90,10 @@ export const calcSelectionRightResizeOffsets: CalcSelectionResizeOffsets = ({ cu
 
   const left = selectionArea.x
   const right = left + selectionArea.width
+
   const delta = cursorX - right
 
-  const toReflowShapes = new Map<string, Partial<ShapeToRender>>()
+  const toReflowShapes = new Map<string, Partial<Rect>>()
 
   forEach(shapes, (shape) => {
     const shapeLeft = shape.x
