@@ -2,7 +2,12 @@ import { match } from "@/shared/lib/match"
 import type { Shape, Ellipse, Rectangle } from "../../model/types"
 
 export const getEllipleBasePoints = (ellipse: Ellipse, segments = 60) => {
-  const { x: cx, y: cy, height: ry, width: rx } = ellipse
+  const { x, y, height, width } = ellipse
+
+  const rx = width / 2
+  const ry = height / 2
+  const cx = x + rx
+  const cy = y + ry
 
   const points = []
 

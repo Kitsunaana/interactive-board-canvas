@@ -62,8 +62,8 @@ export const shapes: ShapeDomain.Shape[] = [
 
     angle: 0,
     opacity: 1,
-    fillColor: "yellow",
-    strokeColor: "orange",
+    fillColor: "pink",
+    strokeColor: "#391a4d",
   },
   {
     id: "4",

@@ -1,4 +1,4 @@
-import { context } from "@/shared/lib/initial-canvas.ts";
+// import { context } from "@/shared/lib/initial-canvas.ts";
 import type { Point } from "@/shared/type/shared.ts";
 import { CONFIG } from "./const";
 
@@ -10,7 +10,7 @@ export type SketchProperties = {
   strokeColor: string
 }
 
-export const drawSmoothPath = (points: Point[], offsetX: number, offsetY: number) => {
+export const drawSmoothPath = (context: CanvasRenderingContext2D, points: Point[], offsetX: number, offsetY: number) => {
   if (points.length < 3) return
 
   context.beginPath()
@@ -36,7 +36,7 @@ export const drawSmoothPath = (points: Point[], offsetX: number, offsetY: number
   context.quadraticCurveTo(penultimatePoint.x, penultimatePoint.y, firstPoint.x, firstPoint.y)
 }
 
-export const drawSmoothWobblyLine = (points: Point[]) => {
+export const drawSmoothWobblyLine = (context: CanvasRenderingContext2D, points: Point[]) => {
   if (points.length < 2) return
 
   context.beginPath()
@@ -61,8 +61,8 @@ export const drawSmoothWobblyLine = (points: Point[]) => {
   context.stroke()
 }
 
-export const drawSketchShape = ({ hachureFill, hachureLines, layerOffsets, outlines, strokeColor }: SketchProperties) => {
-  // context.save()
+export const drawSketchShape = (context: CanvasRenderingContext2D, { hachureFill, hachureLines, layerOffsets, outlines, strokeColor }: SketchProperties) => {
+  context.save()
 
   const mainOffset = layerOffsets[0]
 
@@ -72,23 +72,23 @@ export const drawSketchShape = ({ hachureFill, hachureLines, layerOffsets, outli
 
   if (hachureFill && hachureLines) {
     context.save()
-    drawSmoothPath(outlines[0], mainOffset.x, mainOffset.y)
+    drawSmoothPath(context, outlines[0], mainOffset.x, mainOffset.y)
     context.clip()
-    hachureLines.forEach(drawSmoothWobblyLine)
+    hachureLines.forEach((line) => drawSmoothWobblyLine(context, line))
     context.restore();
   }
 
   outlines.forEach((outline, index) => {
     const offset = layerOffsets[index]
     context.globalAlpha = CONFIG.baseOpacity * (1 - index * 0.15)
-    context.lineWidth = 1.2
+    context.lineWidth = 1
     context.lineCap = 'round'
     context.lineJoin = 'round'
 
-    drawSmoothPath(outline, offset.x, offset.y)
+    drawSmoothPath(context, outline, offset.x, offset.y)
     context.stroke()
   })
 
-  // context.restore()
+  context.restore()
 }
 

@@ -35,6 +35,8 @@ export const renderLoop$ = rx.animationFrames().pipe(
 )
 
 renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType, gridProps, camera, shapes }) => {
+  // return
+  
   context.save()
 
   context.clearRect(0, 0, canvasSizes.width, canvasSizes.height)

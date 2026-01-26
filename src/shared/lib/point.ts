@@ -59,7 +59,7 @@ export const subtractPoint = (point1: Point, point2: Point): Point => ({
   y: point2.y - point1.y,
 })
 
-export const getPointFromEvent = (event: PointerEvent): Point => ({
+export const getPointFromEvent = (event: PointerEvent | globalThis.MouseEvent): Point => ({
   x: event.clientX,
   y: event.clientY,
 })

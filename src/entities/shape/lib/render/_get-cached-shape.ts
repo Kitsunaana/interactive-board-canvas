@@ -2,8 +2,9 @@ import { match } from "@/shared/lib/match"
 import { generateSketchProps } from "@/shared/lib/sketch"
 import { _u } from "@/shared/lib/utils"
 import { isEqual, isUndefined, pick } from "lodash"
-import type { Shape, ShapeToView } from "../../model/types"
-import { getShapeBasePoints } from "./_generate-sketch-points"
+import type { Ellipse, Shape, ShapeToView } from "../../model/types"
+import { drawShape, drawSketchEllipse } from "./_drawer"
+import { getEllipleBasePoints, getShapeBasePoints } from "./_generate-sketch-points"
 
 const CacheShapes = new Map<string, ShapeToView>()
 
@@ -26,11 +27,6 @@ const addSketchPropertiesToShape = (shape: Shape) => {
     })),
 
     rhombus: (rhombus) => rhombus,
-    arrow: (arrow) => arrow,
-    image: (image) => image,
-    text: (text) => text,
-    line: (line) => line,
-    path: (path) => path,
   }) as ShapeToView
 }
 
@@ -59,4 +55,48 @@ export const getShapeToViewFromCache = (shape: Shape) => {
   CacheShapes.set(shape.id, updatedShape)
 
   return updatedShape
+}
+
+export const CacheBitmapShape = new Map<string, ImageBitmap>()
+
+export async function getShapeBitmap(shape: ShapeToView) {
+  const cached = CacheBitmapShape.get(shape.id)
+  if (cached) return cached
+
+  const localEllipse = {
+    ...shape,
+    x: 5,
+    y: 5,
+  } as any
+
+  const bitmap = await createImageBitmap(
+    renderShapeToBitmap(shape, (context) => {
+      drawSketchEllipse(context, {
+        ...localEllipse,
+        ...generateSketchProps({
+          basePoints: getEllipleBasePoints(localEllipse),
+          rect: localEllipse,
+        })
+      } as any)
+    })
+  )
+
+  CacheBitmapShape.set(shape.id, bitmap)
+  return bitmap
+}
+
+function renderShapeToBitmap(shape: ShapeToView, draw: (context: CanvasRenderingContext2D) => void) {
+  const canvas = document.createElement("canvas")
+  const context = canvas.getContext("2d") as CanvasRenderingContext2D
+
+  const QUALITY_SCALE = 3
+
+  canvas.width = (shape.width + 10) * QUALITY_SCALE
+  canvas.height = (shape.height + 10) * QUALITY_SCALE
+
+  context.scale(QUALITY_SCALE, QUALITY_SCALE)
+
+  draw(context)
+
+  return canvas
 }

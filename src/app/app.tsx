@@ -10,6 +10,18 @@ import { readyMiniMap, toggleShowMiniMap } from "../features/board/modules/mini-
 import { useResizedShapeSizeToView } from "@/features/board/view-model/use-resized-shape";
 import { useZoom, zoomIn, zoomOut } from "@/features/board/view-model/use-zoom";
 
+// context.font = "55px serif"
+
+// context.rotate(1)
+
+context.fillText("ASD", 0, 0);
+
+let metrics = context.measureText("ASD");
+let fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+let actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+
+// console.log(fontHeight, actualHeight)
+
 export function App() {
   const selectionBoundsRect = useResizedShapeSizeToView()
   const zoom = useZoom()
@@ -90,7 +102,79 @@ import {
   ContextMenuItem,
   ContextMenuTrigger
 } from "@/shared/ui/context-menu";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
+import { canvas, context } from "@/shared/lib/initial-canvas";
+import { foo } from "@/entities/shape/model/test";
+import type { Point } from "@/shared/type/shared";
+import { getPointFromEvent } from "@/shared/lib/point";
+import type { Path } from "@/entities/shape/model/types";
+
+const path: Point[][] = []
+
+const drawPath = (points: Point[]) => {
+  context.beginPath()
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1]
+    const point = points[i]
+
+    context.moveTo(prev.x, prev.y)
+    context.lineTo(point.x, point.y)
+  }
+  context.closePath()
+  context.lineJoin = "round"
+  context.lineCap = "round"
+  context.lineWidth = 2
+  context.stroke()
+}
+
+const lineSmooth = {
+  lengthMin: 8,
+  angle: 0.8,
+  match: false,
+};
+
+canvas.addEventListener("mousedown", () => {
+  const innerPath: Point[] = []
+  path.push(innerPath)
+
+  const moveListener = (event: globalThis.MouseEvent) => {
+    innerPath.push(getPointFromEvent(event))
+    if (innerPath.length < 2) return
+
+    context.clearRect(0, 0, canvas.width, canvas.height)
+
+    path.forEach((points, index, array) => {
+      if (index === array.length - 1) drawPath(points)
+
+      const currentLine = points.map((point) => [point.x, point.y])
+      drawSmoothedLine(context, smoothLine(currentLine, lineSmooth.angle, lineSmooth.match));
+    })
+  }
+
+  canvas.addEventListener("mousemove", moveListener)
+
+  canvas.addEventListener("mouseup", () => {
+    canvas.removeEventListener("mousemove", moveListener)
+
+    context.clearRect(0, 0, canvas.width, canvas.height)
+
+    const currentLine = innerPath.map((point) => [point.x, point.y])
+    const smoothedPath = simplifyLineRDP(currentLine, lineSmooth.lengthMin)
+    const convertedPathToPoints = smoothedPath.map(([x, y]) => ({ x, y }))
+
+    path.pop()
+    path.push(convertedPathToPoints)
+
+    path.forEach((points) => {
+      const currentLine = points.map((point) => [point.x, point.y])
+
+      drawSmoothedLine(context, smoothLine(currentLine, lineSmooth.angle, lineSmooth.match));
+    })
+  })
+})
+
+import "../entities/shape/model/smooth-line"
+import { drawSmoothedLine, simplifyLineRDP, smoothLine } from "../entities/shape/model/smooth-line";
 
 export function ContextMenuDemo({ children }: { children: ReactNode }) {
 

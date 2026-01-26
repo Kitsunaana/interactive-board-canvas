@@ -1,6 +1,8 @@
 import { match } from "@/shared/lib/match"
-import { drawSketchShape } from "@/shared/lib/sketch"
+import { drawSketchShape } from "@/shared/lib/sketch/draw-v2"
 import type { Ellipse, Rectangle, ShapeToView, WithSketch } from "../../model/types"
+import { CacheBitmapShape, getShapeBitmap } from "./_get-cached-shape"
+import { isNotUndefined } from "@/shared/lib/utils"
 
 export const drawDefaultEllipse = (context: CanvasRenderingContext2D, ellipse: Ellipse) => {
   const radiusX = ellipse.width / 2
@@ -23,8 +25,8 @@ export const drawDefaultEllipse = (context: CanvasRenderingContext2D, ellipse: E
   context.restore()
 }
 
-export const drawSketchEllipse = (_context: CanvasRenderingContext2D, ellipse: WithSketch<Ellipse> & { sketch: true }) => {
-  drawSketchShape({
+export const drawSketchEllipse = (context: CanvasRenderingContext2D, ellipse: WithSketch<Ellipse> & { sketch: true }) => {
+  drawSketchShape(context, {
     hachureLines: ellipse.hachureLines,
     layerOffsets: ellipse.layerOffsets,
     strokeColor: ellipse.strokeColor,
@@ -55,8 +57,8 @@ export const drawDefaultRectangle = (context: CanvasRenderingContext2D, rectangl
 }
 
 
-export const drawSketchRectangle = (_context: CanvasRenderingContext2D, rectangle: WithSketch<Rectangle> & { sketch: true }) => {
-  drawSketchShape({
+export const drawSketchRectangle = (context: CanvasRenderingContext2D, rectangle: WithSketch<Rectangle> & { sketch: true }) => {
+  drawSketchShape(context, {
     hachureLines: rectangle.hachureLines,
     layerOffsets: rectangle.layerOffsets,
     strokeColor: rectangle.strokeColor,
@@ -65,16 +67,43 @@ export const drawSketchRectangle = (_context: CanvasRenderingContext2D, rectangl
   })
 }
 
-export const drawShape = (context: CanvasRenderingContext2D, shape: ShapeToView) => {
+export const drawSketchShapeToBitmap = (context: CanvasRenderingContext2D, shape: ShapeToView & { sketch: true }) => {
   return match(shape, {
-    ellipse: (shape) => shape.sketch ? drawSketchEllipse(context, shape) : drawDefaultEllipse(context, shape),
+    ellipse: (shape) => drawSketchEllipse(context, shape),
+    rectangle: (shape) => drawSketchRectangle(context, shape),
+
+    rhombus: () => () => { },
+    arrow: () => () => { },
+    image: () => () => { },
+    line: () => () => { },
+    path: () => () => { },
+    text: () => () => { },
+  })
+}
+
+export const drawShape = (context: CanvasRenderingContext2D, shape: ShapeToView) => {
+  context.imageSmoothingEnabled = true
+  context.imageSmoothingQuality = 'high'
+
+  return match(shape, {
+    ellipse: (shape) => {
+      getShapeBitmap(shape)
+
+      const bitmap = CacheBitmapShape.get(shape.id)
+
+      if (isNotUndefined(bitmap)) {
+
+        context.drawImage(bitmap, shape.x, shape.y, shape.width, shape.height)
+      }
+
+    },
     rectangle: (shape) => shape.sketch ? drawSketchRectangle(context, shape) : drawDefaultRectangle(context, shape),
 
-    rhombus: () => () => {},
-    arrow: () => () => {},
-    image: () => () => {},
-    line: () => () => {},
-    path: () => () => {},
-    text: () => () => {},
+    rhombus: () => () => { },
+    arrow: () => () => { },
+    image: () => () => { },
+    line: () => () => { },
+    path: () => () => { },
+    text: () => () => { },
   })
 }
