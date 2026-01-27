@@ -15,6 +15,7 @@ import { canvasMouseDown$, canvasMouseMove$ } from "../modules/pick-node/_events
 import { selectionBounds$ } from "./selection-bounds";
 import { shapesToRender$, viewState$ } from "./state";
 import { goToSelectionWindow, isIdle } from "./state/_view-model.type";
+import { getBoundingBox } from "@/entities/shape/model/get-bounding-box";
 
 const resolveSelectionWindowSelection = ({ startPoint, endPoint, shapes, camera }: {
   shapes: ShapeToRender[]
@@ -45,7 +46,7 @@ const resolveSelectionWindowSelection = ({ startPoint, endPoint, shapes, camera 
     const fullyContainedShapeIds = shapes
       .filter((shape) => isRectIntersectionV2({
         rect: normalizeRect(selectionWindow),
-        point: shape,
+        point: getBoundingBox(shape),
       }))
       .map(shape => shape.id)
 

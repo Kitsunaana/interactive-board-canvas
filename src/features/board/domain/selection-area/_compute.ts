@@ -1,26 +1,25 @@
-import { calculateLimitPoints, inferRect } from "@/shared/lib/rect"
+import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
+import { calculateLimitPoints } from "@/shared/lib/rect"
 import type { Rect } from "@/shared/type/shared"
 import type { ShapeToRender } from "../shape"
 
 export const computeSelectionBoundsArea = (shapes: ShapeToRender[]) => {
-  const selectedShapes = shapes.filter((shape) => shape.isSelected)
+  const selectedShapes = shapes.filter((shape) => shape.isSelected).map(getBoundingBox)
 
   if (selectedShapes.length === 1) {
     return {
       bounds: [] satisfies Rect[],
-      area: inferRect(selectedShapes[0]),
+      area: selectedShapes[0],
     }
   }
 
   if (selectedShapes.length > 1) {
-    const rectsFromShapes = selectedShapes.map(inferRect)
-    
     const limitPoints = calculateLimitPoints({
-      rects: rectsFromShapes
+      rects: selectedShapes
     })
 
     return {
-      bounds: rectsFromShapes,
+      bounds: selectedShapes,
       area: {
         height: limitPoints.max.y - limitPoints.min.y,
         width: limitPoints.max.x - limitPoints.min.x,

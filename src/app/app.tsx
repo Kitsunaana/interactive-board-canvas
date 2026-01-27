@@ -5,22 +5,13 @@ import "./index.css";
 
 import { clsx } from "clsx";
 
-import { readyMiniMap, toggleShowMiniMap } from "../features/board/modules/mini-map/_stream";
+import { readyMiniMap } from "../features/board/modules/mini-map/_stream";
 
 import { useResizedShapeSizeToView } from "@/features/board/view-model/use-resized-shape";
 import { useZoom, zoomIn, zoomOut } from "@/features/board/view-model/use-zoom";
-
-// context.font = "55px serif"
-
-// context.rotate(1)
-
-context.fillText("ASD", 0, 0);
-
-let metrics = context.measureText("ASD");
-let fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
-let actualHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-
-// console.log(fontHeight, actualHeight)
+import { generateRandomColor } from "@/shared/lib/color";
+import { nanoid } from "nanoid";
+import * as ShapeDomain from "../entities/shape/model/types";
 
 export function App() {
   const selectionBoundsRect = useResizedShapeSizeToView()
@@ -37,13 +28,11 @@ export function App() {
         </button>
       </div>
 
-      <ContextMenuDemo>
-        <canvas
-          id="map"
-          ref={readyMiniMap}
-          className="absolute z-101 bottom-4 left-4 bg-white shadow-xl p-1 rounded-md"
-        />
-      </ContextMenuDemo>
+      <canvas
+        id="map"
+        ref={readyMiniMap}
+        className="absolute z-101 bottom-4 left-4 bg-white shadow-xl p-1 rounded-md"
+      />
 
       {selectionBoundsRect && (
         <div
@@ -95,100 +84,50 @@ export function App() {
   );
 }
 
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuGroup,
-  ContextMenuItem,
-  ContextMenuTrigger
-} from "@/shared/ui/context-menu";
-import type { MouseEvent, ReactNode } from "react";
-import { canvas, context } from "@/shared/lib/initial-canvas";
-import { foo } from "@/entities/shape/model/test";
-import type { Point } from "@/shared/type/shared";
-import { getPointFromEvent } from "@/shared/lib/point";
-import type { Path } from "@/entities/shape/model/types";
-
-const path: Point[][] = []
-
-const drawPath = (points: Point[]) => {
-  context.beginPath()
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1]
-    const point = points[i]
-
-    context.moveTo(prev.x, prev.y)
-    context.lineTo(point.x, point.y)
+const rectangle: ShapeDomain.RectangleShape = {
+  id: nanoid(),
+  sketch: false,
+  kind: "rectangle",
+  colorId: generateRandomColor(),
+  style: {} as ShapeDomain.RectangleStyle,
+  transform: {
+    rotate: 0.5,
+    scaleX: 1,
+    scaleY: 1,
+  },
+  geometry: {
+    kind: "rectangle-geometry",
+    x: 500,
+    y: 200,
+    width: 300,
+    height: 200,
   }
-  context.closePath()
-  context.lineJoin = "round"
-  context.lineCap = "round"
-  context.lineWidth = 2
-  context.stroke()
 }
 
-const lineSmooth = {
-  lengthMin: 8,
-  angle: 0.8,
-  match: false,
-};
+// setInterval(() => {
+//   renderTestScene()
+// }, 10)
 
-canvas.addEventListener("mousedown", () => {
-  const innerPath: Point[] = []
-  path.push(innerPath)
+// function renderTestScene() {
+//   context.clearRect(0, 0, canvas.width, canvas.height)
 
-  const moveListener = (event: globalThis.MouseEvent) => {
-    innerPath.push(getPointFromEvent(event))
-    if (innerPath.length < 2) return
+//   const geometry = rectangleGeomteryFromTopLeftToCenter(rectangle.geometry)
 
-    context.clearRect(0, 0, canvas.width, canvas.height)
+//   context.save()
+//   context.beginPath()
+//   context.translate(geometry.x, geometry.y)
+//   context.rotate(rectangle.transform.rotate)
+//   context.scale(1.2, 1)
+//   context.roundRect(-geometry.width / 2, -geometry.height / 2, rectangle.geometry.width, rectangle.geometry.height, 25)
+//   context.stroke()
+//   context.restore()
 
-    path.forEach((points, index, array) => {
-      if (index === array.length - 1) drawPath(points)
+//   const boundingBox = getRectWithOffset(getBoundingBox(rectangle), -2)
 
-      const currentLine = points.map((point) => [point.x, point.y])
-      drawSmoothedLine(context, smoothLine(currentLine, lineSmooth.angle, lineSmooth.match));
-    })
-  }
-
-  canvas.addEventListener("mousemove", moveListener)
-
-  canvas.addEventListener("mouseup", () => {
-    canvas.removeEventListener("mousemove", moveListener)
-
-    context.clearRect(0, 0, canvas.width, canvas.height)
-
-    const currentLine = innerPath.map((point) => [point.x, point.y])
-    const smoothedPath = simplifyLineRDP(currentLine, lineSmooth.lengthMin)
-    const convertedPathToPoints = smoothedPath.map(([x, y]) => ({ x, y }))
-
-    path.pop()
-    path.push(convertedPathToPoints)
-
-    path.forEach((points) => {
-      const currentLine = points.map((point) => [point.x, point.y])
-
-      drawSmoothedLine(context, smoothLine(currentLine, lineSmooth.angle, lineSmooth.match));
-    })
-  })
-})
-
-import "../entities/shape/model/smooth-line"
-import { drawSmoothedLine, simplifyLineRDP, smoothLine } from "../entities/shape/model/smooth-line";
-
-export function ContextMenuDemo({ children }: { children: ReactNode }) {
-
-
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger className="">
-        {children}
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-48 z-[10010]">
-        <ContextMenuGroup>
-          <ContextMenuItem onClick={toggleShowMiniMap}>Скрыть</ContextMenuItem>
-        </ContextMenuGroup>
-      </ContextMenuContent>
-    </ContextMenu>
-  )
-}
+//   context.save()
+//   context.beginPath()
+//   context.strokeStyle = "red"
+//   context.rect(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height)
+//   context.stroke()
+//   context.restore()
+// }

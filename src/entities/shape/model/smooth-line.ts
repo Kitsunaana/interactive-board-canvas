@@ -234,4 +234,5 @@ export const drawSmoothedLine = (context: CanvasRenderingContext2D, line: number
   }
 
   context.stroke()
+  context.closePath()
 }

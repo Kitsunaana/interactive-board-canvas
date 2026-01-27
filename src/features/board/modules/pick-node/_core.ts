@@ -1,4 +1,3 @@
-import type { ShapeDomain } from "@/entities/shape"
 import { toRGB } from "@/shared/lib/color"
 import { left, right } from "@/shared/lib/either"
 import { initialCanvas } from "@/shared/lib/initial-canvas"
@@ -11,9 +10,35 @@ import type { Corner } from "../../domain/selection-area/_types"
 import type { ResizeCorner } from "../../view-model/shape-sketch"
 import type { Camera } from "../camera"
 import { CANVAS_COLOR_ID } from "./_ui"
+import type { Shape } from "@/entities/shape/model/types"
+
+export type HitCanvas = {
+  type: "canvas"
+}
+
+export type HitShape = {
+  type: "shape"
+  shapeId: string
+}
+
+export type HitBound = {
+  type: "bound"
+  bound: Bound
+}
+
+export type HitCorner = {
+  type: "corner"
+  corner: Corner
+}
+
+export type HitTarget =
+  | HitCanvas
+  | HitShape
+  | HitBound
+  | HitCorner
+
 
 export type BoundLinesColor = Record<Bound, string>
-
 export type CornerLinesColor = Record<Corner, string>
 
 export type SelectionBoundsToPick = {
@@ -53,16 +78,13 @@ export const getPickedColor = ({ camera, context, event }: {
 
 export const isPickedCanvas = (colorId: string) => {
   if (colorId === CANVAS_COLOR_ID) {
-    return right({
-      type: "grid",
-      id: "grid",
-    } as const)
+    return right({ type: "canvas" } as HitCanvas)
   }
 
   return left(null)
 }
 
-export const isPickedSelectionBound = (colorId: string, selectionBounds: SelectionBoundsToPick | null) => {
+export const isPickedBound = (colorId: string, selectionBounds: SelectionBoundsToPick | null) => {
   if (isNotNull(selectionBounds)) {
     const pickedBound = _.find(_.entries(selectionBounds.linesColor), (entry) => entry[1] === colorId) as undefined | [
       bound: Bound, colorId: string
@@ -70,35 +92,38 @@ export const isPickedSelectionBound = (colorId: string, selectionBounds: Selecti
 
     if (isNotUndefined(pickedBound)) {
       return right({
-        id: pickedBound[0],
+        bound: pickedBound[0],
         type: "bound",
-      } as const)
+      } as HitBound)
     }
   }
 
   return left(null)
 }
 
-export const isPickedResizeHandler = (colorId: string, resizeHandlers: ResizeHandlersPropertiesToPick | null) => {
+export const isPickedCorner = (colorId: string, resizeHandlers: ResizeHandlersPropertiesToPick | null) => {
   if (isNotNull(resizeHandlers)) {
-    const pickedResizeHandler = _.find(_.entries(resizeHandlers.linesColor), (entry) => entry[1] === colorId) as undefined | [
+    const pickedCorner = _.find(_.entries(resizeHandlers.linesColor), (entry) => entry[1] === colorId) as undefined | [
       corner: Corner, colorId: string
     ]
 
-    if (isNotUndefined(pickedResizeHandler)) {
+    if (isNotUndefined(pickedCorner)) {
       return right({
-        id: pickedResizeHandler[0],
         type: "corner",
-      } as const)
+        corner: pickedCorner[0],
+      } as HitCorner)
     }
   }
 
   return left(null)
 }
 
-export const isPickedShape = (colorId: string, shapes: ShapeDomain.Shape[]) => {
+export const isPickedShape = (colorId: string, shapes: Shape[]) => {
   const shape = shapes.find((node) => node.colorId === colorId)
-  if (isNotUndefined(shape)) return right(shape)
+  if (isNotUndefined(shape)) return right({
+    type: "shape",
+    shapeId: shape.id,
+  } as HitShape)
 
   return left(null)
 }
@@ -107,4 +132,4 @@ export const createFormatterFoundNode = ({ colorId, event, point }: {
   event: PointerEvent
   colorId: string
   point: Point
-}) => <T>(node: T) => ({ colorId, point, event, node, })
+}) => (node: HitTarget) => ({ colorId, point, event, node, })

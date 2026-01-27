@@ -15,12 +15,8 @@ export const isCorner = (candidate: { id: string }): candidate is NodeCorner => 
   candidate.id === "topLeft"
 )
 
-export const isShape = (candidate: { type: string }): candidate is ShapeToRender => {
-  return (
-    candidate.type === "rectangle" ||
-    candidate.type === "ellipse" ||
-    candidate.type === "square"
-  )
+export const isShape = (candidate: { kind: string }): candidate is ShapeToRender => {
+  return candidate.kind === "shape"
 }
 
 export const isCanvas = <T extends { type: string }>(candidate: T) => {

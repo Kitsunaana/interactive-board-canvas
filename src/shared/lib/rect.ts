@@ -115,3 +115,37 @@ export const normalizeRect = ({ height, width, x, y }: Rect) => {
     height: Math.abs(height),
   }
 }
+
+export type AABB = {
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+}
+
+export const getAABBSize = (aabb: AABB, shift: number = 1) => {
+  return {
+    x: aabb.minX - shift,
+    y: aabb.minY - shift,
+    width: (aabb.maxX - aabb.minX) + shift * 2,
+    height: (aabb.maxY - aabb.minY) + shift * 2,
+  }
+}
+
+export const getRectWithOffset = (rect: Rect, offset: number) => {
+  return {
+    x: rect.x - offset,
+    y: rect.y - offset,
+    width: rect.width + offset * 2,
+    height: rect.height + offset * 2,
+  }
+}
+
+export const rectGeomteryFromTopLeftToCenter = (rect: Rect) => {
+  return {
+    y: rect.y + rect.height / 2,
+    x: rect.x + rect.width / 2,
+    height: rect.height,
+    width: rect.width,
+  }
+}

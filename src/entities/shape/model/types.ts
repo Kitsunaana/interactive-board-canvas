@@ -1,119 +1,202 @@
-import type { Point, Rect, Simplify } from "@/shared/type/shared"
+export type Point = {
+  x: number
+  y: number
+}
 
-type WithId<Shape> = Simplify<Shape & {
-  id: string
-  colorId: string
-}>
+export type Transform = {
+  rotate: number
+  scaleX: number
+  scaleY: number
+}
 
-type WithStyles<Shape> = Simplify<Shape & {
-  opacity: number
+export type RectangleGeometry = {
+  kind: "rectangle-geometry"
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type EllipseGeometry = {
+  kind: "ellipse-geometry"
+  cx: number
+  cy: number
+  rx: number
+  ry: number
+}
+
+export type DiamondGeometry = {
+  kind: "diamond-geometry"
+  cx: number
+  cy: number
+  width: number
+  height: number
+}
+
+export type PathGeometry = {
+  kind: "path-geometry"
+  points: Point[]
+}
+
+export type RectangleStyle = {
+  borderRadius: number
+  strokeColor: string
   fillColor: string
-  strokeColor: string
-}>
-
-export type WithSketch<Shape> = Simplify<Shape & (
-  | { sketch: false }
-  | {
-    sketch: true
-    hachureLines: Array<Point[]>
-    outlines: Array<Point[]>
-    layerOffsets: Point[]
-  }
-)>
-
-export type Rectangle = WithId<WithStyles<{
-  type: "rectangle"
-  x: number
-  y: number
-  angle: number
-  width: number
-  height: number
-  sketch: boolean
-  borderRadius: number
-}>>
-
-export type Rhombus = WithId<WithStyles<{
-  type: "rhombus"
-  x: number
-  y: number
-  id: string
-  angle: number
-  width: number
-  height: number
-  sketch: boolean
-  borderRadius: number
-}>>
-
-export type Ellipse = WithId<WithStyles<{
-  type: "ellipse"
-  x: number
-  y: number
-  angle: number
-  width: number
-  height: number
-  sketch: boolean
-}>>
-
-export type Arrow = WithId<{
-  type: "arrow"
-  points: Point[]
-  sketch: boolean
-  variant: "curved" | "straight"
-}>
-
-export type Line = WithId<{
-  type: "line"
-  points: Point[]
-  sketch: boolean
-  variant: "curved" | "straight"
-}>
-
-export type Path = WithId<{
-  type: "path"
+  lineWidth: number
   opacity: number
-  points: Point[]
+}
+
+export type EllipseStyle = {
+  strokeColor: string
+  fillColor: string
+  lineWidth: number
+  opacity: number
+}
+
+export type PenStyle = {
+  strokeColor: string
+  lineWidth: number
+  opacity: number
+}
+
+export type LineStyle = {
+  strokeColor: string
   thickness: number
+  opacity: number
+}
+
+export type ArrowStyle = {
   strokeColor: string
-}>
-
-export type Text = WithId<{
-  type: "text"
-  x: number
-  y: number
-  angle: number
+  startArrow: string
+  thickness: number
+  endArrow: string
+  variant: string
   opacity: number
+}
+
+export type TextStyle = {
+  textBaseline: string
+  strokeColor: string
+  fontFamily: string
+  textAlign: string
   fontSize: number
-  parentId: string
-}>
-
-export type Image = WithId<{
-  type: "image"
-  x: number
-  y: number
-  angle: number
-  width: number
-  height: number
   opacity: number
+}
+
+export type ImageStyle = {
   borderRadius: number
+  opacity: number
+}
+
+export type ShapeKind =
+  | "rectangle"
+  | "ellipse"
+  | "diamond"
+  | "image"
+  | "arrow"
+  | "line"
+  | "text"
+  | "pen"
+
+export type AttachedText = {
+  text?: {
+    value: string
+    style: TextStyle
+  }
+}
+
+export type SketchData = {
+  outlines: Point[][]
+  layerOffsets: Point[]
+  hachureLines: Point[][]
+}
+
+export type Sketchable<T extends BaseShape> =
+  | (T & { sketch: false })
+  | (T & { sketch: true; sketchData: SketchData })
+
+
+export type BaseShape = {
+  id: string
+  kind: ShapeKind
+  sketch: boolean
+  colorId: string
+  transform: Transform
+}
+
+export type RectangleShape = Sketchable<BaseShape & AttachedText & {
+  kind: "rectangle"
+  style: RectangleStyle
+  geometry: RectangleGeometry
 }>
 
-export type ShapeToView = (
-  | WithSketch<Rectangle>
-  | WithSketch<Ellipse>
-  | WithSketch<Rhombus>
-  // | Arrow
-  // | Line
-  // | Path
-  // | Text
-  // | Image
-)
+export type EllipseShape = Sketchable<BaseShape & AttachedText & {
+  kind: "ellipse"
+  style: EllipseStyle
+  geometry: EllipseGeometry
+}>
+
+export type DiamondShape = Sketchable<BaseShape & AttachedText & {
+  kind: "diamond"
+  style: RectangleStyle
+  geometry: DiamondGeometry
+}>
+
+export type PenShape = BaseShape & {
+  kind: "pen"
+  style: PenStyle
+  geometry: PathGeometry
+}
+
+export type LineShape = Sketchable<BaseShape & AttachedText & {
+  kind: "line"
+  style: LineStyle
+  geometry: PathGeometry
+}>
+
+export type ArrowShape = Sketchable<BaseShape & AttachedText & {
+  kind: "arrow"
+  style: ArrowStyle
+  geometry: PathGeometry
+}>
+
+export type ImageShape = BaseShape & {
+  kind: "image"
+  src: string
+  style: ImageStyle
+  geometry: RectangleGeometry
+}
+
+export type TextNode = {
+  kind: "text"
+  text: string
+  style: TextStyle
+  geometry: RectangleGeometry
+}
 
 export type Shape =
-  | Rectangle
-  | Rhombus
-  | Ellipse
-  // | Arrow
-  // | Line
-  // | Path
-  // | Text
-  // | Image
+  | RectangleShape
+  | EllipseShape
+  | DiamondShape
+  | PenShape
+  | LineShape
+  | ArrowShape
+  | ImageShape
+
+export type RenderMode =
+  | { kind: "vector" }
+  | {
+    kind: "bitmap"
+    dirty: boolean
+    bitmap: ImageBitmap
+    bbox: RectangleGeometry
+  }
+
+export type ClientState = {
+  isSelected: boolean
+  renderMode: RenderMode
+}
+
+export type ClientShape = Shape & {
+  client: ClientState
+}

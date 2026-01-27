@@ -28,7 +28,12 @@ const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] =
     const patches = list.map((calculate, index) => {
       const transform = defaultTo(rules[index], undefined)
 
-      return calculate({ cursor, selectionArea, shapes: selectedShapes }, transform)
+      return calculate({
+        cursor,
+        selectionArea,
+        shapes:
+        selectedShapes
+      }, transform)
     })
 
     return mapSelectedShapes(allShapes, (shape) => ({

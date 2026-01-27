@@ -1,7 +1,6 @@
 import type { ShapeDomain } from "@/entities/shape"
-import { addPoint, distance, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
+import { distance, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
 import { isRectIntersectionV2 } from "@/shared/lib/rect"
-import { _u } from "@/shared/lib/utils"
 import type { Point } from "@/shared/type/shared"
 import { isNull } from "lodash"
 import * as rx from "rxjs"
@@ -27,7 +26,7 @@ const isValidShapeInteraction = ({ selectionBounds, point, node }: {
   })
 }
 
-const mapPointerMoveToMovedShapes = ({ event, camera, shapes, startPoint, selectedIds }: {
+const mapPointerMoveToMovedShapes = ({ event, camera, startPoint }: {
   shapes: ShapeDomain.Shape[]
   selectedIds: Selection
   event: PointerEvent
@@ -39,11 +38,15 @@ const mapPointerMoveToMovedShapes = ({ event, camera, shapes, startPoint, select
     camera,
   }))
 
+  console.log(distance)
+
+  /*
   return shapes.map((shape) => (
     selectedIds.has(shape.id)
       ? _u.merge(shape, addPoint(shape, distance))
       : shape
   ))
+  */
 }
 
 export const shapesDraggingFlow$ = mouseDown$.pipe(

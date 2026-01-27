@@ -6,6 +6,7 @@ import * as rx from "rxjs";
 import { shapes$ } from "../model/shapes";
 import { camera$ } from "../modules/camera/_stream";
 import { viewState$ } from "./state";
+import { getBoundingBox } from "@/entities/shape/model/get-bounding-box";
 
 export const [useResizedShapeSizeToView] = bind(viewState$.pipe(
   rx.filter((viewModelState) => viewModelState.type === "shapesResize"),
@@ -17,12 +18,12 @@ export const [useResizedShapeSizeToView] = bind(viewState$.pipe(
     rx.map(([shape, camera]) => {
       const computeRect = (position: Point) => _u.merge(
         pointToSizes(multiplePoint(position, camera.scale)),
-        addPoint(multiplePoint(shape, camera.scale), camera)
+        addPoint(multiplePoint(getBoundingBox(shape), camera.scale), camera)
       )
 
       return {
-        original: computeRect(sizesToPoint(shape)),
-        toView: computeRect(addPoint(sizesToPoint(shape), 14))
+        original: computeRect(sizesToPoint(getBoundingBox(shape))),
+        toView: computeRect(addPoint(sizesToPoint(getBoundingBox(shape)), 14))
       }
     }),
     rx.takeUntil(viewState$.pipe(rx.filter(state => state.type !== "shapesResize"))),

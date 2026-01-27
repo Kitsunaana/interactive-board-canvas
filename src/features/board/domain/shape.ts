@@ -1,5 +1,5 @@
 import type { ShapeDomain } from "@/entities/shape"
 
-export type ShapeToRender = ShapeDomain.ShapeToView & {
+export type ShapeToRender = ShapeDomain.CanvasShape & {
   isSelected?: boolean
 }

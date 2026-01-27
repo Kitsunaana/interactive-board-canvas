@@ -35,8 +35,6 @@ export const renderLoop$ = rx.animationFrames().pipe(
 )
 
 renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType, gridProps, camera, shapes }) => {
-  // return
-  
   context.save()
 
   context.clearRect(0, 0, canvasSizes.width, canvasSizes.height)
@@ -76,13 +74,13 @@ export function drawShapes({ context, shapes }: {
   context: CanvasRenderingContext2D
   shapes: ShapeToRender[]
 }) {
-  shapes.forEach((rect) => {
-    ShapeDrawer.drawShape(context, rect)
+  shapes.forEach((shape) => {
+    ShapeDrawer.drawShape(context, shape)
 
-    context.font = "16px Arial"
-    context.textAlign = "center"
-    context.textBaseline = "middle"
-    context.fillText("Hello World", rect.x + rect.width / 2, rect.y + rect.height / 2);
+    // context.font = "16px Arial"
+    // context.textAlign = "center"
+    // context.textBaseline = "middle"
+    // context.fillText("Hello World", rect.x + rect.width / 2, rect.y + rect.height / 2);
   })
 }
 

@@ -7,7 +7,7 @@ import { shapes$ } from "../../model/shapes.ts";
 import { autoSelectionBounds$ } from "../../view-model/selection-bounds.ts";
 import { getResizeCorners } from "../../view-model/shape-sketch.ts";
 import { camera$ } from "../camera/index.ts";
-import { context, createFormatterFoundNode, getPickedColor, isPickedCanvas, isPickedResizeHandler, isPickedSelectionBound, isPickedShape } from "./_core.ts";
+import { context, createFormatterFoundNode, getPickedColor, isPickedBound, isPickedCanvas, isPickedCorner, isPickedShape } from "./_core.ts";
 import { drawScene } from "./_ui.ts";
 
 export const selectionBoundsToPick$ = autoSelectionBounds$.pipe(rx.map((selectionBounds) => {
@@ -54,15 +54,15 @@ export const createPointerNodePick$ = (pointer$: rx.Observable<PointerEvent>) =>
 
       return rx.from([
         () => isPickedCanvas(colorId),
-        () => isPickedResizeHandler(colorId, resizeHandlers),
-        () => isPickedSelectionBound(colorId, selectionBounds),
+        () => isPickedCorner(colorId, resizeHandlers),
+        () => isPickedBound(colorId, selectionBounds),
         () => isPickedShape(colorId, shapes)
       ]).pipe(
         rx.concatMap((fn) => rx.of(fn())),
         rx.find(res => res.type === "right"),
         rx.switchMap((either) => isNotUndefined(either)
           ? rx.of(right(format(either.value)))
-          : rx.of(left(format(null)))
+          : rx.of(left(format({ type: "canvas" })))
         )
       )
     }),

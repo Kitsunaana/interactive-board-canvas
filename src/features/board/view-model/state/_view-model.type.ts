@@ -27,11 +27,21 @@ export type SelectionWindowViewState = {
   endPoint: Point
 }
 
+export type StartPenDrawViewState = {
+  type: "startPenDraw"
+}
+
+export type PenDrawingViewState = {
+  type: "penDrawing"
+}
+
 export type ViewModelState =
   | IdleViewState
   | ShapesResizeViewState
   | ShapesDraggingViewState
   | SelectionWindowViewState
+  | StartPenDrawViewState
+  | PenDrawingViewState
 
 export type ViewModelAction = {
   onClick?: (event: React.MouseEvent) => void
@@ -56,6 +66,10 @@ export const isShapesResize = (state: ViewModelState) => state.type === "shapesR
 export const isShapesDragging = (state: ViewModelState) => state.type === "shapesDragging"
 
 export const isSelectionWindow = (state: ViewModelState) => state.type === "selectionWindow"
+
+export const isStartPenDrawindow = (state: ViewModelState) => state.type === "startPenDraw"
+
+export const isPenDrawing = (state: ViewModelState) => state.type === "penDrawing"
 
 export const goToIdle = (state: Partial<IdleViewState> = {}): IdleViewState => ({
   selectedIds: new Set(),
@@ -85,5 +99,15 @@ export type GoToSelectionWindowParams = Partial<SelectionWindowViewState> & {
 export const goToSelectionWindow = (state: GoToSelectionWindowParams): SelectionWindowViewState => ({
   type: "selectionWindow",
   selectedIds: new Set(),
+  ...state,
+})
+
+export const goToStartPenDraw = (state: Partial<StartPenDrawViewState> = {}): StartPenDrawViewState => ({
+  type: "startPenDraw",
+  ...state,
+})
+
+export const goToPenDrawing = (state: Partial<PenDrawingViewState> = {}): PenDrawingViewState => ({
+  type: "penDrawing",
   ...state,
 })
