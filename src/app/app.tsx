@@ -9,12 +9,28 @@ import { readyMiniMap } from "../features/board/modules/mini-map/_stream";
 
 import { useResizedShapeSizeToView } from "@/features/board/view-model/use-resized-shape";
 import { useZoom, zoomIn, zoomOut } from "@/features/board/view-model/use-zoom";
-import { generateRandomColor } from "@/shared/lib/color";
-import { nanoid } from "nanoid";
-import * as ShapeDomain from "../entities/shape/model/types";
+import { isNil } from "lodash";
+
+const ViewSizeResizingShape = () => {
+  const sizeShape = useResizedShapeSizeToView()
+
+  if (isNil(sizeShape)) return null
+
+  return (
+    <div
+      className="absolute bg-[#f4f5f6] text-xs border border-[#e1e1e1] py-2 px-3 rounded-md"
+      style={{
+        top: `${sizeShape.toView.y + sizeShape.toView.height}px`,
+        left: `${sizeShape.toView.x + sizeShape.toView.width / 2}px`,
+        transform: "translateX(-50%)"
+      }}
+    >
+      {Math.round(sizeShape.original.width)}{" x "}{Math.round(sizeShape.original.height)}
+    </div>
+  )
+}
 
 export function App() {
-  const selectionBoundsRect = useResizedShapeSizeToView()
   const zoom = useZoom()
 
   return (
@@ -33,19 +49,8 @@ export function App() {
         ref={readyMiniMap}
         className="absolute z-101 bottom-4 left-4 bg-white shadow-xl p-1 rounded-md"
       />
+      <ViewSizeResizingShape />
 
-      {selectionBoundsRect && (
-        <div
-          className="absolute bg-[#f4f5f6] text-xs border border-[#e1e1e1] py-2 px-3 rounded-md"
-          style={{
-            top: `${selectionBoundsRect.toView.y + selectionBoundsRect.toView.height}px`,
-            left: `${selectionBoundsRect.toView.x + selectionBoundsRect.toView.width / 2}px`,
-            transform: "translateX(-50%)"
-          }}
-        >
-          {Math.round(selectionBoundsRect.original.width)}{" x "}{Math.round(selectionBoundsRect.original.height)}
-        </div>
-      )}
 
       <div className="flex items-center gap-2 absolute bottom-4 right-4 bg-white shadow-xl p-1 rounded-md text-sm text-gray-800 font-bold">
         <button
@@ -84,50 +89,3 @@ export function App() {
   );
 }
 
-const rectangle: ShapeDomain.RectangleShape = {
-  id: nanoid(),
-  sketch: false,
-  kind: "rectangle",
-  colorId: generateRandomColor(),
-  style: {} as ShapeDomain.RectangleStyle,
-  transform: {
-    rotate: 0.5,
-    scaleX: 1,
-    scaleY: 1,
-  },
-  geometry: {
-    kind: "rectangle-geometry",
-    x: 500,
-    y: 200,
-    width: 300,
-    height: 200,
-  }
-}
-
-// setInterval(() => {
-//   renderTestScene()
-// }, 10)
-
-// function renderTestScene() {
-//   context.clearRect(0, 0, canvas.width, canvas.height)
-
-//   const geometry = rectangleGeomteryFromTopLeftToCenter(rectangle.geometry)
-
-//   context.save()
-//   context.beginPath()
-//   context.translate(geometry.x, geometry.y)
-//   context.rotate(rectangle.transform.rotate)
-//   context.scale(1.2, 1)
-//   context.roundRect(-geometry.width / 2, -geometry.height / 2, rectangle.geometry.width, rectangle.geometry.height, 25)
-//   context.stroke()
-//   context.restore()
-
-//   const boundingBox = getRectWithOffset(getBoundingBox(rectangle), -2)
-
-//   context.save()
-//   context.beginPath()
-//   context.strokeStyle = "red"
-//   context.rect(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height)
-//   context.stroke()
-//   context.restore()
-// }

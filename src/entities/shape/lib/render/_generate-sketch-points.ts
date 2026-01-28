@@ -1,6 +1,6 @@
-import type { RectGeometry } from "../../model/shape.types"
+import type { RectangleGeometry } from "../../model/types"
 
-export const getEllipleBasePoints = (geometry: RectGeometry, segments = 60) => {
+export const getEllipleBasePoints = (geometry: RectangleGeometry, segments = 60) => {
   const { x, y, height, width } = geometry
 
   const rx = width / 2
@@ -22,7 +22,7 @@ export const getEllipleBasePoints = (geometry: RectGeometry, segments = 60) => {
   return points
 }
 
-export const getRectangleBasePoints = (geometry: RectGeometry, samples = 36) => {
+export const getRectangleBasePoints = (geometry: RectangleGeometry, samples = 36) => {
   const { x, y, height: h, width: w } = geometry
 
   const points = []

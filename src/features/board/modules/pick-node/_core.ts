@@ -9,7 +9,7 @@ import type { Bound } from "../../domain/selection-area"
 import type { Corner } from "../../domain/selection-area/_types"
 import type { ResizeCorner } from "../../view-model/shape-sketch"
 import type { Camera } from "../camera"
-import { CANVAS_COLOR_ID } from "./_ui"
+import { CANVAS_COLOR_ID, ROTATE_HANDLER_COLOR_ID } from "./_ui"
 import type { Shape } from "@/entities/shape/model/types"
 
 export type HitCanvas = {
@@ -31,7 +31,12 @@ export type HitCorner = {
   corner: Corner
 }
 
+export type HitRotateHandler = {
+  type: "rotate-handler"
+}
+
 export type HitTarget =
+  | HitRotateHandler
   | HitCanvas
   | HitShape
   | HitBound
@@ -79,6 +84,14 @@ export const getPickedColor = ({ camera, context, event }: {
 export const isPickedCanvas = (colorId: string) => {
   if (colorId === CANVAS_COLOR_ID) {
     return right({ type: "canvas" } as HitCanvas)
+  }
+
+  return left(null)
+}
+
+export const isPickedRotateHandler = (colorId: string) => {
+  if (colorId === ROTATE_HANDLER_COLOR_ID) {
+    return right({ type: "rotate-handler" } as HitRotateHandler)
   }
 
   return left(null)

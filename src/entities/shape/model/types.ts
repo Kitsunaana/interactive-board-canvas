@@ -1,3 +1,5 @@
+import type { Rect } from "@/shared/type/shared"
+
 export type Point = {
   x: number
   y: number
@@ -37,6 +39,12 @@ export type PathGeometry = {
   kind: "path-geometry"
   points: Point[]
 }
+
+export type ShapeGeometry = 
+  | RectangleGeometry
+  | EllipseGeometry
+  | DiamondGeometry
+  | PathGeometry
 
 export type RectangleStyle = {
   borderRadius: number
@@ -186,10 +194,10 @@ export type Shape =
 export type RenderMode =
   | { kind: "vector" }
   | {
+    bbox: Rect
     kind: "bitmap"
     dirty: boolean
     bitmap: ImageBitmap
-    bbox: RectangleGeometry
   }
 
 export type ClientState = {

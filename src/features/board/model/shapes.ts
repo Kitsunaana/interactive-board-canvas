@@ -1,9 +1,10 @@
-﻿import type { Shape } from "@/entities/shape/model/types";
+﻿import { getShapeBitmap } from "@/entities/shape/model/render-state";
+import type { ClientShape, Shape } from "@/entities/shape/model/types";
 import { generateRandomColor } from "@/shared/lib/color";
 import { nanoid } from "nanoid";
 import * as rx from "rxjs";
 
-export const shapes: Shape[] = [
+export const initialShapes: Shape[] = [
   {
     id: nanoid(),
     sketch: false,
@@ -27,10 +28,31 @@ export const shapes: Shape[] = [
       y: 200,
       width: 300,
       height: 200,
-    }
+    },
   }
 ]
 
+const shapesToClient = async (shapes: Shape[]) => {
+  return Promise.all(shapes.map(async (shape): Promise<ClientShape> => {
+    const { bbox, bitmap } = await getShapeBitmap(shape)
 
+    return {
+      ...shape,
+      client: {
+        isSelected: false,
+        renderMode: {
+          kind: "bitmap",
+          dirty: false,
+          bitmap,
+          bbox,
+        }
+      }
+    }
+  }))
+}
 
-export const shapes$ = new rx.BehaviorSubject(shapes)
+export const shapes$ = new rx.BehaviorSubject<ClientShape[]>([])
+
+rx.from(shapesToClient(initialShapes)).pipe(rx.tap((shapes) => {
+  shapes$.next(shapes)
+})).subscribe()

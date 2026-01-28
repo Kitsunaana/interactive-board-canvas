@@ -1,6 +1,6 @@
 import { getAABBSize, rectGeomteryFromTopLeftToCenter, type AABB } from "@/shared/lib/rect"
 import type { Point, Rect } from "@/shared/type/shared"
-import type { EllipseGeometry, RectangleGeometry, Shape } from "./types"
+import type { EllipseGeometry, RectangleGeometry, ShapeGeometry } from "./types"
 
 export const getRotatedPolygoneAABB = (points: Point[], rotate: number): AABB => {
   const xPos = points.map((point) => point.x)
@@ -120,27 +120,27 @@ export const getRotatedEllipseAABB = (geometry: EllipseGeometry, rotate: number)
 
 
 
-export const getBoundingBox = (shape: Shape) => {
-  switch (shape.geometry.kind) {
+export const getBoundingBox = (geometry: ShapeGeometry, rotate: number) => {
+  switch (geometry.kind) {
     case "rectangle-geometry": {
-      return getAABBSize(getRotatedRectangleAABB(rectGeomteryFromTopLeftToCenter(shape.geometry), shape.transform.rotate))
+      return getAABBSize(getRotatedRectangleAABB(rectGeomteryFromTopLeftToCenter(geometry), rotate))
     }
     case "ellipse-geometry": {
-      return getAABBSize(getRotatedEllipseAABB(shape.geometry, shape.transform.rotate))
+      return getAABBSize(getRotatedEllipseAABB(geometry, rotate))
     }
     case "diamond-geometry": {
       const diamonToRectangle: RectangleGeometry = {
         kind: "rectangle-geometry",
-        height: shape.geometry.height,
-        width: shape.geometry.width,
-        x: shape.geometry.cx,
-        y: shape.geometry.cy,
+        height: geometry.height,
+        width: geometry.width,
+        x: geometry.cx,
+        y: geometry.cy,
       }
 
-      return getAABBSize(getRotatedRectangleAABB(diamonToRectangle, shape.transform.rotate))
+      return getAABBSize(getRotatedRectangleAABB(diamonToRectangle, rotate))
     }
     case "path-geometry": {
-      return getAABBSize(getRotatedPolygoneAABB(shape.geometry.points, shape.transform.rotate))
+      return getAABBSize(getRotatedPolygoneAABB(geometry.points, rotate))
     }
     default: {
       throw new Error(`unknown geometry kind is not supported`)

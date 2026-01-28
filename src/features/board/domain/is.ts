@@ -1,5 +1,5 @@
+import type { ClientShape } from "@/entities/shape/model/types"
 import type { NodeBound, NodeCorner } from "./selection-area"
-import type { ShapeToRender } from "./shape"
 
 export const isBound = (candidate: { id: string }): candidate is NodeBound => (
   candidate.id === "bottom" ||
@@ -15,7 +15,7 @@ export const isCorner = (candidate: { id: string }): candidate is NodeCorner => 
   candidate.id === "topLeft"
 )
 
-export const isShape = (candidate: { kind: string }): candidate is ShapeToRender => {
+export const isShape = (candidate: { kind: string }): candidate is ClientShape => {
   return candidate.kind === "shape"
 }
 

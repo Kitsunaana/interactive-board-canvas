@@ -52,7 +52,7 @@ export const centerPointFromRect = (rect: Rect): Point => ({
   x: rect.x + rect.width / 2,
 })
 
-export const calculateLimitPoints = ({ rects }: { rects: Rect[] }) => {
+export const calculateLimitPointsFromRects = ({ rects }: { rects: Rect[] }) => {
   const { height, width, x, y } = _.defaultTo(_.first(rects), {
     height: 0,
     width: 0,

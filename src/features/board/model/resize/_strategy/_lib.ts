@@ -1,11 +1,11 @@
+import type { ClientShape } from "@/entities/shape/model/types"
 import type { Point } from "@/shared/type/shared"
-import type { ShapeToRender } from "../../../domain/shape"
 
 export type ResizeSingleFromBoundParams = {
-  shapes: ShapeToRender[]
+  shapes: ClientShape[]
   cursor: Point
 }
 
-export const mapSelectedShapes = <T extends ShapeToRender, R>(shapes: readonly T[], iteratee: (shape: T) => R): Array<T | R> => {
-  return shapes.map((shape) => shape.isSelected ? iteratee(shape) : shape)
+export const mapSelectedShapes = <T extends ClientShape, R>(shapes: readonly T[], iteratee: (shape: T) => R): Array<T | R> => {
+  return shapes.map((shape) => shape.client.isSelected ? iteratee(shape) : shape)
 }

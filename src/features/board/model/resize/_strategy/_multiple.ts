@@ -1,13 +1,13 @@
+import { TransformDomain } from "@/entities/shape"
+import type { ClientShape, RectangleGeometry } from "@/entities/shape/model/types"
 import { _u } from "@/shared/lib/utils"
 import type { Point, Rect, RectWithId } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
-import type { ShapeToRender } from "../../../domain/shape"
 import { mapSelectedShapes } from "./_lib"
-import { TransformDomain } from "@/entities/shape"
 
 export type ResizeMultipleFromBoundParams = {
-  selectedShapes: ShapeToRender[]
-  allShapes: ShapeToRender[]
+  selectedShapes: ClientShape[]
+  allShapes: ClientShape[]
   selectionArea: Rect
   cursor: Point
 }
@@ -24,22 +24,27 @@ type AnyCalcShapeFromBound = (
 ) => Map<string, Partial<Rect>>
 
 const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] = []) => {
-  return ({ selectedShapes, selectionArea, allShapes, cursor }: ResizeMultipleFromBoundParams): ShapeToRender[] => {
+  return ({ selectedShapes, selectionArea, allShapes, cursor }: ResizeMultipleFromBoundParams): ClientShape[] => {
     const patches = list.map((calculate, index) => {
       const transform = defaultTo(rules[index], undefined)
 
       return calculate({
         cursor,
         selectionArea,
-        shapes:
-        selectedShapes
+        shapes: selectedShapes.filter(shape => shape.geometry.kind === "rectangle-geometry").map((shape) => ({
+          ...shape.geometry as RectangleGeometry,
+          id: shape.id,
+        }))
       }, transform)
     })
 
     return mapSelectedShapes(allShapes, (shape) => ({
       ...shape,
-      ...patches.reduce((acc, patcher) => _u.merge(acc, defaultTo(patcher.get(shape.id), {})), {}),
-    }))
+      geometry: {
+        ...shape.geometry,
+        ...patches.reduce((acc, patcher) => _u.merge(acc, defaultTo(patcher.get(shape.id), {})), {})
+      },
+    }) as ClientShape)
   }
 }
 

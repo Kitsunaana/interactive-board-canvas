@@ -6,11 +6,12 @@ export const drawSelectionBoundsArea = ({ context, rects }: {
   rects: Rect[]
 }) => {
   context.save()
+  
+  context.strokeStyle = "#314cd9"
+  context.lineWidth = 0.4
 
   rects.forEach((rect) => {
     context.beginPath()
-    context.strokeStyle = "#314cd9"
-    context.lineWidth = 0.4
     context.moveTo(rect.x - SELECTION_BOUNDS_PADDING, rect.y - SELECTION_BOUNDS_PADDING)
     context.lineTo(rect.x + rect.width + SELECTION_BOUNDS_PADDING, rect.y - SELECTION_BOUNDS_PADDING)
     context.lineTo(rect.x + rect.width + SELECTION_BOUNDS_PADDING, rect.y + rect.height + SELECTION_BOUNDS_PADDING)

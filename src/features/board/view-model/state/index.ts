@@ -1,8 +1,7 @@
 export {
   selectedShapesIds$,
   shapesToRecord$,
-  shapesToRender$,
-  viewModel$,
+  shapesToView$ as shapesToRender$,
   viewState$,
 } from "./_view-model"
 

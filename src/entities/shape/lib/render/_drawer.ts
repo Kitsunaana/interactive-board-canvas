@@ -1,5 +1,5 @@
 import { match } from "@/shared/lib/match"
-import type { EllipseShape, RectangleShape, Shape } from "../../model/types"
+import type { ClientShape, EllipseShape, RectangleShape } from "../../model/types"
 
 export const drawDefaultEllipse = (context: CanvasRenderingContext2D, ellipse: EllipseShape) => {
   const radiusX = ellipse.geometry.cx / 2
@@ -22,7 +22,7 @@ export const drawDefaultEllipse = (context: CanvasRenderingContext2D, ellipse: E
   context.restore()
 }
 
-export const drawRectangle = (context: CanvasRenderingContext2D, rectangle: RectangleShape) => {
+export const drawVectorRectangle = (context: CanvasRenderingContext2D, rectangle: RectangleShape) => {
   const { geometry, style } = rectangle
 
   context.save()
@@ -48,11 +48,18 @@ export const drawRectangle = (context: CanvasRenderingContext2D, rectangle: Rect
   context.restore()
 }
 
-export const drawShape = (context: CanvasRenderingContext2D, shape: Shape) => {
+export const drawShape = (context: CanvasRenderingContext2D, shape: ClientShape) => {
   context.imageSmoothingEnabled = true
   context.imageSmoothingQuality = 'high'
 
+  const renderMode = shape.client.renderMode
+
+  if (renderMode.kind === "bitmap") {
+    context.drawImage(renderMode.bitmap, renderMode.bbox.x, renderMode.bbox.y, renderMode.bbox.width, renderMode.bbox.height)
+    return
+  }
+
   match(shape, {
-    rectangle: (shape) => drawRectangle(context, shape)
+    rectangle: (shape) => drawVectorRectangle(context, shape)
   }, "kind")
 }

@@ -1,10 +1,9 @@
-import { _u } from "@/shared/lib/utils"
+import { TransformDomain } from "@/entities/shape"
+import type { ClientShape } from "@/entities/shape/model/types"
 import type { Point, Rect, RectWithId } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
-import type { ShapeToRender } from "../../../domain/shape"
 import type { ResizeSingleFromBoundParams } from "./_lib"
 import { mapSelectedShapes } from "./_lib"
-import { TransformDomain } from "@/entities/shape"
 
 type AnyTransform = {
   default: (...args: any[]) => Partial<Rect>
@@ -18,17 +17,36 @@ type AnyCalcShapeFromBound = (
 ) => Partial<Rect>
 
 const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] = []) => {
-  return ({ shapes, cursor }: ResizeSingleFromBoundParams): ShapeToRender[] => {
-    return mapSelectedShapes(shapes, (shape) => (
-      _u.merge(shape, list.reduce((acc, current, index) => {
+  return ({ shapes, cursor }: ResizeSingleFromBoundParams): ClientShape[] => {
+    return mapSelectedShapes(shapes, (shape) => {
+
+      const update = list.reduce((acc, current, index) => {
         const transform = defaultTo(rules[index], undefined)
 
-        return {
-          ...acc,
-          ...current({ cursor, shape }, transform)
+        if (shape.geometry.kind === "rectangle-geometry") {
+          return {
+            ...acc,
+            ...current({
+              cursor,
+              shape: {
+                ...shape.geometry,
+                id: shape.id
+              }
+            }, transform)
+          }
         }
-      }, {}))
-    ))
+
+        return acc
+      }, {} as Partial<Rect>)
+
+      return {
+        ...shape,
+        geometry: {
+          ...shape.geometry,
+          ...update,
+        }
+      } as ClientShape
+    })
   }
 }
 

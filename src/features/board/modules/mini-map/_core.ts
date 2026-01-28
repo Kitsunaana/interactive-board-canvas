@@ -1,5 +1,5 @@
 ﻿import { getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
-import { calculateLimitPoints, isRectIntersection, unscaleRect } from "@/shared/lib/rect"
+import { calculateLimitPointsFromRects, isRectIntersection, unscaleRect } from "@/shared/lib/rect"
 import { _u, getBoundingClientRect, getCanvasSizes } from "@/shared/lib/utils"
 import type { LimitPoints, Point, Rect, Sizes } from "@/shared/type/shared"
 import type { Camera, CameraState } from "../camera"
@@ -43,7 +43,7 @@ export const calculateUnscaleMap = ({ miniMapSizes, rects }: {
   miniMapSizes: Sizes
   rects: Rect[]
 }) => {
-  const mapPoints = calculateLimitPoints({ rects })
+  const mapPoints = calculateLimitPointsFromRects({ rects })
   const { min, max } = mapPoints
 
   const maxPointX = Math.max(min.x, max.x)

@@ -7,7 +7,7 @@ import { shapes$ } from "../../model/shapes.ts";
 import { autoSelectionBounds$ } from "../../view-model/selection-bounds.ts";
 import { getResizeCorners } from "../../view-model/shape-sketch.ts";
 import { camera$ } from "../camera/index.ts";
-import { context, createFormatterFoundNode, getPickedColor, isPickedBound, isPickedCanvas, isPickedCorner, isPickedShape } from "./_core.ts";
+import { context, createFormatterFoundNode, getPickedColor, isPickedBound, isPickedCanvas, isPickedCorner, isPickedRotateHandler, isPickedShape } from "./_core.ts";
 import { drawScene } from "./_ui.ts";
 
 export const selectionBoundsToPick$ = autoSelectionBounds$.pipe(rx.map((selectionBounds) => {
@@ -54,6 +54,7 @@ export const createPointerNodePick$ = (pointer$: rx.Observable<PointerEvent>) =>
 
       return rx.from([
         () => isPickedCanvas(colorId),
+        () => isPickedRotateHandler(colorId),
         () => isPickedCorner(colorId, resizeHandlers),
         () => isPickedBound(colorId, selectionBounds),
         () => isPickedShape(colorId, shapes)

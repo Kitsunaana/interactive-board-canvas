@@ -1,52 +1,51 @@
-import type { ShapeDomain } from "@/entities/shape"
-import { distance, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
+import type { ClientShape } from "@/entities/shape/model/types"
+import { addPoint, distance, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
 import { isRectIntersectionV2 } from "@/shared/lib/rect"
+import { _u } from "@/shared/lib/utils"
 import type { Point } from "@/shared/type/shared"
 import { isNull } from "lodash"
 import * as rx from "rxjs"
-import { isShape } from "../domain/is"
-import type { Selection } from "../domain/selection"
 import type { SelectionBounds } from "../domain/selection-area"
 import { type Camera, camera$, spacePressed$ } from "../modules/camera"
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../modules/pick-node"
+import type { HitTarget } from "../modules/pick-node/_core"
 import { autoSelectionBounds$ } from "../view-model/selection-bounds"
-import { goToShapesDragging, isIdle, isShapesDragging, viewState$ } from "../view-model/state"
-import { shapes$ } from "./shapes"
+import { goToShapesDragging, isIdle, isShapesDragging, shapesToRender$, viewState$ } from "../view-model/state"
 
 const isValidShapeInteraction = ({ selectionBounds, point, node }: {
   selectionBounds: SelectionBounds | null
+  node: HitTarget
   point: Point
-  node: any
 }) => {
-  if (isNull(selectionBounds)) return isShape(node)
+  if (isNull(selectionBounds)) return node.type === "shape"
 
-  return isShape(node) || isRectIntersectionV2({
+  return node.type == "shape" || isRectIntersectionV2({
     rect: selectionBounds.area,
     point: point,
   })
 }
 
-const mapPointerMoveToMovedShapes = ({ event, camera, startPoint }: {
-  shapes: ShapeDomain.Shape[]
-  selectedIds: Selection
+const mapPointerMoveToMovedShapes = ({ event, camera, shapes, startPoint }: {
+  shapes: ClientShape[]
   event: PointerEvent
   startPoint: Point
   camera: Camera
-}) => {
+}): ClientShape[] => {
   const distance = subtractPoint(startPoint, screenToCanvas({
     point: getPointFromEvent(event),
     camera,
   }))
 
-  console.log(distance)
+  return shapes.map((shape) => {
+    if (shape.client.isSelected && shape.geometry.kind === "rectangle-geometry") {
+      return {
+        ...shape,
+        geometry: _u.merge(shape.geometry, addPoint(shape.geometry, distance))
+      } as ClientShape
+    }
 
-  /*
-  return shapes.map((shape) => (
-    selectedIds.has(shape.id)
-      ? _u.merge(shape, addPoint(shape, distance))
-      : shape
-  ))
-  */
+    return shape
+  })
 }
 
 export const shapesDraggingFlow$ = mouseDown$.pipe(
@@ -76,14 +75,16 @@ export const shapesDraggingFlow$ = mouseDown$.pipe(
     const sharedMove$ = pointerMove$.pipe(rx.takeWhile((event) => !event.shiftKey), rx.share())
 
     const waitForThreshold$ = sharedMove$.pipe(
-      rx.filter((event) => distance(startPointInScreen, getPointFromEvent(event)) >= 8),
+      rx.filter((event) => {
+        return distance(startPointInScreen, getPointFromEvent(event)) >= 8
+      }),
       rx.withLatestFrom(viewState$.pipe(rx.filter(isIdle))),
       rx.take(1),
       rx.tap(([_, { selectedIds }]) => {
-        if (isShape(shape) && !selectedIds.has(shape.id)) {
+        if (shape.type === "shape" && !selectedIds.has(shape.shapeId)) {
           return viewState$.next(goToShapesDragging({
             needToDeselect: selectedIds.size === 0,
-            selectedIds: new Set([shape.id]),
+            selectedIds: new Set([shape.shapeId]),
           }))
         }
 
@@ -93,10 +94,10 @@ export const shapesDraggingFlow$ = mouseDown$.pipe(
     )
 
     const drag$ = waitForThreshold$.pipe(
-      rx.withLatestFrom(camera$, shapes$, viewState$.pipe(rx.filter(isShapesDragging))),
-      rx.switchMap(([_, camera, shapes, { selectedIds }]) => sharedMove$.pipe(
+      rx.withLatestFrom(camera$, shapesToRender$, viewState$.pipe(rx.filter(isShapesDragging))),
+      rx.switchMap(([_, camera, shapes]) => sharedMove$.pipe(
         rx.skip(1),
-        rx.map((event) => mapPointerMoveToMovedShapes({ selectedIds, startPoint, camera, shapes, event })),
+        rx.map((event) => mapPointerMoveToMovedShapes({ startPoint, camera, shapes, event })),
         rx.takeUntil(rx.merge(pointerUp$, pointerLeave$, wheel$)),
       ))
     )

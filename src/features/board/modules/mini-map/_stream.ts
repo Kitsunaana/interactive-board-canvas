@@ -1,9 +1,10 @@
-﻿import { resize$ } from "@/shared/lib/initial-canvas";
+﻿import { getBoundingBox } from "@/entities/shape/model/get-bounding-box";
+import { resize$ } from "@/shared/lib/initial-canvas";
 import { getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point";
-import { calculateLimitPoints, centerPointFromRect, unscaleRect } from "@/shared/lib/rect";
-import { _u, getBoundingClientRect, isNegative, isNotNull } from "@/shared/lib/utils";
+import { calculateLimitPointsFromRects, centerPointFromRect, unscaleRect } from "@/shared/lib/rect";
+import { _u, getBoundingClientRect, isNotNull } from "@/shared/lib/utils";
 import type { Point, Rect } from "@/shared/type/shared";
-import * as _ from "lodash"
+import * as _ from "lodash";
 import * as rx from "rxjs";
 import { shapes$ } from "../../model/shapes";
 import { cameraSubject$, type Camera } from "../camera";
@@ -71,23 +72,28 @@ miniMapSizes$.pipe(
 ).subscribe()
 
 export const findLimitMapPoints$ = rx.combineLatest([shapes$, miniMapSizes$]).pipe(
-  rx.map(([rects]) => calculateLimitPoints({ rects }))
+  rx.map(([rects]) => calculateLimitPointsFromRects({
+    rects: rects.map(shape => getBoundingBox(shape.geometry, shape.transform.rotate))
+  }))
 )
 
 export const movedUnscaleNodes$ = findLimitMapPoints$.pipe(
   rx.withLatestFrom(shapes$),
-  rx.map(([{ min }, nodes]) => (
+  rx.map(([{ min: _min }, nodes]) => (
     nodes.map((node) => ({
       ...node,
-      x: isNegative(min.x) ? node.x + Math.abs(min.x) : node.x,
-      y: isNegative(min.y) ? node.y + Math.abs(min.y) : node.y,
+      // x: isNegative(min.x) ? node.x + Math.abs(min.x) : node.x,
+      // y: isNegative(min.y) ? node.y + Math.abs(min.y) : node.y,
     }))
   ))
 )
 
 export const unscaleMap$ = movedUnscaleNodes$.pipe(
   rx.withLatestFrom(miniMapSizes$),
-  rx.map(([rects, miniMapSizes]) => calculateUnscaleMap({ miniMapSizes, rects })),
+  rx.map(([rects, miniMapSizes]) => calculateUnscaleMap({
+    miniMapSizes,
+    rects: rects.map(shape => getBoundingBox(shape.geometry, shape.transform.rotate))
+  })),
 )
 
 export const miniMapRenderer = rx.animationFrames().pipe(

@@ -1,10 +1,12 @@
 import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
-import { calculateLimitPoints } from "@/shared/lib/rect"
+import type { ClientShape } from "@/entities/shape/model/types"
+import { calculateLimitPointsFromRects } from "@/shared/lib/rect"
 import type { Rect } from "@/shared/type/shared"
-import type { ShapeToRender } from "../shape"
 
-export const computeSelectionBoundsArea = (shapes: ShapeToRender[]) => {
-  const selectedShapes = shapes.filter((shape) => shape.isSelected).map(getBoundingBox)
+export const computeSelectionBoundsArea = (shapes: ClientShape[]) => {
+  const selectedShapes = shapes.filter((shape) => shape.client.isSelected).map((shape) => {
+    return getBoundingBox(shape.geometry, shape.transform.rotate)
+  })
 
   if (selectedShapes.length === 1) {
     return {
@@ -14,9 +16,7 @@ export const computeSelectionBoundsArea = (shapes: ShapeToRender[]) => {
   }
 
   if (selectedShapes.length > 1) {
-    const limitPoints = calculateLimitPoints({
-      rects: selectedShapes
-    })
+    const limitPoints = calculateLimitPointsFromRects({ rects: selectedShapes })
 
     return {
       bounds: selectedShapes,

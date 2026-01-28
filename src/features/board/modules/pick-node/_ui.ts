@@ -1,4 +1,5 @@
-import { SELECTION_BOUNDS_PADDING, type ShapeDomain } from "@/entities/shape/index.ts";
+import { SELECTION_BOUNDS_PADDING } from "@/entities/shape/index.ts";
+import type { EllipseShape, RectangleShape, Shape } from "@/entities/shape/model/types.ts";
 import { generateRandomColor } from "@/shared/lib/color.ts";
 import { initialCanvas } from "@/shared/lib/initial-canvas.ts";
 import { match } from "@/shared/lib/match.ts";
@@ -14,12 +15,13 @@ export const [, canvas] = initialCanvas({
 })
 
 export const CANVAS_COLOR_ID = generateRandomColor()
+export const ROTATE_HANDLER_COLOR_ID = generateRandomColor()
 
 export function drawScene({ camera, context, shapes, selectionBounds, resizeHandlers }: {
   selectionBounds: SelectionBoundsToPick | null
   resizeHandlers: ResizeHandlersPropertiesToPick | null
   context: CanvasRenderingContext2D
-  shapes: ShapeDomain.Shape[]
+  shapes: Shape[]
   camera: Camera
 }) {
   context.save()
@@ -35,6 +37,12 @@ export function drawScene({ camera, context, shapes, selectionBounds, resizeHand
   if (isNotNull(selectionBounds)) {
     drawSelectionBounds({
       lineColors: selectionBounds.linesColor,
+      rect: selectionBounds.area,
+      context,
+    })
+
+    drawRotateHandler({
+      colorId: ROTATE_HANDLER_COLOR_ID,
       rect: selectionBounds.area,
       context,
     })
@@ -61,6 +69,25 @@ function drawCanvas({ context }: {
   context.fillStyle = CANVAS_COLOR_ID
   context.rect(0, 0, context.canvas.width, context.canvas.height)
   context.fill()
+  context.restore()
+}
+
+export function drawRotateHandler({ colorId, context, rect }: {
+  context: CanvasRenderingContext2D
+  colorId: string
+  rect: Rect
+}) {
+  context.save()
+
+  context.fillStyle = colorId
+  context.strokeStyle = colorId
+  context.lineWidth = 1
+  context.beginPath()
+  context.arc(rect.x + rect.width / 2, rect.y - 12, 16, 0, Math.PI * 2)
+  context.closePath()
+  context.stroke()
+  context.fill()
+  
   context.restore()
 }
 
@@ -106,7 +133,7 @@ function drawSelectionBounds({ context, lineColors, rect }: {
 
 function drawShapes({ context, shapes }: {
   context: CanvasRenderingContext2D
-  shapes: ShapeDomain.Shape[]
+  shapes: Shape[]
 }) {
   context.save()
 
@@ -116,7 +143,7 @@ function drawShapes({ context, shapes }: {
       ellipse: (shape) => drawCircle({ shape, context }),
       square: () => { },
       arrow: () => { },
-    })
+    }, "kind")
   })
 
   context.restore()
@@ -124,27 +151,27 @@ function drawShapes({ context, shapes }: {
 
 function drawRectangle({ context, shape }: {
   context: CanvasRenderingContext2D
-  shape: ShapeDomain.Rectangle
+  shape: RectangleShape
 }) {
   context.save()
   context.beginPath()
   context.fillStyle = shape.colorId
-  context.rect(shape.x, shape.y, shape.width, shape.height)
+  context.rect(shape.geometry.x, shape.geometry.y, shape.geometry.width, shape.geometry.height)
   context.fill()
   context.restore()
 }
 
 function drawCircle({ context, shape }: {
   context: CanvasRenderingContext2D
-  shape: ShapeDomain.Ellipse
+  shape: EllipseShape
 }) {
-  const radiusX = shape.width / 2
-  const radiusY = shape.height / 2
+  const radiusX = shape.geometry.rx / 2
+  const radiusY = shape.geometry.ry / 2
 
   context.save()
 
   context.beginPath()
-  context.ellipse(shape.x + radiusX, shape.y + radiusY, radiusX, radiusY, 0, 0, Math.PI * 2)
+  context.ellipse(shape.geometry.cx + radiusX, shape.geometry.cy + radiusY, radiusX, radiusY, 0, 0, Math.PI * 2)
   context.fillStyle = shape.colorId
   context.fill()
 

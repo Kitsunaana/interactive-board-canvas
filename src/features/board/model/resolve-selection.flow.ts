@@ -1,10 +1,10 @@
 import { match } from "@/shared/lib/match"
 import * as rx from "rxjs"
-import { isCanvas, isShape } from "../domain/is"
 import { selectItems } from "../domain/selection"
-import { mouseUp$ } from "../modules/pick-node"
-import { goToIdle, viewState$, type IdleViewState } from "../view-model/state"
 import { spacePressed$ } from "../modules/camera"
+import { mouseUp$ } from "../modules/pick-node"
+import type { HitTarget } from "../modules/pick-node/_core"
+import { goToIdle, viewState$, type IdleViewState } from "../view-model/state"
 
 const shapeSelect = ({ event, shapeId, idleState }: {
   idleState: IdleViewState
@@ -23,10 +23,10 @@ const shapeSelect = ({ event, shapeId, idleState }: {
   }
 }
 
-const isValidSelectionMouseUp = (node: any, event: PointerEvent) => {
+const isValidSelectionMouseUp = (node: HitTarget, event: PointerEvent) => {
   return (
     (!event.shiftKey && event.button === 0) &&
-    (isShape(node) || isCanvas(node))
+    (node.type === "shape" || node.type === "canvas")
   )
 }
 
@@ -45,7 +45,7 @@ export const resolveShapeSelectionFlow$ = mouseUp$.pipe(
 
   rx.map(([upEvent, state]) => ({ ...upEvent, state })),
   rx.switchMap(({ node, event, state }) => match(state, {
-    selectionWindow: (state) =>  rx.of(goToIdle({ selectedIds: state.selectedIds })),
+    selectionWindow: (state) => rx.of(goToIdle({ selectedIds: state.selectedIds })),
 
     shapesResize: (state) => rx.of(state),
 
@@ -55,8 +55,8 @@ export const resolveShapeSelectionFlow$ = mouseUp$.pipe(
     ),
 
     idle: (idleState) => {
-      if (isShape(node)) return rx.of(shapeSelect({ shapeId: node.id, idleState, event }))
-      if (isCanvas(node)) return rx.of(goToIdle())
+      if (node.type === "shape") return rx.of(shapeSelect({ shapeId: node.shapeId, idleState, event }))
+      if (node.type === "canvas") return rx.of(goToIdle())
 
       return rx.EMPTY
     },

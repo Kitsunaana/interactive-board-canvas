@@ -12,6 +12,11 @@ export const screenToCanvas = ({ point, camera }: { camera: Camera, point: Point
   y: (point.y - camera.y) / _.defaultTo(camera.scale, 1),
 })
 
+export const screenToCanvasV2 = (point: Point, camera: Camera) => ({
+  x: (point.x - camera.x) / _.defaultTo(camera.scale, 1),
+  y: (point.y - camera.y) / _.defaultTo(camera.scale, 1),
+})
+
 export const sizesToPoint = (sizes: Sizes): Point => ({
   y: sizes.height,
   x: sizes.width,
@@ -65,3 +70,7 @@ export const getPointFromEvent = (event: PointerEvent | globalThis.MouseEvent): 
 })
 
 export const distance = (a: Point, b: Point) => Math.hypot(b.x - a.x, b.y - a.y)
+
+export const getAngleBetweenPoints = (center: Point, cursor: Point) => {
+  return Math.atan2(cursor.y - center.y, cursor.x - center.x)
+}

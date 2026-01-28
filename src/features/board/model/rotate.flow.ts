@@ -1,0 +1,49 @@
+import { getAngleBetweenPoints, getPointFromEvent, screenToCanvasV2 } from "@/shared/lib/point";
+import { centerPointFromRect } from "@/shared/lib/rect";
+import { _u, isNotNull } from "@/shared/lib/utils";
+import * as rx from "rxjs";
+import { camera$ } from "../modules/camera";
+import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../modules/pick-node";
+import { selectionBounds$ } from "../view-model/selection-bounds";
+import { isIdle, shapesToRender$, viewState$ } from "../view-model/state";
+
+export const shapesRotateFlow$ = mouseDown$.pipe(
+  rx.filter((event) => event.node.type === "rotate-handler"),
+
+  rx.withLatestFrom(
+    viewState$.pipe(rx.filter(isIdle)),
+    selectionBounds$.pipe(rx.filter(isNotNull)),
+    shapesToRender$,
+    camera$,
+  ),
+
+  rx.switchMap(([{ event }, , selectionArea, shapes, camera]) => {
+    const cursorInCanvas = screenToCanvasV2(getPointFromEvent(event), camera)
+    const center = centerPointFromRect(selectionArea.area)
+
+    const startCursorAngle = getAngleBetweenPoints(center, cursorInCanvas)
+    const startRotation = shapes.find((shape) => shape.client.isSelected)?.transform.rotate ?? 0
+
+    return pointerMove$.pipe(
+      rx.map((event) => {
+        const cursorInCanvas = screenToCanvasV2(getPointFromEvent(event), camera)
+        const currentCursorAngle = getAngleBetweenPoints(center, cursorInCanvas)
+
+        const delta = currentCursorAngle - startCursorAngle
+        const nextRotation = startRotation + delta
+
+        return shapes.map((shape) => {
+          if (shape.client.isSelected) {
+            return {
+              ...shape,
+              transform: _u.merge(shape.transform, {rotate: nextRotation})
+            }
+          }
+
+          return shape
+        })
+      }),
+      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$))
+    )
+  })
+)

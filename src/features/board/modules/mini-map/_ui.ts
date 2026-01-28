@@ -1,10 +1,9 @@
-import type { ShapeDomain } from "@/entities/shape"
-import { match } from "@/shared/lib/match"
+import type { ClientShape } from "@/entities/shape/model/types"
 import type { Rect, Sizes } from "@/shared/type/shared"
 
 export const drawMiniMap = ({ shapes, sizes, context, unscale, cameraRect }: {
   context: CanvasRenderingContext2D
-  shapes: ShapeDomain.Shape[]
+  shapes: ClientShape[]
   cameraRect: Rect
   unscale: number
   sizes: Sizes
@@ -53,11 +52,12 @@ function drawViewport({ context, cameraRect }: {
   context.restore()
 }
 
-function drawShapes({ context, shapes }: {
+function drawShapes({ context }: {
   context: CanvasRenderingContext2D
-  shapes: ShapeDomain.Shape[]
+  shapes: ClientShape[]
 }) {
   context.save()
+  /**
   shapes.forEach((shape) => {
     match(shape, {
       ellipse: ({ height, width, x, y }) => {
@@ -78,5 +78,6 @@ function drawShapes({ context, shapes }: {
       }
     })
   })
+  */
   context.restore()
 }

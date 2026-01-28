@@ -1,3 +1,5 @@
+import { getBoundingBox } from "@/entities/shape/model/get-bounding-box";
+import type { ClientShape } from "@/entities/shape/model/types";
 import { toRGB } from "@/shared/lib/color";
 import { isRight } from "@/shared/lib/either";
 import { pointToSizes, subtractPoint } from "@/shared/lib/point";
@@ -7,7 +9,6 @@ import type { Point } from "@/shared/type/shared";
 import { isNull } from "lodash";
 import * as rx from "rxjs";
 import { isCanvas } from "../domain/is";
-import type { ShapeToRender } from "../domain/shape";
 import { camera$, type Camera } from "../modules/camera";
 import { pointerUp$ } from "../modules/pick-node";
 import { context, isPickedShape } from "../modules/pick-node/_core";
@@ -15,10 +16,9 @@ import { canvasMouseDown$, canvasMouseMove$ } from "../modules/pick-node/_events
 import { selectionBounds$ } from "./selection-bounds";
 import { shapesToRender$, viewState$ } from "./state";
 import { goToSelectionWindow, isIdle } from "./state/_view-model.type";
-import { getBoundingBox } from "@/entities/shape/model/get-bounding-box";
 
 const resolveSelectionWindowSelection = ({ startPoint, endPoint, shapes, camera }: {
-  shapes: ShapeToRender[]
+  shapes: ClientShape[]
   startPoint: Point
   endPoint: Point
   camera: Camera
@@ -40,13 +40,13 @@ const resolveSelectionWindowSelection = ({ startPoint, endPoint, shapes, camera 
       .from(colors)
       .map((colorId) => isPickedShape(colorId, shapes))
       .filter(((item) => isRight(item)))
-      .map((shape) => shape.value.id)
+      .map((shape) => shape.value.shapeId)
 
 
     const fullyContainedShapeIds = shapes
       .filter((shape) => isRectIntersectionV2({
         rect: normalizeRect(selectionWindow),
-        point: getBoundingBox(shape),
+        point: getBoundingBox(shape.geometry, shape.transform.rotate),
       }))
       .map(shape => shape.id)
 

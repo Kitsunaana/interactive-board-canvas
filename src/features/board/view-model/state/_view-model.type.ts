@@ -1,7 +1,7 @@
+import type { ClientShape } from "@/entities/shape/model/types";
 import type { Point, Rect } from "@/shared/type/shared";
 import React from "react";
 import type { Selection } from "../../domain/selection";
-import type { ShapeToRender } from "../../domain/shape";
 
 export type IdleViewState = {
   selectedIds: Set<string>
@@ -49,7 +49,7 @@ export type ViewModelAction = {
 }
 
 export type ViewModel = {
-  nodes: ShapeToRender[]
+  nodes: ClientShape[]
 
   selectionWindow?: Rect
 
