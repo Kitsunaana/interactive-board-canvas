@@ -1,6 +1,5 @@
-import type { Point, Rect, RectWithId } from "@/shared/type/shared"
+import type { Point, Rect, RotatableRect } from "@/shared/type/shared"
 import { SELECTION_BOUNDS_PADDING } from "../_const"
-import { withDefaultTransformHandlers } from "../_lib"
 
 export type ShapeToAspectResize = Rect & {
   nextWidth: number
@@ -14,7 +13,7 @@ export type CalcShapeAspectResizePatchTransform = {
 }
 
 export type CalcShapeAspectResizePatchParms = {
-  shape: RectWithId
+  shape: RotatableRect<true>
   cursor: Point
 }
 
@@ -23,185 +22,279 @@ export type CalcShapeAspectResizePatch = (
   transform?: CalcShapeAspectResizePatchTransform
 ) => Partial<Rect>
 
-export const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }, transform) => {
-  const handlers = withDefaultTransformHandlers(transform)
+export const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
+  const angle = shape.rotate
 
-  const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
 
-  const left = shape.x
-  const right = left + shape.width
+  const axisX = { x: cos, y: sin }
 
-  const delta = cursorX - right
-  const aspectRatio = shape.height / shape.width
+  const centerX = shape.x + shape.width / 2
+  const centerY = shape.y + shape.height / 2
 
-  const nextWidth = shape.width + delta
-  const nextHeight = nextWidth * aspectRatio
+  const leftX = centerX - (shape.width / 2) * axisX.x
+  const leftY = centerY - (shape.width / 2) * axisX.y
 
-  if (nextWidth <= 0) {
-    const delta = left - cursorX
+  const correctedCursorX = cursor.x - SELECTION_BOUNDS_PADDING
+  const correctedCursorY = cursor.y
 
-    const nextWidth = delta - SELECTION_BOUNDS_PADDING * 2
-    const nextHeight = nextWidth * aspectRatio
-    const nextX = shape.x - delta + SELECTION_BOUNDS_PADDING * 2
+  const toCursorX = correctedCursorX - leftX
+  const toCursorY = correctedCursorY - leftY
 
-    if (nextWidth <= 0) {
-      return {
-        width: 0,
-        height: 0,
-        ...handlers.frizen({ ...shape, nextHeight, nextWidth })
-      }
-    }
+  const projection = toCursorX * axisX.x + toCursorY * axisX.y
+  const nextWidth = projection
+
+  if (nextWidth > 0) {
+    const scale = nextWidth / shape.width
+    const nextHeight = shape.height * scale
+
+    const rightX = leftX + axisX.x * nextWidth
+    const rightY = leftY + axisX.y * nextWidth
+
+    const nextCenterX = (leftX + rightX) / 2
+    const nextCenterY = (leftY + rightY) / 2
 
     return {
-      x: nextX,
       width: nextWidth,
       height: nextHeight,
-      ...handlers.flip({ ...shape, nextHeight, nextWidth })
+      x: nextCenterX - nextWidth / 2,
+      y: nextCenterY - nextHeight / 2,
     }
   }
 
+  if (-nextWidth <= SELECTION_BOUNDS_PADDING * 2) {
+    return {
+      width: 0,
+      height: 0,
+      x: leftX,
+      y: leftY,
+    }
+  }
+
+  const flipWidth = -nextWidth - SELECTION_BOUNDS_PADDING * 2
+  const scale = flipWidth / shape.width
+  const nextHeight = shape.height * scale
+
+  const rightX = leftX - axisX.x * flipWidth
+  const rightY = leftY - axisX.y * flipWidth
+
+  const nextCenterX = (leftX + rightX) / 2
+  const nextCenterY = (leftY + rightY) / 2
+
   return {
-    width: nextWidth,
+    width: flipWidth,
     height: nextHeight,
-    ...handlers.default({ ...shape, nextHeight, nextWidth })
+    x: nextCenterX - flipWidth / 2,
+    y: nextCenterY - nextHeight / 2,
   }
 }
 
-export const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }, transform) => {
-  const handlers = withDefaultTransformHandlers(transform)
+export const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
+  const angle = shape.rotate
 
-  const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
 
-  const left = shape.x
-  const right = left + shape.width
+  const axisX = { x: cos, y: sin }
 
-  const delta = left - cursorX
-  const aspectRatio = shape.height / shape.width
+  const centerX = shape.x + shape.width / 2
+  const centerY = shape.y + shape.height / 2
 
-  const nextWidth = shape.width + delta
-  const nextHeight = nextWidth * aspectRatio
+  const rightX = centerX + (shape.width / 2) * axisX.x
+  const rightY = centerY + (shape.width / 2) * axisX.y
 
-  if (nextWidth <= 0) {
-    const delta = cursorX - right
+  const correctedCursorX = cursor.x + SELECTION_BOUNDS_PADDING
+  const correctedCursorY = cursor.y
 
-    const nextWidth = delta - SELECTION_BOUNDS_PADDING * 2
-    const nextHeight = nextWidth * aspectRatio
+  const toCursorX = rightX - correctedCursorX
+  const toCursorY = rightY - correctedCursorY
 
-    if (nextWidth <= 0) {
-      return {
-        width: 0,
-        height: 0,
-        x: right,
-        ...handlers.frizen({ ...shape, nextHeight, nextWidth }),
-      }
-    }
+  const projection = toCursorX * axisX.x + toCursorY * axisX.y
+  const nextWidth = projection
+
+  if (nextWidth > 0) {
+    const scale = nextWidth / shape.width
+    const nextHeight = shape.height * scale
+
+    const leftX = rightX - axisX.x * nextWidth
+    const leftY = rightY - axisX.y * nextWidth
+
+    const nextCenterX = (leftX + rightX) / 2
+    const nextCenterY = (leftY + rightY) / 2
 
     return {
-      x: right,
       width: nextWidth,
       height: nextHeight,
-      ...handlers.flip({ ...shape, nextHeight, nextWidth }),
+      x: nextCenterX - nextWidth / 2,
+      y: nextCenterY - nextHeight / 2,
     }
   }
 
+  if (-nextWidth <= SELECTION_BOUNDS_PADDING * 2) {
+    return {
+      width: 0,
+      height: 0,
+      x: rightX,
+      y: rightY,
+    }
+  }
+
+  const flipWidth = -nextWidth - SELECTION_BOUNDS_PADDING * 2
+  const scale = flipWidth / shape.width
+  const nextHeight = shape.height * scale
+
+  const leftX = rightX + axisX.x * flipWidth
+  const leftY = rightY + axisX.y * flipWidth
+
+  const nextCenterX = (leftX + rightX) / 2
+  const nextCenterY = (leftY + rightY) / 2
+
   return {
-    x: shape.x - delta,
-    width: nextWidth,
+    width: flipWidth,
     height: nextHeight,
-    ...handlers.default({ ...shape, nextHeight, nextWidth }),
+    x: nextCenterX - flipWidth / 2,
+    y: nextCenterY - nextHeight / 2,
   }
 }
 
-export const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }, transform) => {
-  const handlers = withDefaultTransformHandlers(transform)
+export const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
+  const angle = shape.rotate
 
-  const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
 
-  const top = shape.y
-  const bottom = top + shape.height
+  const axisY = { x: -sin, y: cos }
 
-  const delta = cursorY - bottom
-  const aspectRatio = shape.width / shape.height
+  const centerX = shape.x + shape.width / 2
+  const centerY = shape.y + shape.height / 2
 
-  const nextHeight = shape.height + delta
-  const nextWidth = nextHeight * aspectRatio
+  const topX = centerX - (shape.height / 2) * axisY.x
+  const topY = centerY - (shape.height / 2) * axisY.y
 
-  if (nextHeight <= 0) {
-    const delta = top - cursorY
+  const correctedCursorX = cursor.x
+  const correctedCursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
-    const nextHeight = delta - SELECTION_BOUNDS_PADDING * 2
-    const nextWidth = nextHeight * aspectRatio
-    const nextY = top - delta + SELECTION_BOUNDS_PADDING * 2
+  const toCursorX = correctedCursorX - topX
+  const toCursorY = correctedCursorY - topY
 
-    if (nextHeight <= 0) {
-      return {
-        y: top,
-        width: 0,
-        height: 0,
-        ...handlers.frizen({ ...shape, nextWidth, nextHeight })
-      }
-    }
+  const projection = toCursorX * axisY.x + toCursorY * axisY.y
+  const nextHeight = projection
+
+  if (nextHeight > 0) {
+    const scale = nextHeight / shape.height
+    const nextWidth = shape.width * scale
+
+    const nextBottomX = topX + nextHeight * axisY.x
+    const nextBottomY = topY + nextHeight * axisY.y
+
+    const nextCenterX = (topX + nextBottomX) / 2
+    const nextCenterY = (topY + nextBottomY) / 2
 
     return {
-      y: nextY,
       width: nextWidth,
       height: nextHeight,
-      ...handlers.flip({ ...shape, nextWidth, nextHeight })
+      x: nextCenterX - nextWidth / 2,
+      y: nextCenterY - nextHeight / 2,
     }
   }
+
+  if (-nextHeight <= SELECTION_BOUNDS_PADDING * 2) {
+    return {
+      width: 0,
+      height: 0,
+      x: topX,
+      y: topY,
+    }
+  }
+
+  const flipHeight = -nextHeight - SELECTION_BOUNDS_PADDING * 2
+  const scale = flipHeight / shape.height
+  const nextWidth = shape.width * scale
+
+  const nextBottomX = topX - axisY.x * flipHeight
+  const nextBottomY = topY - axisY.y * flipHeight
+
+  const nextCenterX = (topX + nextBottomX) / 2
+  const nextCenterY = (topY + nextBottomY) / 2
 
   return {
     width: nextWidth,
-    height: nextHeight,
-    ...handlers.default({ ...shape, nextWidth, nextHeight })
+    height: flipHeight,
+    x: nextCenterX - nextWidth / 2,
+    y: nextCenterY - flipHeight / 2,
   }
 }
 
-export const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }, transform) => {
-  const handlers = withDefaultTransformHandlers(transform)
+export const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
+  const angle = shape.rotate
 
-  const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
 
-  const top = shape.y
-  const bottom = top + shape.height
+  const axisY = { x: -sin, y: cos }
 
-  const delta = top - cursorY
-  const aspectRatio = shape.width / shape.height
+  const centerX = shape.x + shape.width / 2
+  const centerY = shape.y + shape.height / 2
 
-  const nextHeight = shape.height + delta
-  const nextWidth = nextHeight * aspectRatio
+  const bottomX = centerX + (shape.height / 2) * axisY.x
+  const bottomY = centerY + (shape.height / 2) * axisY.y
 
-  if (nextHeight <= 0) {
-    const delta = cursorY - bottom
+  const correctedCursorX = cursor.x
+  const correctedCursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
-    const nextHeight = delta - SELECTION_BOUNDS_PADDING * 2
-    const nextWidth = nextHeight * aspectRatio
+  const toBottomX = bottomX - correctedCursorX
+  const toBottomY = bottomY - correctedCursorY
 
-    if (nextHeight <= 0) {
-      return {
-        y: bottom,
-        width: 0,
-        height: 0,
-        ...handlers.frizen({ ...shape, nextWidth, nextHeight })
-      }
-    }
+  const projection = toBottomX * axisY.x + toBottomY * axisY.y
+  const nextHeight = projection
+
+  if (nextHeight > 0) {
+    const scale = nextHeight / shape.height
+    const nextWidth = shape.width * scale
+
+    const nextTopX = bottomX - nextHeight * axisY.x
+    const nextTopY = bottomY - nextHeight * axisY.y
+
+    const nextCenterX = (nextTopX + bottomX) / 2
+    const nextCenterY = (nextTopY + bottomY) / 2
 
     return {
-      y: bottom,
       width: nextWidth,
       height: nextHeight,
-      ...handlers.flip({ ...shape, nextWidth, nextHeight })
+      x: nextCenterX - nextWidth / 2,
+      y: nextCenterY - nextHeight / 2,
     }
   }
 
+  const delta = (correctedCursorX - bottomX) * axisY.x + (correctedCursorY - bottomY) * axisY.y
+
+  if (delta <= SELECTION_BOUNDS_PADDING * 2) {
+    return {
+      width: 0,
+      height: 0,
+      x: bottomX,
+      y: bottomY,
+    }
+  }
+
+  const flipHeight = delta - SELECTION_BOUNDS_PADDING * 2
+  const scale = flipHeight / shape.height
+  const nextWidth = shape.width * scale
+
+  const nextBottomX = bottomX + axisY.x * flipHeight
+  const nextBottomY = bottomY + axisY.y * flipHeight
+
+  const nextCenterX = (bottomX + nextBottomX) / 2
+  const nextCenterY = (bottomY + nextBottomY) / 2
+
   return {
-    y: shape.y - delta,
     width: nextWidth,
-    height: nextHeight,
-    ...handlers.default({ ...shape, nextWidth, nextHeight })
+    height: flipHeight,
+    x: nextCenterX - nextWidth / 2,
+    y: nextCenterY - flipHeight / 2,
   }
 }
-
 export const Short = {
   bottom: calcShapeBottomBoundAspectResizePatch,
   right: calcShapeRightBoundAspectResizePatch,
