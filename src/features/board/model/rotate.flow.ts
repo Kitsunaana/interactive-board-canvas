@@ -8,6 +8,7 @@ import { selectionBounds$ } from "../view-model/selection-bounds";
 import { isIdle, shapesToRender$, viewState$ } from "../view-model/state";
 import type { ClientShape } from "@/entities/shape/model/types";
 import { markDirty } from "@/entities/shape/model/render-state";
+import { goToShapesRotate, isShapesRotate } from "../view-model/state/_view-model.type";
 
 export const shapesRotateFlow$ = mouseDown$.pipe(
   rx.filter((event) => event.node.type === "rotate-handler"),
@@ -19,7 +20,7 @@ export const shapesRotateFlow$ = mouseDown$.pipe(
     camera$,
   ),
 
-  rx.switchMap(([{ event }, , selectionArea, shapes, camera]) => {
+  rx.switchMap(([{ event }, idleState, selectionArea, shapes, camera]) => {
     const cursorInCanvas = screenToCanvasV2(getPointFromEvent(event), camera)
     const center = centerPointFromRect(selectionArea.area)
 
@@ -29,8 +30,12 @@ export const shapesRotateFlow$ = mouseDown$.pipe(
 
     rotatingShape.client.renderMode.kind = "vector"
 
+    viewState$.next(goToShapesRotate({ selectedIds: idleState.selectedIds }))
+
     return pointerMove$.pipe(
-      rx.map((event) => {
+      rx.withLatestFrom(viewState$),
+      rx.filter(([, state]) => isShapesRotate(state)),
+      rx.map(([event]) => {
         const cursorInCanvas = screenToCanvasV2(getPointFromEvent(event), camera)
         const currentCursorAngle = getAngleBetweenPoints(center, cursorInCanvas)
 

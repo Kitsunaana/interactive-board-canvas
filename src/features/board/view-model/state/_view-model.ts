@@ -22,6 +22,7 @@ export const shapesToView$ = rx.combineLatest({ state: viewState$, shapes: shape
   switch (state.type) {
     case "idle":
     case "shapesResize":
+    case "shapesRotate":
     case "shapesDragging": {
       return shapes.map((shape) => {
         return {
@@ -39,6 +40,8 @@ export const shapesToView$ = rx.combineLatest({ state: viewState$, shapes: shape
     case "startPenDraw":
     case "penDrawing":
       return shapes
+
+
   }
 }))
 

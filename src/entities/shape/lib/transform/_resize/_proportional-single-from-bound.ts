@@ -22,7 +22,7 @@ export type CalcShapeAspectResizePatch = (
   transform?: CalcShapeAspectResizePatchTransform
 ) => Partial<Rect>
 
-export const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
+const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
 
   const cos = Math.cos(angle)
@@ -90,7 +90,7 @@ export const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = 
   }
 }
 
-export const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
+const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
 
   const cos = Math.cos(angle)
@@ -158,7 +158,7 @@ export const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = (
   }
 }
 
-export const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
+const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
 
   const cos = Math.cos(angle)
@@ -226,7 +226,7 @@ export const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch =
   }
 }
 
-export const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
+const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
 
   const cos = Math.cos(angle)
@@ -295,6 +295,7 @@ export const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({
     y: nextCenterY - flipHeight / 2,
   }
 }
+
 export const Short = {
   bottom: calcShapeBottomBoundAspectResizePatch,
   right: calcShapeRightBoundAspectResizePatch,

@@ -1,3 +1,7 @@
+import { calcShapeFromCornerIndependentResizePatch } from "@/entities/shape/lib/transform/_resize/_independent-single-from-corner"
+import { calcShapeFromCornerAspectResizePatch } from "@/entities/shape/lib/transform/_resize/_proportional-single-from-corner"
+import { markDirtySelectedShapes } from "@/entities/shape/model/render-state"
+import type { ClientShape, RectangleGeometry } from "@/entities/shape/model/types"
 import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
 import { isNotNull } from "@/shared/lib/utils"
 import * as rx from "rxjs"
@@ -6,9 +10,8 @@ import { camera$ } from "../../modules/camera"
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../../modules/pick-node"
 import { autoSelectionBounds$, pressedResizeHandlerSubject$ } from "../../view-model/selection-bounds"
 import { goToIdle, goToShapesResize, isIdle, isShapesResize, shapesToRender$, viewState$ } from "../../view-model/state"
-import { getShapesResizeViaCornerStrategy } from "./_strategy"
-import { markDirtySelectedShapes } from "@/entities/shape/model/render-state"
 import { shapes$ } from "../shapes"
+import { getShapesResizeViaCornerStrategy } from "./_strategy"
 
 const applyResizeViaCornerCursor = (node: Corner) => {
   document.documentElement.style.cursor = {
@@ -36,7 +39,8 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
   rx.switchMap(({ camera, handler, shapes, selectedIds, selectionArea }) => {
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
-    const resizeShapesStrategy = getShapesResizeViaCornerStrategy({
+    // const resizeShapesStrategy = 
+    getShapesResizeViaCornerStrategy({
       selectionArea,
       handler: handler.corner,
       shapes: shapes.map((shape) => {
@@ -63,11 +67,28 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
         const cursorPosition = getPointFromEvent(moveEvent)
         const cursor = screenToCanvas({ camera, point: cursorPosition })
 
-        return resizeShapesStrategy({
-          proportional: moveEvent.shiftKey,
-          reflow: moveEvent.ctrlKey,
+        const patchRecord = moveEvent.shiftKey
+          ? calcShapeFromCornerAspectResizePatch
+          : calcShapeFromCornerIndependentResizePatch
+
+        const patcher = patchRecord[handler.corner]({
           cursor,
+          shape: {
+            ...shapes[0].geometry as RectangleGeometry,
+            id: shapes[0].id,
+            rotate: shapes[0].transform.rotate
+          }
         })
+
+        return shapes.map(shape => {
+          return {
+            ...shape,
+            geometry: {
+              ...shape.geometry,
+              ...patcher,
+            }
+          }
+        }) as ClientShape[]
       }),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
     )

@@ -4,8 +4,8 @@ import * as MultipleReflowProportional from "./_reflow/_proportional-multiple"
 import * as MultipleResizeIndependent from "./_resize/_independent-multiple"
 import * as MultipleResizeProportional from "./_resize/_proportional-multiple"
 
-import * as SingleResizeIndependent from "./_resize/_independent-single"
-import * as SingleResizeProportional from "./_resize/_proportional-single"
+import * as SingleResizeIndependent from "./_resize/_independent-single-from-bound"
+import * as SingleResizeProportional from "./_resize/_proportional-single-from-bound"
 
 export const TransformDomain = {
   Multiple: {

@@ -27,6 +27,11 @@ export type SelectionWindowViewState = {
   endPoint: Point
 }
 
+export type ShapesRotateViewState = {
+  type: "shapesRotate",
+  selectedIds: Selection
+}
+
 export type StartPenDrawViewState = {
   type: "startPenDraw"
 }
@@ -36,28 +41,13 @@ export type PenDrawingViewState = {
 }
 
 export type ViewModelState =
-  | IdleViewState
-  | ShapesResizeViewState
-  | ShapesDraggingViewState
-  | SelectionWindowViewState
-  | StartPenDrawViewState
-  | PenDrawingViewState
-
-export type ViewModelAction = {
-  onClick?: (event: React.MouseEvent) => void
-  isActive?: boolean
-}
-
-export type ViewModel = {
-  nodes: ClientShape[]
-
-  selectionWindow?: Rect
-
-  actions: {
-    addSticker?: ViewModelAction
-    addArrow?: ViewModelAction
-  }
-}
+| SelectionWindowViewState
+| ShapesDraggingViewState
+| ShapesRotateViewState
+| ShapesResizeViewState
+| StartPenDrawViewState
+| PenDrawingViewState
+| IdleViewState
 
 export const isIdle = (state: ViewModelState) => state.type === "idle"
 
@@ -70,6 +60,14 @@ export const isSelectionWindow = (state: ViewModelState) => state.type === "sele
 export const isStartPenDrawindow = (state: ViewModelState) => state.type === "startPenDraw"
 
 export const isPenDrawing = (state: ViewModelState) => state.type === "penDrawing"
+
+export const isShapesRotate = (state: ViewModelState) => state.type === "shapesRotate"
+
+export const goToShapesRotate = (state: Partial<ShapesRotateViewState> = {}): ShapesRotateViewState => ({
+  selectedIds: new Set(),
+  type: "shapesRotate",
+  ...state,
+})
 
 export const goToIdle = (state: Partial<IdleViewState> = {}): IdleViewState => ({
   selectedIds: new Set(),

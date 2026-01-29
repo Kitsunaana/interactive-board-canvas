@@ -8,7 +8,7 @@ export type CalcShapeResizePatchParams = {
 
 export type CalcShapeResizePatch = (params: CalcShapeResizePatchParams) => Partial<Rect>
 
-export const calcShapeRightBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
+const calcShapeRightBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
 
   const centerX = shape.x + shape.width / 2
@@ -79,7 +79,7 @@ export const calcShapeRightBoundResizePatch: CalcShapeResizePatch = ({ shape, cu
   }
 }
 
-export const calcShapeLeftBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
+const calcShapeLeftBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
 
   const centerX = shape.x + shape.width / 2
@@ -153,7 +153,7 @@ export const calcShapeLeftBoundResizePatch: CalcShapeResizePatch = ({ shape, cur
   }
 }
 
-export const calcShapeBottomBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
+const calcShapeBottomBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
 
   const centerX = shape.x + shape.width / 2
@@ -227,7 +227,7 @@ export const calcShapeBottomBoundResizePatch: CalcShapeResizePatch = ({ shape, c
   }
 }
 
-export const calcShapeTopBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
+const calcShapeTopBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
 
   const centerX = shape.x + shape.width / 2
