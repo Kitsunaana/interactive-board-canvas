@@ -1,6 +1,7 @@
+import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
 import type { ClientShape } from "@/entities/shape/model/types"
 import { addPoint, distance, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
-import { isRectIntersectionV2 } from "@/shared/lib/rect"
+import { isRectIntersectionWithRotate } from "@/shared/lib/rect"
 import { _u } from "@/shared/lib/utils"
 import type { Point } from "@/shared/type/shared"
 import { isNull } from "lodash"
@@ -11,7 +12,6 @@ import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../
 import type { HitTarget } from "../modules/pick-node/_core"
 import { autoSelectionBounds$ } from "../view-model/selection-bounds"
 import { goToShapesDragging, isIdle, isShapesDragging, shapesToRender$, viewState$ } from "../view-model/state"
-import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
 
 const isValidShapeInteraction = ({ selectionBounds, point, node }: {
   selectionBounds: SelectionBounds | null
@@ -20,7 +20,7 @@ const isValidShapeInteraction = ({ selectionBounds, point, node }: {
 }) => {
   if (isNull(selectionBounds)) return node.type === "shape"
 
-  return node.type == "shape" || isRectIntersectionV2({
+  return node.type == "shape" || isRectIntersectionWithRotate({
     rect: selectionBounds.area,
     point: point,
   })

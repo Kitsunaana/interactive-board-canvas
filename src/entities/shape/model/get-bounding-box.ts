@@ -1,5 +1,5 @@
-import { getAABBSize, rectGeomteryFromTopLeftToCenter, type AABB } from "@/shared/lib/rect"
-import type { Point, Rect } from "@/shared/type/shared"
+import { getAABBSize, rectGeomteryFromTopLeftToCenter } from "@/shared/lib/rect"
+import type { AABB, Point, Rect } from "@/shared/type/shared"
 import type { EllipseGeometry, RectangleGeometry, ShapeGeometry } from "./types"
 
 export const getRotatedPolygoneAABB = (points: Point[], rotate: number): AABB => {
@@ -118,8 +118,6 @@ export const getRotatedEllipseAABB = (geometry: EllipseGeometry, rotate: number)
   }
 }
 
-
-
 export const getBoundingBox = (geometry: ShapeGeometry, rotate: number) => {
   switch (geometry.kind) {
     case "rectangle-geometry": {
@@ -129,7 +127,7 @@ export const getBoundingBox = (geometry: ShapeGeometry, rotate: number) => {
       return getAABBSize(getRotatedEllipseAABB(geometry, rotate))
     }
     case "diamond-geometry": {
-      const diamonToRectangle: RectangleGeometry = {
+      const diamondToRectangle: RectangleGeometry = {
         kind: "rectangle-geometry",
         height: geometry.height,
         width: geometry.width,
@@ -137,7 +135,7 @@ export const getBoundingBox = (geometry: ShapeGeometry, rotate: number) => {
         y: geometry.cy,
       }
 
-      return getAABBSize(getRotatedRectangleAABB(diamonToRectangle, rotate))
+      return getAABBSize(getRotatedRectangleAABB(diamondToRectangle, rotate))
     }
     case "path-geometry": {
       return getAABBSize(getRotatedPolygoneAABB(geometry.points, rotate))

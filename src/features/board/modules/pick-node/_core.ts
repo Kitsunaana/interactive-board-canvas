@@ -48,8 +48,8 @@ export type CornerLinesColor = Record<Corner, string>
 
 export type SelectionBoundsToPick = {
   linesColor: BoundLinesColor
-  bounds: Rect[]
-  area: Rect
+  bounds: Array<Rect & { rotate: number }>
+  area: Rect & { rotate: number }
 }
 
 export type ResizeHandlersPropertiesToPick = {

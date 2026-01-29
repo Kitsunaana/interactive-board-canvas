@@ -18,7 +18,7 @@ export const initialShapes: Shape[] = [
       opacity: 0,
     },
     transform: {
-      rotate: 0,
+      rotate: 0.2,
       scaleX: 1,
       scaleY: 1,
     },

@@ -3,7 +3,7 @@ import type { ClientShape } from "@/entities/shape/model/types";
 import { toRGB } from "@/shared/lib/color";
 import { isRight } from "@/shared/lib/either";
 import { pointToSizes, subtractPoint } from "@/shared/lib/point";
-import { isRectIntersectionV2, normalizeRect, rectBorderPointsStep, worldRectToScreenRect } from "@/shared/lib/rect";
+import { isRectIntersectionWithoutCamera, normalizeRect, rectBorderPointsStep, worldRectToScreenRect } from "@/shared/lib/rect";
 import { _u, isNotUndefined } from "@/shared/lib/utils";
 import type { Point } from "@/shared/type/shared";
 import { isNull } from "lodash";
@@ -44,7 +44,7 @@ const resolveSelectionWindowSelection = ({ startPoint, endPoint, shapes, camera 
 
 
     const fullyContainedShapeIds = shapes
-      .filter((shape) => isRectIntersectionV2({
+      .filter((shape) => isRectIntersectionWithoutCamera({
         rect: normalizeRect(selectionWindow),
         point: getBoundingBox(shape.geometry, shape.transform.rotate),
       }))
@@ -69,7 +69,7 @@ const selectionWindowFlow$ = canvasMouseDown$.pipe(
   rx.switchMap((params) => {
     return rx.of(params).pipe(
       rx.withLatestFrom(
-        selectionBounds$.pipe(rx.filter((selectionBounds) => isNull(selectionBounds) || !isRectIntersectionV2({
+        selectionBounds$.pipe(rx.filter((selectionBounds) => isNull(selectionBounds) || !isRectIntersectionWithoutCamera({
           rect: selectionBounds.area,
           point: params[0].point,
         })))

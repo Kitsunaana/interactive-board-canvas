@@ -1,5 +1,5 @@
 ﻿import { getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
-import { calculateLimitPointsFromRects, isRectIntersection, unscaleRect } from "@/shared/lib/rect"
+import { calculateLimitPointsFromRects, isRectIntersection, divisionRect } from "@/shared/lib/rect"
 import { _u, getBoundingClientRect, getCanvasSizes } from "@/shared/lib/utils"
 import type { LimitPoints, Point, Rect, Sizes } from "@/shared/type/shared"
 import type { Camera, CameraState } from "../camera"
@@ -109,7 +109,7 @@ export const canMoveMiniMapViewportRect = ({ miniMapCamera, unscaleMap, downEven
   miniMapCamera: Rect
   unscaleMap: number
 }) => {
-  const unscaledMapViewportRect = unscaleRect(miniMapCamera, unscaleMap)
+  const unscaledMapViewportRect = divisionRect(miniMapCamera, unscaleMap)
 
   const clientRect = getBoundingClientRect(downEvent)
   const pointFromEvent = getPointFromEvent(downEvent)
@@ -132,7 +132,7 @@ export const getMiniMapPointerContext = ({ pointerEvent, unscaleMap, miniMapCame
 }) => {
   const pointInMiniMap = getPointInMiniMap(pointerEvent)
 
-  const viewportRect = unscaleRect(miniMapCamera, unscaleMap)
+  const viewportRect = divisionRect(miniMapCamera, unscaleMap)
   const pointInViewportRect = isRectIntersection({
     point: pointInMiniMap,
     rect: viewportRect,

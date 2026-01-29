@@ -1,27 +1,32 @@
-import * as _ from "lodash"
-import type { LimitPoints, Point, Rect } from "../type/shared";
+import * as _ from "lodash";
+import type { AABB, LimitPoints, Point, Rect } from "../type/shared";
 import { screenToCanvas, type Camera } from "./point";
 import { isNegative } from "./utils";
 
-export const unscaleRect = (rect: Rect, unscale: number): Rect => ({
-  height: rect.height / unscale,
-  width: rect.width / unscale,
-  y: rect.y / unscale,
-  x: rect.x / unscale,
+export const divisionRect = (rect: Rect, value: number): Rect => ({
+  height: rect.height / value,
+  width: rect.width / value,
+  y: rect.y / value,
+  x: rect.x / value,
 })
 
-export const scaleRect = (rect: Rect, scale: number): Rect => ({
-  height: rect.height * scale,
-  width: rect.width * scale,
-  y: rect.y * scale,
-  x: rect.x * scale,
+export const multipleRect = (rect: Rect, value: number): Rect => ({
+  height: rect.height * value,
+  width: rect.width * value,
+  y: rect.y * value,
+  x: rect.x * value,
 })
 
-export const inferRect = <T extends Rect>(value: T): Rect => ({
-  height: value.height,
-  width: value.width,
-  x: value.x,
-  y: value.y,
+export const inferRect = <T extends Rect>(rect: T): Rect => ({
+  height: rect.height,
+  width: rect.width,
+  x: rect.x,
+  y: rect.y,
+})
+
+export const centerPointFromRect = (rect: Rect): Point => ({
+  y: rect.y + rect.height / 2,
+  x: rect.x + rect.width / 2,
 })
 
 export const isRectIntersection = ({ camera, rect, point }: {
@@ -37,7 +42,7 @@ export const isRectIntersection = ({ camera, rect, point }: {
   )
 }
 
-export const isRectIntersectionV2 = ({ rect, point }: {
+export const isRectIntersectionWithoutCamera = ({ rect, point }: {
   point: Point
   rect: Rect
 }) => {
@@ -47,10 +52,32 @@ export const isRectIntersectionV2 = ({ rect, point }: {
   )
 }
 
-export const centerPointFromRect = (rect: Rect): Point => ({
-  y: rect.y + rect.height / 2,
-  x: rect.x + rect.width / 2,
-})
+export const isRectIntersectionWithRotate = ({
+  rect,
+  point,
+}: {
+  rect: Rect & { rotate: number }
+  point: Point
+}): boolean => {
+  const cx = rect.x + rect.width / 2
+  const cy = rect.y + rect.height / 2
+
+  const dx = point.x - cx
+  const dy = point.y - cy
+
+  const cos = Math.cos(-rect.rotate)
+  const sin = Math.sin(-rect.rotate)
+
+  const localX = dx * cos - dy * sin
+  const localY = dx * sin + dy * cos
+
+  return (
+    localX >= -rect.width / 2 &&
+    localX <= rect.width / 2 &&
+    localY >= -rect.height / 2 &&
+    localY <= rect.height / 2
+  )
+}
 
 export const calculateLimitPointsFromRects = ({ rects }: { rects: Rect[] }) => {
   const { height, width, x, y } = _.defaultTo(_.first(rects), {
@@ -116,12 +143,7 @@ export const normalizeRect = ({ height, width, x, y }: Rect) => {
   }
 }
 
-export type AABB = {
-  minX: number
-  minY: number
-  maxX: number
-  maxY: number
-}
+
 
 export const getAABBSize = (aabb: AABB, shift: number = 1) => {
   return {

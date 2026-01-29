@@ -46,21 +46,11 @@ renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType
   drawShapes({ context, shapes })
 
   if (isNotNull(selectionBounds)) {
-    shapes.forEach(shape => {
-      if (shape.geometry.kind === "rectangle-geometry") {
-        context.save()
-        context.strokeStyle = "red"
-        context.lineWidth = 1
-        context.translate(shape.geometry.x + shape.geometry.width / 2, shape.geometry.y + shape.geometry.height / 2)
-        context.rotate(shape.transform.rotate)
-        context.beginPath()
-        context.rect(-shape.geometry.width / 2 - 7, -shape.geometry.height / 2 - 7, shape.geometry.width + 14, shape.geometry.height + 14)
-        context.stroke()
-        context.restore()
-      }
+    drawSelectionBoundsArea({
+      selectionBoundsArea: selectionBounds,
+      context,
     })
 
-    drawSelectionBoundsArea({ context, rects: selectionBounds.bounds.concat(selectionBounds.area) })
     drawResizeHandlers({ context, camera, rect: selectionBounds.area })
     drawRotateHandler({ context, camera, rect: selectionBounds.area })
   }
@@ -80,7 +70,6 @@ renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType
     context.restore()
   }
 
-
   context.restore()
 })
 
@@ -90,33 +79,36 @@ export function drawShapes({ context, shapes }: {
 }) {
   shapes.forEach((shape) => {
     ShapeDrawer.drawShape(context, shape)
-
-    // context.font = "16px Arial"
-    // context.textAlign = "center"
-    // context.textBaseline = "middle"
-    // context.fillText("Hello World", rect.x + rect.width / 2, rect.y + rect.height / 2);
   })
 }
 
 const baseLineWidth = 0.45
 const scalePower = 0.75
 const baseRadius = 5
+const baseOffset = 16
 
 export function drawRotateHandler({ context, camera, rect }: {
   context: CanvasRenderingContext2D
   camera: Camera
-  rect: Rect
+  rect: Rect & { rotate: number }
 }) {
   const dotRadius = baseRadius / Math.pow(camera.scale, scalePower)
+  const dotYOffset = baseOffset / Math.pow(camera.scale, 0.25)
 
   context.save()
-
 
   context.fillStyle = "#ffffff"
   context.strokeStyle = "#475fdc"
   context.lineWidth = 1
+
+  const centerX = rect.x + rect.width / 2
+  const centerY = rect.y + rect.height / 2
+
+  context.translate(centerX, centerY)
+  context.rotate(rect.rotate)
+
   context.beginPath()
-  context.arc(rect.x + rect.width / 2, rect.y - 16, dotRadius, 0, Math.PI * 2)
+  context.arc(0, -rect.height / 2 - dotYOffset, dotRadius, 0, Math.PI * 2)
   context.closePath()
   context.stroke()
   context.fill()
@@ -127,20 +119,26 @@ export function drawRotateHandler({ context, camera, rect }: {
 export function drawResizeHandlers({ context, camera, rect }: {
   context: CanvasRenderingContext2D
   camera: Camera
-  rect: Rect
+  rect: Rect & { rotate: number }
 }) {
   const dotLineWidth = baseLineWidth / Math.pow(camera.scale, scalePower)
   const dotRadius = baseRadius / Math.pow(camera.scale, scalePower)
+
+  const centerX = rect.x + rect.width / 2
+  const centerY = rect.y + rect.height / 2
 
   context.save()
 
   context.fillStyle = "#ffffff"
   context.strokeStyle = "#aaaaaa"
+  context.lineWidth = dotLineWidth
+
+  context.translate(centerX, centerY)
+  context.rotate(rect.rotate)
 
   getResizeCorners({ camera, rect }).forEach((dot) => {
     context.beginPath()
-    context.lineWidth = dotLineWidth
-    context.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2)
+    context.arc(dot.x - centerX, dot.y - centerY, dotRadius, 0, Math.PI * 2)
     context.fill()
     context.stroke()
     context.closePath()

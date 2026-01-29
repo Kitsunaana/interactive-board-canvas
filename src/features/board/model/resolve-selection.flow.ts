@@ -45,7 +45,7 @@ export const resolveShapeSelectionFlow$ = mouseUp$.pipe(
 
   rx.map(([upEvent, state]) => ({ ...upEvent, state })),
   rx.switchMap(({ node, event, state }) => match(state, {
-    selectionWindow: (state) => rx.of(goToIdle({ selectedIds: state.selectedIds })),
+     selectionWindow: (state) => rx.of(goToIdle({ selectedIds: state.selectedIds })),
 
     shapesResize: (state) => rx.of(state),
 

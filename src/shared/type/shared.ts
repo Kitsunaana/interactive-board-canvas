@@ -10,8 +10,19 @@ export type Rect = {
   y: number
 }
 
+export type RotatableRect<WithId extends boolean = false> = Rect & (WithId extends true ? { id: string } : {}) & {
+  rotate: number
+}
+
 export type RectWithId = Rect & {
   id: string
+}
+
+export type AABB = {
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
 }
 
 export type Sizes = {

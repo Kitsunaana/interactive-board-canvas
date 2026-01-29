@@ -15,6 +15,6 @@ export type NodeCorner = {
 }
 
 export type SelectionBounds = {
-  bounds: Rect[]
-  area: Rect
+  bounds: (Rect & { rotate: number })[]
+  area: Rect & { rotate: number }
 }

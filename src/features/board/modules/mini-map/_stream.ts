@@ -1,7 +1,7 @@
 ﻿import { getBoundingBox } from "@/entities/shape/model/get-bounding-box";
 import { resize$ } from "@/shared/lib/initial-canvas";
 import { getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point";
-import { calculateLimitPointsFromRects, centerPointFromRect, unscaleRect } from "@/shared/lib/rect";
+import { calculateLimitPointsFromRects, centerPointFromRect, divisionRect } from "@/shared/lib/rect";
 import { _u, getBoundingClientRect, isNotNull } from "@/shared/lib/utils";
 import type { Point, Rect } from "@/shared/type/shared";
 import * as _ from "lodash";
@@ -202,7 +202,7 @@ readyMiniMapSubject$.pipe(rx.switchMap(({ canvas }) => {
         })),
 
         rx.map((params) => {
-          const viewportRectToCenter = centerPointFromRect(unscaleRect(params.miniMapCamera, params.unscaleMap))
+          const viewportRectToCenter = centerPointFromRect(divisionRect(params.miniMapCamera, params.unscaleMap))
           const displacement = subtractPoint(viewportRectToCenter, params.pointInMiniMap)
           const speed = params.elapsed / 100
 

@@ -1,6 +1,6 @@
 import { TransformDomain } from "@/entities/shape"
 import type { ClientShape } from "@/entities/shape/model/types"
-import type { Point, Rect, RectWithId } from "@/shared/type/shared"
+import type { Point, Rect, RotatableRect } from "@/shared/type/shared"
 import { defaultTo } from "lodash"
 import type { ResizeSingleFromBoundParams } from "./_lib"
 import { mapSelectedShapes } from "./_lib"
@@ -12,7 +12,7 @@ type AnyTransform = {
 }
 
 type AnyCalcShapeFromBound = (
-  params: { shape: RectWithId; cursor: Point },
+  params: { shape: RotatableRect<true>; cursor: Point },
   transform?: AnyTransform
 ) => Partial<Rect>
 
@@ -30,8 +30,8 @@ const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] =
               cursor,
               shape: {
                 ...shape.geometry,
-                transform: shape.transform,
-                id: shape.id
+                rotate: shape.transform.rotate,
+                id: shape.id,
               }
             }, transform)
           }

@@ -1,302 +1,303 @@
-import type { Point, Rect, RectWithId } from "@/shared/type/shared"
+import type { Point, Rect, RotatableRect } from "@/shared/type/shared"
 import { SELECTION_BOUNDS_PADDING } from "../_const"
 
 export type CalcShapeResizePatchParams = {
-  shape: RectWithId
+  shape: RotatableRect<true>
   cursor: Point
 }
 
 export type CalcShapeResizePatch = (params: CalcShapeResizePatchParams) => Partial<Rect>
 
 export const calcShapeRightBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
-  const angle = shape.transform.rotate;
+  const angle = shape.rotate
 
-  // Центр фигуры
-  const centerX = shape.x + shape.width / 2;
-  const centerY = shape.y + shape.height / 2;
+  const centerX = shape.x + shape.width / 2
+  const centerY = shape.y + shape.height / 2
 
-  // Угол для вычислений
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
 
-  // Левая сторона фигуры (anchor point)
-  const leftX = centerX - (shape.width / 2) * cos;
-  const leftY = centerY - (shape.width / 2) * sin;
+  const leftX = centerX - (shape.width / 2) * cos
+  const leftY = centerY - (shape.width / 2) * sin
 
-  // Скорректированный курсор с учетом SELECTION_BOUNDS_PADDING
-  const correctedCursorX = cursor.x - SELECTION_BOUNDS_PADDING;
-  const correctedCursorY = cursor.y;
+  const correctedCursorX = cursor.x - SELECTION_BOUNDS_PADDING
+  const correctedCursorY = cursor.y
 
-  // Вектор от левой стороны к скорректированному курсору
-  const toCursorX = correctedCursorX - leftX;
-  const toCursorY = correctedCursorY - leftY;
+  const toCursorX = correctedCursorX - leftX
+  const toCursorY = correctedCursorY - leftY
 
-  // Направление оси X фигуры (от левой к правой стороне)
-  const axisX = { x: cos, y: sin };
+  const axisX = { x: cos, y: sin }
 
-  // Проецируем вектор toCursor на axisX
-  const dot = toCursorX * axisX.x + toCursorY * axisX.y;
-  const axisLength = Math.sqrt(axisX.x * axisX.x + axisX.y * axisX.y);
-  const projection = dot / axisLength;
+  const dot = toCursorX * axisX.x + toCursorY * axisX.y
+  const axisLength = Math.sqrt(axisX.x * axisX.x + axisX.y * axisX.y)
+  const projection = dot / axisLength
 
-  // Новая ширина
-  const nextWidth = projection;
+  const nextWidth = projection
 
-  // Добавляем flip логику из оригинального кода
-  if (nextWidth <= 0) {
-    // Flip режим - теперь курсор находится левее левой границы
-    const delta = leftX - correctedCursorX;
-    const flipWidth = delta - SELECTION_BOUNDS_PADDING * 2;
-    
-    if (flipWidth <= 0) {
-      // Нулевая ширина
-      return {
-        width: 0,
-        x: shape.x,
-        y: shape.y
-      };
-    }
-    
-    // В flip режиме старая левая граница становится правой границей
-    // Новая левая точка находится на расстоянии flipWidth в противоположном направлении axisX
-    const newLeftX = leftX - axisX.x * flipWidth;
-    const newLeftY = leftY - axisX.y * flipWidth;
-    
-    // Новый центр будет посередине между новой левой и старой левой точкой
-    const newCenterX = (newLeftX + leftX) / 2;
-    const newCenterY = (newLeftY + leftY) / 2;
-    
-    // Переводим обратно в координаты левого верхнего угла
-    const newX = newCenterX - (flipWidth / 2);
-    const newY = newCenterY - (shape.height / 2);
-    
-    return {
-      width: flipWidth,
-      x: newX,
-      y: newY
-    };
-  }
+  if (nextWidth > 0) {
+    const nextCenterX = leftX + (nextWidth / 2) * axisX.x
+    const nextCenterY = leftY + (nextWidth / 2) * axisX.y
 
-  // Обычный режим - курсор правее левой границы
-  // Новый центр будет смещен по направлению axisX на (nextWidth / 2)
-  const newCenterX = leftX + (nextWidth / 2) * axisX.x;
-  const newCenterY = leftY + (nextWidth / 2) * axisX.y;
-
-  // Переводим обратно в координаты левого верхнего угла
-  const newX = newCenterX - (nextWidth / 2);
-  const newY = newCenterY - (shape.height / 2);
-
-  return {
-    width: nextWidth,
-    x: newX,
-    y: newY
-  };
-};
-
-export const calcShapeRightBoundResizePatchVV: CalcShapeResizePatch = ({ shape, cursor }) => {
-  const angle = shape.transform.rotate;
-
-  // Центр фигуры
-  const centerX = shape.x + shape.width / 2;
-  const centerY = shape.y + shape.height / 2;
-
-  // Угол для вычислений
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-
-  // Левая сторона фигуры (anchor point)
-  const leftX = centerX - (shape.width / 2) * cos;
-  const leftY = centerY - (shape.width / 2) * sin;
-
-  // Вектор от левой стороны к курсору
-  const toCursorX = cursor.x - leftX;
-  const toCursorY = cursor.y - leftY;
-
-  // Направление оси X фигуры (от левой к правой стороне)
-  const axisX = { x: cos, y: sin };
-
-  // Проецируем вектор toCursor на axisX
-  const dot = toCursorX * axisX.x + toCursorY * axisX.y;
-  const axisLength = Math.sqrt(axisX.x * axisX.x + axisX.y * axisX.y);
-  const projection = dot / axisLength;
-
-  // Новая ширина
-  const nextWidth = projection;
-
-  // Добавляем flip логику из оригинального кода
-  if (nextWidth <= 0) {
-    // Flip режим - теперь курсор находится левее левой границы
-    const flipWidth = -nextWidth; // Положительная ширина
-    
-    if (flipWidth <= 0) {
-      // Нулевая ширина
-      return {
-        width: 0,
-        x: shape.x,
-        y: shape.y
-      };
-    }
-    
-    // В flip режиме старая левая граница становится правой границей
-    // Нужно найти новую левую границу
-    const newLeftX = leftX - axisX.x * flipWidth;
-    const newLeftY = leftY - axisX.y * flipWidth;
-    
-    // Новый центр будет посередине между новой левой и старой левой
-    const newCenterX = (newLeftX + leftX) / 2;
-    const newCenterY = (newLeftY + leftY) / 2;
-    
-    // Переводим обратно в координаты левого верхнего угла
-    const newX = newCenterX - (flipWidth / 2);
-    const newY = newCenterY - (shape.height / 2);
-    
-    return {
-      width: flipWidth,
-      x: newX,
-      y: newY
-    };
-  }
-
-  // Обычный режим - курсор правее левой границы
-  // Новый центр будет смещен по направлению axisX на (nextWidth / 2)
-  const newCenterX = leftX + (nextWidth / 2) * axisX.x;
-  const newCenterY = leftY + (nextWidth / 2) * axisX.y;
-
-  // Переводим обратно в координаты левого верхнего угла
-  const newX = newCenterX - (nextWidth / 2);
-  const newY = newCenterY - (shape.height / 2);
-
-  return {
-    width: nextWidth,
-    x: newX,
-    y: newY
-  };
-};
-
-export const calcShapeRightBoundResizePatchV: CalcShapeResizePatch = ({ shape, cursor }) => {
-  const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
-
-  const left = shape.x
-  const right = left + shape.width
-
-  const delta = cursorX - right
-  const nextWidth = shape.width + delta
-
-  if (nextWidth <= 0) {
-    const delta = left - cursorX
-    const nextWidth = delta - SELECTION_BOUNDS_PADDING * 2
-
-    if (nextWidth <= 0) {
-      return {
-        width: 0,
-        x: left
-      }
-    }
+    const nextX = nextCenterX - (nextWidth / 2)
+    const nextY = nextCenterY - (shape.height / 2)
 
     return {
       width: nextWidth,
-      x: shape.x - nextWidth
+      x: nextX,
+      y: nextY,
     }
   }
 
+  const delta = leftX - correctedCursorX
+
+  if (delta <= SELECTION_BOUNDS_PADDING * 2) {
+    const nextX = leftX
+    const nextY = leftY - (shape.height / 2)
+
+    return {
+      width: 0,
+      x: nextX,
+      y: nextY,
+    }
+  }
+
+  const flipWidth = delta - SELECTION_BOUNDS_PADDING * 2
+
+  const nextLeftX = leftX - axisX.x * flipWidth
+  const nextLeftY = leftY - axisX.y * flipWidth
+
+  const nextCenterX = (nextLeftX + leftX) / 2
+  const nextCenterY = (nextLeftY + leftY) / 2
+
+  const nextX = nextCenterX - (flipWidth / 2)
+  const nextY = nextCenterY - (shape.height / 2)
+
   return {
-    width: nextWidth
+    width: flipWidth,
+    x: nextX,
+    y: nextY,
   }
 }
 
 export const calcShapeLeftBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
-  const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
+  const angle = shape.rotate
 
-  const left = shape.x
-  const right = left + shape.width
+  const centerX = shape.x + shape.width / 2
+  const centerY = shape.y + shape.height / 2
 
-  const delta = left - cursorX
-  const nextWidth = shape.width + delta
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
 
-  if (nextWidth <= 0) {
-    const delta = cursorX - right
-    const nextWidth = delta - SELECTION_BOUNDS_PADDING * 2
+  const rightX = centerX + (shape.width / 2) * cos
+  const rightY = centerY + (shape.width / 2) * sin
 
-    if (nextWidth <= 0) {
-      return {
-        x: right,
-        width: 0,
-      }
-    }
+  const correctedCursorX = cursor.x + SELECTION_BOUNDS_PADDING
+  const correctedCursorY = cursor.y
+
+  const toRightX = rightX - correctedCursorX
+  const toRightY = rightY - correctedCursorY
+
+  const axisX = { x: cos, y: sin }
+
+  const dot = toRightX * axisX.x + toRightY * axisX.y
+  const axisLength = Math.sqrt(axisX.x * axisX.x + axisX.y * axisX.y)
+  const projection = dot / axisLength
+
+  const nextWidth = projection
+
+  if (nextWidth > 0) {
+    const nextLeftX = rightX - nextWidth * axisX.x
+    const nextLeftY = rightY - nextWidth * axisX.y
+
+    const nextCenterX = (nextLeftX + rightX) / 2
+    const nextCenterY = (nextLeftY + rightY) / 2
+
+    const nextX = nextCenterX - (nextWidth / 2)
+    const nextY = nextCenterY - (shape.height / 2)
 
     return {
-      x: right,
       width: nextWidth,
+      x: nextX,
+      y: nextY,
     }
   }
 
+  const delta = correctedCursorX - rightX
+
+  if (delta <= SELECTION_BOUNDS_PADDING * 2) {
+    const nextX = rightX
+    const nextY = rightY - (shape.height / 2)
+
+    return {
+      width: 0,
+      x: nextX,
+      y: nextY,
+    }
+  }
+
+  const flipWidth = delta - SELECTION_BOUNDS_PADDING * 2
+
+  const nextRightX = rightX + axisX.x * flipWidth
+  const nextRightY = rightY + axisX.y * flipWidth
+
+  const nextCenterX = (rightX + nextRightX) / 2
+  const nextCenterY = (rightY + nextRightY) / 2
+
+  const nextX = nextCenterX - (flipWidth / 2)
+  const nextY = nextCenterY - (shape.height / 2)
+
   return {
-    width: nextWidth,
-    x: shape.x - delta,
+    width: flipWidth,
+    x: nextX,
+    y: nextY,
   }
 }
 
 export const calcShapeBottomBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
-  const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
+  const angle = shape.rotate
 
-  const top = shape.y
-  const bottom = top + shape.height
+  const centerX = shape.x + shape.width / 2
+  const centerY = shape.y + shape.height / 2
 
-  const delta = cursorY - bottom
-  const nextHeight = shape.height + delta
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
 
-  if (nextHeight <= 0) {
-    const delta = top - cursorY
-    const nextHeight = delta - SELECTION_BOUNDS_PADDING * 2
-    const nextY = shape.y - delta + SELECTION_BOUNDS_PADDING * 2
+  const topX = centerX - (shape.height / 2) * -sin
+  const topY = centerY - (shape.height / 2) * cos
 
-    if (nextHeight <= 0) {
-      return {
-        y: top,
-        height: 0,
-      }
-    }
+  const correctedCursorX = cursor.x
+  const correctedCursorY = cursor.y - SELECTION_BOUNDS_PADDING
+
+  const toCursorX = correctedCursorX - topX
+  const toCursorY = correctedCursorY - topY
+
+  const axisY = { x: -sin, y: cos }
+
+  const dot = toCursorX * axisY.x + toCursorY * axisY.y
+  const axisLength = Math.sqrt(axisY.x * axisY.x + axisY.y * axisY.y)
+  const projection = dot / axisLength
+
+  const nextHeight = projection
+
+  if (nextHeight > 0) {
+    const nextBottomX = topX + nextHeight * axisY.x
+    const nextBottomY = topY + nextHeight * axisY.y
+
+    const nextCenterX = (topX + nextBottomX) / 2
+    const nextCenterY = (topY + nextBottomY) / 2
+
+    const nextX = nextCenterX - (shape.width / 2)
+    const nextY = nextCenterY - (nextHeight / 2)
 
     return {
-      y: nextY,
       height: nextHeight,
+      x: nextX,
+      y: nextY,
     }
   }
 
+  const delta = topY - correctedCursorY
+
+  if (delta <= SELECTION_BOUNDS_PADDING * 2) {
+    const nextX = topX - (shape.width / 2)
+    const nextY = topY
+
+    return {
+      height: 0,
+      x: nextX,
+      y: nextY,
+    }
+  }
+
+  const flipHeight = delta - SELECTION_BOUNDS_PADDING * 2
+
+  const nextTopX = topX - axisY.x * flipHeight
+  const nextTopY = topY - axisY.y * flipHeight
+
+  const nextCenterX = (topX + nextTopX) / 2
+  const nextCenterY = (topY + nextTopY) / 2
+
+  const nextX = nextCenterX - (shape.width / 2)
+  const nextY = nextCenterY - (flipHeight / 2)
+
   return {
-    height: nextHeight,
+    height: flipHeight,
+    x: nextX,
+    y: nextY,
   }
 }
 
 export const calcShapeTopBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
-  const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
+  const angle = shape.rotate
 
-  const top = shape.y
-  const bottom = top + shape.height
+  const centerX = shape.x + shape.width / 2
+  const centerY = shape.y + shape.height / 2
 
-  const delta = top - cursorY
-  const nextHeight = shape.height + delta
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
 
-  if (nextHeight <= 0) {
-    const delta = cursorY - bottom
-    const nextHeight = delta - SELECTION_BOUNDS_PADDING * 2
+  const bottomX = centerX + (shape.height / 2) * -sin
+  const bottomY = centerY + (shape.height / 2) * cos
 
-    if (nextHeight <= 0) {
-      return {
-        y: bottom,
-        height: 0,
-      }
-    }
+  const correctedCursorX = cursor.x
+  const correctedCursorY = cursor.y + SELECTION_BOUNDS_PADDING
+
+  const toBottomX = bottomX - correctedCursorX
+  const toBottomY = bottomY - correctedCursorY
+
+  const axisY = { x: -sin, y: cos }
+
+  const dot = toBottomX * axisY.x + toBottomY * axisY.y
+  const axisLength = Math.sqrt(axisY.x * axisY.x + axisY.y * axisY.y)
+  const projection = dot / axisLength
+
+  const nextHeight = projection
+
+  if (nextHeight > 0) {
+    const nextTopX = bottomX - nextHeight * axisY.x
+    const nextTopY = bottomY - nextHeight * axisY.y
+
+    const nextCenterX = (nextTopX + bottomX) / 2
+    const nextCenterY = (nextTopY + bottomY) / 2
+
+    const nextX = nextCenterX - (shape.width / 2)
+    const nextY = nextCenterY - (nextHeight / 2)
 
     return {
       height: nextHeight,
-      y: bottom
+      x: nextX,
+      y: nextY,
     }
   }
 
+  const delta = correctedCursorY - bottomY
+
+  if (delta <= SELECTION_BOUNDS_PADDING * 2) {
+    const nextX = bottomX - (shape.width / 2)
+    const nextY = bottomY
+
+    return {
+      height: 0,
+      x: nextX,
+      y: nextY,
+    }
+  }
+
+  const flipHeight = delta - SELECTION_BOUNDS_PADDING * 2
+
+  const nextBottomX = bottomX + axisY.x * flipHeight
+  const nextBottomY = bottomY + axisY.y * flipHeight
+
+  const nextCenterX = (bottomX + nextBottomX) / 2
+  const nextCenterY = (bottomY + nextBottomY) / 2
+
+  const nextX = nextCenterX - (shape.width / 2)
+  const nextY = nextCenterY - (flipHeight / 2)
+
   return {
-    height: nextHeight,
-    y: shape.y - delta,
+    height: flipHeight,
+    x: nextX,
+    y: nextY,
   }
 }
 

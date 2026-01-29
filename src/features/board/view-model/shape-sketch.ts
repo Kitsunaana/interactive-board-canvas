@@ -18,7 +18,7 @@ export type ResizeCorner = {
 export const getResizeCorners = ({ rect, camera, radius = BASE_RADIUS }: {
   radius?: number
   camera: Camera
-  rect: Rect
+  rect: Rect & { rotate: number }
 }): ResizeCorner[] => [
     {
       strokeWidth: BASE_LINE_WIDTH / Math.pow(camera.scale, SCALE_POWER),

@@ -3,28 +3,42 @@ import type { ClientShape } from "@/entities/shape/model/types"
 import { calculateLimitPointsFromRects } from "@/shared/lib/rect"
 import type { Rect } from "@/shared/type/shared"
 
-export const computeSelectionBoundsArea = (shapes: ClientShape[]) => {
-  const selectedShapes = shapes.filter((shape) => shape.client.isSelected).map((shape) => {
-    return getBoundingBox(shape.geometry, shape.transform.rotate)
-  })
+export type SelectionBoundsArea = {
+  bounds: Array<Rect & { rotate: number }>
+  area: Rect & { rotate: number }
+}
+
+export const computeSelectionBoundsArea = (shapes: ClientShape[]): SelectionBoundsArea | null => {
+  const selectedShapes = shapes.filter((shape) => shape.client.isSelected)
+
+  const boundingBoxesWithoutRotate = selectedShapes.map((shape) => ({
+    ...getBoundingBox(shape.geometry, 0),
+    rotate: shape.transform.rotate,
+  }))
 
   if (selectedShapes.length === 1) {
     return {
-      bounds: [] satisfies Rect[],
-      area: selectedShapes[0],
+      bounds: boundingBoxesWithoutRotate,
+      area: boundingBoxesWithoutRotate[0],
     }
   }
 
   if (selectedShapes.length > 1) {
-    const limitPoints = calculateLimitPointsFromRects({ rects: selectedShapes })
+    const boundingBoxes = selectedShapes.map((shape) => ({
+      ...getBoundingBox(shape.geometry, shape.transform.rotate),
+      rotate: shape.transform.rotate,
+    }))
+
+    const limitPoints = calculateLimitPointsFromRects({ rects: boundingBoxes })
 
     return {
-      bounds: selectedShapes,
+      bounds: boundingBoxesWithoutRotate,
       area: {
         height: limitPoints.max.y - limitPoints.min.y,
         width: limitPoints.max.x - limitPoints.min.x,
         x: limitPoints.min.x,
         y: limitPoints.min.y,
+        rotate: 0,
       }
     }
   }
