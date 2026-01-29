@@ -5,8 +5,10 @@ import type { Corner } from "../../domain/selection-area"
 import { camera$ } from "../../modules/camera"
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../../modules/pick-node"
 import { autoSelectionBounds$, pressedResizeHandlerSubject$ } from "../../view-model/selection-bounds"
-import { goToIdle, goToShapesResize, isIdle, shapesToRender$, viewState$ } from "../../view-model/state"
+import { goToIdle, goToShapesResize, isIdle, isShapesResize, shapesToRender$, viewState$ } from "../../view-model/state"
 import { getShapesResizeViaCornerStrategy } from "./_strategy"
+import { markDirtySelectedShapes } from "@/entities/shape/model/render-state"
+import { shapes$ } from "../shapes"
 
 const applyResizeViaCornerCursor = (node: Corner) => {
   document.documentElement.style.cursor = {
@@ -35,9 +37,13 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
     const resizeShapesStrategy = getShapesResizeViaCornerStrategy({
-      shapes,
       selectionArea,
       handler: handler.corner,
+      shapes: shapes.map((shape) => {
+        if (shape.client.isSelected) shape.client.renderMode.kind = "vector"
+
+        return shape
+      }),
     })
 
     const resizeActivation$ = sharedMove$.pipe(
@@ -63,14 +69,18 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
           cursor,
         })
       }),
-      rx.takeUntil(
-        rx.merge(pointerUp$, pointerLeave$).pipe(rx.tap(() => {
-          viewState$.next(goToIdle({ selectedIds }))
-          resetResizeCursor()
-        }))
-      ),
+      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
     )
 
-    return rx.merge(resizeActivation$, resizeProgress$)
+    const shapesCommit$ = rx.merge(pointerUp$, pointerLeave$).pipe(
+      rx.withLatestFrom(viewState$),
+      rx.filter(([_, state]) => isShapesResize(state)),
+      rx.map(() => markDirtySelectedShapes(shapes$.getValue())),
+      rx.tap(() => {
+        viewState$.next(goToIdle({ selectedIds }))
+        resetResizeCursor()
+      }))
+
+    return rx.merge(resizeActivation$, resizeProgress$, shapesCommit$)
   })
 )

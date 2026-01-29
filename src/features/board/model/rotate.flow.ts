@@ -6,6 +6,8 @@ import { camera$ } from "../modules/camera";
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../modules/pick-node";
 import { selectionBounds$ } from "../view-model/selection-bounds";
 import { isIdle, shapesToRender$, viewState$ } from "../view-model/state";
+import type { ClientShape } from "@/entities/shape/model/types";
+import { markDirty } from "@/entities/shape/model/render-state";
 
 export const shapesRotateFlow$ = mouseDown$.pipe(
   rx.filter((event) => event.node.type === "rotate-handler"),
@@ -22,7 +24,10 @@ export const shapesRotateFlow$ = mouseDown$.pipe(
     const center = centerPointFromRect(selectionArea.area)
 
     const startCursorAngle = getAngleBetweenPoints(center, cursorInCanvas)
-    const startRotation = shapes.find((shape) => shape.client.isSelected)?.transform.rotate ?? 0
+    const rotatingShape = shapes.find((shape) => shape.client.isSelected) as ClientShape
+    const startRotation = rotatingShape.transform.rotate
+
+    rotatingShape.client.renderMode.kind = "vector"
 
     return pointerMove$.pipe(
       rx.map((event) => {
@@ -36,14 +41,16 @@ export const shapesRotateFlow$ = mouseDown$.pipe(
           if (shape.client.isSelected) {
             return {
               ...shape,
-              transform: _u.merge(shape.transform, {rotate: nextRotation})
+              transform: _u.merge(shape.transform, { rotate: nextRotation })
             }
           }
 
           return shape
         })
       }),
-      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$))
+      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$).pipe(rx.tap(() => {
+        markDirty(rotatingShape)
+      })))
     )
   })
 )

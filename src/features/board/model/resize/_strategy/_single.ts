@@ -30,6 +30,7 @@ const factory = (list: AnyCalcShapeFromBound[], rules: (AnyTransform | null)[] =
               cursor,
               shape: {
                 ...shape.geometry,
+                transform: shape.transform,
                 id: shape.id
               }
             }, transform)

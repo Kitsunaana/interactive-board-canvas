@@ -1,7 +1,7 @@
 import type { Rect } from "@/shared/type/shared";
 import { drawVectorRectangle } from "../lib/render/_drawer";
 import { getBoundingBox } from "./get-bounding-box";
-import type { ClientShape, Shape } from "./types";
+import type { ClientShape, RenderMode, Shape } from "./types";
 
 const renderShapeToBitmap = (shape: Shape, bbox: Rect) => {
   const canvas = document.createElement("canvas")
@@ -14,7 +14,13 @@ const renderShapeToBitmap = (shape: Shape, bbox: Rect) => {
 
   context.scale(QUALITY_SCALE, QUALITY_SCALE)
 
-  if (shape.kind === "rectangle") drawVectorRectangle(context, shape)
+  if (shape.kind === "rectangle") drawVectorRectangle(context, {
+    ...shape,
+    transform: {
+      ...shape.transform,
+      rotate: 0,
+    }
+  })
 
   return canvas
 }
@@ -45,8 +51,7 @@ const getShapeShiftedToTopLeft = (shape: Shape): Shape => {
 
 export async function getShapeBitmap(shape: Shape) {
   const shiftedShape = getShapeShiftedToTopLeft(shape)
-  const bboxAfterShift = getBoundingBox(shiftedShape.geometry, shape.transform.rotate)
-
+  const bboxAfterShift = getBoundingBox(shiftedShape.geometry, 0)
   const bitmap = await createImageBitmap(renderShapeToBitmap(shiftedShape, bboxAfterShift))
 
   return {
@@ -55,23 +60,30 @@ export async function getShapeBitmap(shape: Shape) {
   }
 }
 
-export const ensureBitmap = async (shape: ClientShape) => {
+export const ensureBitmap = (shape: ClientShape) => {
   const render = shape.client.renderMode
 
   if (render.kind !== "bitmap") return
   if (!render.dirty) return
 
-  const { bbox, bitmap } = await getShapeBitmap(shape)
-
-  render.bitmap = bitmap
-  render.dirty = false
-  render.bbox = bbox
+  getShapeBitmap(shape).then(({ bitmap, bbox }) => {
+    render.bitmap = bitmap
+    render.dirty = false
+    render.bbox = bbox
+  })
 }
 
 export const markDirty = (shape: ClientShape) => {
   const render = shape.client.renderMode
 
-  if (render.kind === "bitmap") {
-    render.dirty = true
-  }
+  render.kind = "bitmap"
+    ; (render as RenderMode & { kind: "bitmap" }).dirty = true
+}
+
+export const markDirtySelectedShapes = (shapes: ClientShape[]) => {
+  return shapes.map((shape) => {
+    if (shape.client.isSelected) markDirty(shape)
+
+    return shape
+  })
 }

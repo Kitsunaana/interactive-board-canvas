@@ -11,6 +11,7 @@ import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../
 import type { HitTarget } from "../modules/pick-node/_core"
 import { autoSelectionBounds$ } from "../view-model/selection-bounds"
 import { goToShapesDragging, isIdle, isShapesDragging, shapesToRender$, viewState$ } from "../view-model/state"
+import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
 
 const isValidShapeInteraction = ({ selectionBounds, point, node }: {
   selectionBounds: SelectionBounds | null
@@ -38,10 +39,16 @@ const mapPointerMoveToMovedShapes = ({ event, camera, shapes, startPoint }: {
 
   return shapes.map((shape) => {
     if (shape.client.isSelected && shape.geometry.kind === "rectangle-geometry") {
-      return {
+      const updatedShape = {
         ...shape,
         geometry: _u.merge(shape.geometry, addPoint(shape.geometry, distance))
       } as ClientShape
+
+      if (updatedShape.client.renderMode.kind === "bitmap") {
+        updatedShape.client.renderMode.bbox = getBoundingBox(updatedShape.geometry, shape.transform.rotate)
+      }
+
+      return updatedShape
     }
 
     return shape

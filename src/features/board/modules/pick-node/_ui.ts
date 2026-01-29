@@ -1,8 +1,8 @@
 import { SELECTION_BOUNDS_PADDING } from "@/entities/shape/index.ts";
-import type { EllipseShape, RectangleShape, Shape } from "@/entities/shape/model/types.ts";
+import { drawHelperShape } from "@/entities/shape/lib/render/_drawer-helper.ts";
+import type { Shape } from "@/entities/shape/model/types.ts";
 import { generateRandomColor } from "@/shared/lib/color.ts";
 import { initialCanvas } from "@/shared/lib/initial-canvas.ts";
-import { match } from "@/shared/lib/match.ts";
 import { isNotNull } from "@/shared/lib/utils.ts";
 import type { Rect } from "@/shared/type/shared.ts";
 import type { Camera } from "../camera/index.ts";
@@ -87,7 +87,7 @@ export function drawRotateHandler({ colorId, context, rect }: {
   context.closePath()
   context.stroke()
   context.fill()
-  
+
   context.restore()
 }
 
@@ -138,42 +138,8 @@ function drawShapes({ context, shapes }: {
   context.save()
 
   shapes.forEach((shape) => {
-    match(shape, {
-      rectangle: (shape) => drawRectangle({ shape, context }),
-      ellipse: (shape) => drawCircle({ shape, context }),
-      square: () => { },
-      arrow: () => { },
-    }, "kind")
+    drawHelperShape(context, shape)
   })
-
-  context.restore()
-}
-
-function drawRectangle({ context, shape }: {
-  context: CanvasRenderingContext2D
-  shape: RectangleShape
-}) {
-  context.save()
-  context.beginPath()
-  context.fillStyle = shape.colorId
-  context.rect(shape.geometry.x, shape.geometry.y, shape.geometry.width, shape.geometry.height)
-  context.fill()
-  context.restore()
-}
-
-function drawCircle({ context, shape }: {
-  context: CanvasRenderingContext2D
-  shape: EllipseShape
-}) {
-  const radiusX = shape.geometry.rx / 2
-  const radiusY = shape.geometry.ry / 2
-
-  context.save()
-
-  context.beginPath()
-  context.ellipse(shape.geometry.cx + radiusX, shape.geometry.cy + radiusY, radiusX, radiusY, 0, 0, Math.PI * 2)
-  context.fillStyle = shape.colorId
-  context.fill()
 
   context.restore()
 }

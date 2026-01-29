@@ -13,27 +13,6 @@ import { isNotNull, isNotUndefined } from "./shared/lib/utils.ts";
 import type { Rect } from "./shared/type/shared.ts";
 import type { ClientShape } from "./entities/shape/model/types.ts";
 
-// export const renderLoop$ = rx.animationFrames().pipe(
-//   rx.withLatestFrom(
-//     gridTypeSubject$,
-//     selectionBounds$,
-//     selectionWindow$,
-//     shapesToView$,
-//     canvasSizes$,
-//     gridProps$,
-//     camera$,
-//   ),
-//   rx.map(([_, gridType, selectionBounds, selectionWindow, shapes, canvasSizes, gridProps, camera]) => ({
-//     selectionBounds,
-//     selectionWindow,
-//     canvasSizes,
-//     gridProps,
-//     gridType,
-//     camera,
-//     shapes,
-//   }))
-// )
-
 export const renderLoop$ = rx.combineLatest([
   gridTypeSubject$,
   selectionBounds$,
@@ -67,6 +46,20 @@ renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType
   drawShapes({ context, shapes })
 
   if (isNotNull(selectionBounds)) {
+    shapes.forEach(shape => {
+      if (shape.geometry.kind === "rectangle-geometry") {
+        context.save()
+        context.strokeStyle = "red"
+        context.lineWidth = 1
+        context.translate(shape.geometry.x + shape.geometry.width / 2, shape.geometry.y + shape.geometry.height / 2)
+        context.rotate(shape.transform.rotate)
+        context.beginPath()
+        context.rect(-shape.geometry.width / 2 - 7, -shape.geometry.height / 2 - 7, shape.geometry.width + 14, shape.geometry.height + 14)
+        context.stroke()
+        context.restore()
+      }
+    })
+
     drawSelectionBoundsArea({ context, rects: selectionBounds.bounds.concat(selectionBounds.area) })
     drawResizeHandlers({ context, camera, rect: selectionBounds.area })
     drawRotateHandler({ context, camera, rect: selectionBounds.area })

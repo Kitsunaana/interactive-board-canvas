@@ -1,5 +1,7 @@
 import { match } from "@/shared/lib/match"
 import type { ClientShape, EllipseShape, RectangleShape } from "../../model/types"
+import { ensureBitmap } from "../../model/render-state"
+import { getBoundingBox } from "../../model/get-bounding-box"
 
 export const drawDefaultEllipse = (context: CanvasRenderingContext2D, ellipse: EllipseShape) => {
   const radiusX = ellipse.geometry.cx / 2
@@ -31,15 +33,23 @@ export const drawVectorRectangle = (context: CanvasRenderingContext2D, rectangle
   context.fillStyle = style.fillColor
   context.strokeStyle = style.strokeColor
 
-  context.translate(geometry.x + geometry.width / 2, geometry.y + geometry.height / 2)
+  const centerX = geometry.x + geometry.width / 2
+  const centerY = geometry.y + geometry.height / 2
+
+  context.translate(centerX, centerY)
+  context.rotate(rectangle.transform.rotate)
+  // context.translate(-centerX, -centerY)
+  // context.translate(geometry.x, geometry.y)
 
   context.shadowColor = 'rgba(0, 0, 0, 0.2)'
   context.shadowOffsetX = 2
   context.shadowOffsetY = 2
   context.shadowBlur = 11
 
-  context.rotate(rectangle.transform.rotate)
+  // context.rotate(rectangle.transform.rotate)
   context.beginPath()
+  // context.roundRect(geometry.x, geometry.y, geometry.height, style.borderRadius)
+
   context.roundRect(-geometry.width / 2, -geometry.height / 2, geometry.width, geometry.height, style.borderRadius)
   context.stroke()
   context.closePath()
@@ -52,10 +62,24 @@ export const drawShape = (context: CanvasRenderingContext2D, shape: ClientShape)
   context.imageSmoothingEnabled = true
   context.imageSmoothingQuality = 'high'
 
+  ensureBitmap(shape)
+
   const renderMode = shape.client.renderMode
 
-  if (renderMode.kind === "bitmap") {
-    context.drawImage(renderMode.bitmap, renderMode.bbox.x, renderMode.bbox.y, renderMode.bbox.width, renderMode.bbox.height)
+  if (renderMode.kind === "bitmap" && renderMode.dirty === false) {
+    const bbox = getBoundingBox(shape.geometry, 0)
+
+    context.save()
+    context.translate(bbox.x + bbox.width / 2, bbox.y + bbox.height / 2)
+    context.rotate(shape.transform.rotate)
+    context.drawImage(
+      renderMode.bitmap,
+      -(bbox.width + 10) / 2,
+      -(bbox.height + 10) / 2,
+      bbox.width + 10,
+      bbox.height + 10
+    )
+    context.restore()
     return
   }
 

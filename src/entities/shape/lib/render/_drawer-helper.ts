@@ -1,5 +1,5 @@
 import { match } from "@/shared/lib/match"
-import type { ClientShape, EllipseShape, RectangleShape } from "../../model/types"
+import type { EllipseShape, RectangleShape, Shape } from "../../model/types"
 
 export const drawHelperEllipse = (_context: CanvasRenderingContext2D, _ellipse: EllipseShape) => {
   // const radiusX = ellipse.geometry.width / 2
@@ -15,16 +15,28 @@ export const drawHelperEllipse = (_context: CanvasRenderingContext2D, _ellipse: 
   // context.restore()
 }
 
-export const drawHelperRectangle = (_context: CanvasRenderingContext2D, _rectangle: RectangleShape) => {
-  // context.save()
-  // context.beginPath()
-  // context.fillStyle = rectangle.colorId
-  // context.rect(rectangle.geometry.x, rectangle.geometry.y, rectangle.geometry.width, rectangle.geometry.height)
-  // context.fill()
-  // context.restore()
+export const drawHelperRectangle = (context: CanvasRenderingContext2D, rectangle: RectangleShape) => {
+  const { geometry, style } = rectangle
+
+  context.save()
+
+  context.lineWidth = style.lineWidth
+  context.fillStyle = rectangle.colorId
+  context.strokeStyle = rectangle.colorId
+
+  context.translate(geometry.x + geometry.width / 2, geometry.y + geometry.height / 2)
+  context.rotate(rectangle.transform.rotate)
+
+  context.beginPath()
+  context.roundRect(-geometry.width / 2, -geometry.height / 2, geometry.width, geometry.height, style.borderRadius)
+  context.stroke()
+  context.closePath()
+  context.fill()
+
+  context.restore()
 }
 
-export const drawHelperShape = (context: CanvasRenderingContext2D, shape: ClientShape) => {
+export const drawHelperShape = (context: CanvasRenderingContext2D, shape: Shape) => {
   return match(shape, {
     ellipse: (ellipse) => drawHelperEllipse(context, ellipse),
     rectangle: (rectangle) => drawHelperRectangle(context, rectangle),

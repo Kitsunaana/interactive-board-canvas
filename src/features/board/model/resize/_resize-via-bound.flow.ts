@@ -1,3 +1,4 @@
+import { markDirtySelectedShapes } from "@/entities/shape/model/render-state"
 import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
 import { isNotNull } from "@/shared/lib/utils"
 import * as rx from "rxjs"
@@ -5,7 +6,8 @@ import type { Bound } from "../../domain/selection-area"
 import { camera$ } from "../../modules/camera"
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../../modules/pick-node"
 import { autoSelectionBounds$, pressedResizeHandlerSubject$ } from "../../view-model/selection-bounds"
-import { goToIdle, goToShapesResize, isIdle, shapesToRender$, viewState$ } from "../../view-model/state"
+import { goToIdle, goToShapesResize, isIdle, isShapesResize, shapesToRender$, viewState$ } from "../../view-model/state"
+import { shapes$ } from "../shapes"
 import { getShapesResizeViaBoundStrategy } from "./_strategy"
 
 const applyResizeViaBoundCursor = (node: Bound) => {
@@ -32,7 +34,17 @@ export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
   ),
   rx.map(([{ bound }, selectedIds, selectionArea, shapes, camera]) => ({ selectionArea, selectedIds, camera, shapes, handler: bound })),
   rx.switchMap(({ camera, handler, shapes, selectedIds, selectionArea }) => {
-    const resizeShapesStrategy = getShapesResizeViaBoundStrategy({ selectionArea, shapes, handler })
+    const resizeShapesStrategy = getShapesResizeViaBoundStrategy({
+      selectionArea,
+      handler,
+      shapes: shapes.map((shape) => {
+        if (shape.client.isSelected) {
+          shape.client.renderMode.kind = "vector"
+        }
+
+        return shape
+      }),
+    })
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
@@ -53,22 +65,25 @@ export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
         const point = getPointFromEvent(moveEvent)
         const cursor = screenToCanvas({ camera, point })
 
-        const res = resizeShapesStrategy({
+        return resizeShapesStrategy({
           proportional: moveEvent.shiftKey,
           reflow: moveEvent.ctrlKey,
           cursor,
         })
-
-        // console.log(res)
-
-        return res
       }),
-      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$).pipe(rx.tap(() => {
-        viewState$.next(goToIdle({ selectedIds }))
-        resetResizeCursor()
-      }))),
+      rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
     )
 
-    return rx.merge(resizeActivation$, resizeProgress$)
+    const resizeCommit$ = rx.merge(pointerLeave$, pointerUp$).pipe(
+      rx.withLatestFrom(viewState$),
+      rx.filter(([_, state]) => isShapesResize(state)),
+      rx.map(() => markDirtySelectedShapes(shapes$.getValue())),
+      rx.tap(() => {
+        viewState$.next(goToIdle({ selectedIds }))
+        resetResizeCursor()
+      })
+    )
+
+    return rx.merge(resizeActivation$, resizeProgress$, resizeCommit$)
   })
 )
