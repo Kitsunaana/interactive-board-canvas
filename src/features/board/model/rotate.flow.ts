@@ -77,18 +77,22 @@ const extractGeometryMetadata = (shape: ClientShape, center: Point) => {
   const centerX = shape.geometry.x + shape.geometry.width / 2
   const centerY = shape.geometry.y + shape.geometry.height / 2
 
+  const offsetX = centerX - center.x
+  const offsetY = centerY - center.y
+
   return {
     id: shape.id,
     centerX,
     centerY,
+    offsetX,
+    offsetY,
     x: shape.geometry.x,
     y: shape.geometry.y,
-    offsetX: centerX - center.x,
-    offsetY: centerY - center.y,
+    rotate: shape.transform.rotate,
   }
 }
 
-const extractSelectedRectanglesData = (shapes: ClientShape[], areaCenter: Point) => {
+export const extractSelectedRectanglesData = (shapes: ClientShape[], areaCenter: Point) => {
   const geometries = shapes.reduce((acc, shape) => {
     if (shape.client.isSelected && shape.geometry.kind === "rectangle-geometry") {
       acc[shape.id] = extractGeometryMetadata(shape, areaCenter)

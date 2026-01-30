@@ -9,7 +9,7 @@ import { gridProps$ } from "./features/board/view-model/canvas-props.ts";
 import { selectionBounds$ } from "./features/board/view-model/selection-bounds.ts";
 import { getResizeCorners } from "./features/board/view-model/shape-sketch.ts";
 import { selectionWindow$, shapesToView$, viewState$ } from "./features/board/view-model/state/_view-model.ts";
-import { isShapesRotate } from "./features/board/view-model/state/_view-model.type.ts";
+import { isShapesResize, isShapesRotate } from "./features/board/view-model/state/_view-model.type.ts";
 import { context } from "./shared/lib/initial-canvas.ts";
 import { isNotNull, isNotUndefined } from "./shared/lib/utils.ts";
 import type { RotatableRect } from "./shared/type/shared.ts";
@@ -48,6 +48,18 @@ renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, viewStat
 
   drawShapes({ context, shapes })
 
+  if (isShapesResize(viewState)) {
+    drawSelectionBoundsArea({
+      context,
+      selectionBoundsArea: {
+        bounds: viewState.bounds,
+        area: {
+          ...viewState.boundingBox, rotate: 0,
+        }
+      },
+    })
+  }
+
   if (isNotNull(selectionBounds) && isShapesRotate(viewState)) {
     const area = {
       ...viewState.boundingBox,
@@ -67,7 +79,7 @@ renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, viewStat
     drawRotateHandler({ context, camera, rect: area })
   }
 
-  if (isNotNull(selectionBounds) && !isShapesRotate(viewState)) {
+  if (isNotNull(selectionBounds) && !isShapesResize(viewState) && !isShapesRotate(viewState)) {
     drawSelectionBoundsArea({
       selectionBoundsArea: selectionBounds,
       context,

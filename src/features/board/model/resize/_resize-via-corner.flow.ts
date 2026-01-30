@@ -4,6 +4,7 @@ import { markDirtySelectedShapes } from "@/entities/shape/model/render-state"
 import type { ClientShape, RectangleGeometry } from "@/entities/shape/model/types"
 import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
 import { isNotNull } from "@/shared/lib/utils"
+import type { Rect } from "@/shared/type/shared"
 import * as rx from "rxjs"
 import type { Corner } from "../../domain/selection-area"
 import { camera$ } from "../../modules/camera"
@@ -55,7 +56,7 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
         applyResizeViaCornerCursor(handler.corner)
 
         pressedResizeHandlerSubject$.next(handler)
-        viewState$.next(goToShapesResize({ selectedIds }))
+        viewState$.next(goToShapesResize({ selectedIds, bounds: [], boundingBox: {} as Rect }))
       }),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
       rx.ignoreElements(),

@@ -1,4 +1,4 @@
-import type { Point, Rect } from "@/shared/type/shared";
+import type { Point, Rect, RotatableRect } from "@/shared/type/shared";
 import type { Selection } from "../../domain/selection";
 
 export type IdleViewState = {
@@ -14,8 +14,10 @@ export type ShapesDraggingViewState = {
 }
 
 export type ShapesResizeViewState = {
+  bounds: RotatableRect[]
   selectedIds: Selection
   type: "shapesResize"
+  boundingBox: Rect
 }
 
 export type SelectionWindowViewState = {
@@ -88,7 +90,12 @@ export const goToShapesDragging = (state: Partial<ShapesDraggingViewState> = {})
   ...state,
 })
 
-export const goToShapesResize = (state: Partial<ShapesResizeViewState> = {}): ShapesResizeViewState => ({
+type GoToShapesResizeParams = Partial<ShapesResizeViewState> & {
+  bounds: RotatableRect[]
+  boundingBox: Rect
+}
+
+export const goToShapesResize = (state: GoToShapesResizeParams): ShapesResizeViewState => ({
   selectedIds: new Set(),
   type: "shapesResize",
   ...state,
