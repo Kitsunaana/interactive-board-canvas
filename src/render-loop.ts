@@ -1,5 +1,6 @@
 import * as rx from "rxjs";
 import { ShapeDrawer } from "./entities/shape/index.ts";
+import type { ClientShape } from "./entities/shape/model/types.ts";
 import { type Camera } from "./features/board/modules/camera/_domain.ts";
 import { camera$, canvasSizes$, gridTypeSubject$ } from "./features/board/modules/camera/_stream.ts";
 import { gridTypeVariants } from "./features/board/ui/cavnas.ts";
@@ -7,11 +8,11 @@ import { drawSelectionBoundsArea } from "./features/board/ui/selection-area.ts";
 import { gridProps$ } from "./features/board/view-model/canvas-props.ts";
 import { selectionBounds$ } from "./features/board/view-model/selection-bounds.ts";
 import { getResizeCorners } from "./features/board/view-model/shape-sketch.ts";
-import { selectionWindow$, shapesToView$ } from "./features/board/view-model/state/_view-model.ts";
+import { selectionWindow$, shapesToView$, viewState$ } from "./features/board/view-model/state/_view-model.ts";
+import { isShapesRotate } from "./features/board/view-model/state/_view-model.type.ts";
 import { context } from "./shared/lib/initial-canvas.ts";
 import { isNotNull, isNotUndefined } from "./shared/lib/utils.ts";
-import type { Rect } from "./shared/type/shared.ts";
-import type { ClientShape } from "./entities/shape/model/types.ts";
+import type { RotatableRect } from "./shared/type/shared.ts";
 
 export const renderLoop$ = rx.combineLatest([
   gridTypeSubject$,
@@ -19,21 +20,23 @@ export const renderLoop$ = rx.combineLatest([
   selectionWindow$,
   shapesToView$,
   canvasSizes$,
+  viewState$,
   gridProps$,
   camera$
 ]).pipe(
-  rx.map(([gridType, selectionBounds, selectionWindow, shapes, canvasSizes, gridProps, camera]) => ({
+  rx.map(([gridType, selectionBounds, selectionWindow, shapes, canvasSizes, viewState, gridProps, camera]) => ({
     selectionBounds,
     selectionWindow,
     canvasSizes,
     gridProps,
+    viewState,
     gridType,
     camera,
     shapes,
   }))
 )
 
-renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType, gridProps, camera, shapes }) => {
+renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, viewState, gridType, gridProps, camera, shapes }) => {
   context.save()
 
   context.clearRect(0, 0, canvasSizes.width, canvasSizes.height)
@@ -45,7 +48,26 @@ renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, gridType
 
   drawShapes({ context, shapes })
 
-  if (isNotNull(selectionBounds)) {
+  if (isNotNull(selectionBounds) && isShapesRotate(viewState)) {
+    const area = {
+      ...viewState.boundingBox,
+      rotate: viewState.rotate
+    }
+
+    drawSelectionBoundsArea({
+      context,
+      dashed: true,
+      selectionBoundsArea: {
+        bounds: selectionBounds.bounds,
+        area,
+      },
+    })
+
+    drawResizeHandlers({ context, camera, rect: area })
+    drawRotateHandler({ context, camera, rect: area })
+  }
+
+  if (isNotNull(selectionBounds) && !isShapesRotate(viewState)) {
     drawSelectionBoundsArea({
       selectionBoundsArea: selectionBounds,
       context,
@@ -89,8 +111,8 @@ const baseOffset = 16
 
 export function drawRotateHandler({ context, camera, rect }: {
   context: CanvasRenderingContext2D
+  rect: RotatableRect
   camera: Camera
-  rect: Rect & { rotate: number }
 }) {
   const dotRadius = baseRadius / Math.pow(camera.scale, scalePower)
   const dotYOffset = baseOffset / Math.pow(camera.scale, 0.25)
@@ -118,8 +140,8 @@ export function drawRotateHandler({ context, camera, rect }: {
 
 export function drawResizeHandlers({ context, camera, rect }: {
   context: CanvasRenderingContext2D
+  rect: RotatableRect
   camera: Camera
-  rect: Rect & { rotate: number }
 }) {
   const dotLineWidth = baseLineWidth / Math.pow(camera.scale, scalePower)
   const dotRadius = baseRadius / Math.pow(camera.scale, scalePower)

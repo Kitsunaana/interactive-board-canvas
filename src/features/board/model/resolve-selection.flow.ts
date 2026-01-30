@@ -3,7 +3,6 @@ import * as rx from "rxjs"
 import { selectItems } from "../domain/selection"
 import { spacePressed$ } from "../modules/camera"
 import { mouseUp$ } from "../modules/pick-node"
-import type { HitTarget } from "../modules/pick-node/_core"
 import { goToIdle, viewState$, type IdleViewState } from "../view-model/state"
 
 const shapeSelect = ({ event, shapeId, idleState }: {
@@ -23,15 +22,12 @@ const shapeSelect = ({ event, shapeId, idleState }: {
   }
 }
 
-const isValidSelectionMouseUp = (node: HitTarget, event: PointerEvent) => {
-  return (
-    (!event.shiftKey && event.button === 0) &&
-    (node.type === "shape" || node.type === "canvas")
-  )
+const isValidSelectionMouseUp = (event: PointerEvent) => {
+  return (!event.shiftKey && event.button === 0)
 }
 
 export const resolveShapeSelectionFlow$ = mouseUp$.pipe(
-  rx.filter(({ event, node }) => isValidSelectionMouseUp(node, event)),
+  rx.filter(({ event }) => isValidSelectionMouseUp(event)),
 
   rx.switchMap((downEvent) => {
     return rx.of(downEvent).pipe(
@@ -58,9 +54,8 @@ export const resolveShapeSelectionFlow$ = mouseUp$.pipe(
 
     idle: (idleState) => {
       if (node.type === "shape") return rx.of(shapeSelect({ shapeId: node.shapeId, idleState, event }))
-      if (node.type === "canvas") return rx.of(goToIdle())
 
-      return rx.EMPTY
+      return rx.of(goToIdle())
     },
   })),
 )

@@ -18,32 +18,33 @@ export const shapesToRecord$ = shapes$.pipe(
   rx.shareReplay({ refCount: true, bufferSize: 1 })
 )
 
-export const shapesToView$ = rx.combineLatest({ state: viewState$, shapes: shapes$ }).pipe(rx.map(({ state, shapes }) => {
-  switch (state.type) {
-    case "idle":
-    case "shapesResize":
-    case "shapesRotate":
-    case "shapesDragging": {
-      return shapes.map((shape) => {
-        return {
-          ...shape,
-          client: {
-            ...shape.client,
-            isSelected: state.selectedIds.has(shape.id),
+export const shapesToView$ = rx.combineLatest({ state: viewState$, shapes: shapes$ }).pipe(
+  rx.map(({ state, shapes }) => {
+    switch (state.type) {
+      case "idle":
+      case "shapesResize":
+      case "shapesRotate":
+      case "shapesDragging": {
+        return shapes.map((shape) => {
+          return {
+            ...shape,
+            client: {
+              ...shape.client,
+              isSelected: state.selectedIds.has(shape.id),
+            }
           }
-        }
-      })
+        })
+      }
+
+
+      case "selectionWindow":
+      case "startPenDraw":
+      case "penDrawing":
+        return shapes
     }
-
-
-    case "selectionWindow":
-    case "startPenDraw":
-    case "penDrawing":
-      return shapes
-
-
-  }
-}))
+  }),
+  rx.shareReplay({ refCount: true, bufferSize: 1 })
+)
 
 
 export const selectionWindow$ = viewState$.pipe(

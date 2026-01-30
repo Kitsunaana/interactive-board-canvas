@@ -39,7 +39,6 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
   rx.switchMap(({ camera, handler, shapes, selectedIds, selectionArea }) => {
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
-    // const resizeShapesStrategy = 
     getShapesResizeViaCornerStrategy({
       selectionArea,
       handler: handler.corner,
@@ -71,23 +70,27 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
           ? calcShapeFromCornerAspectResizePatch
           : calcShapeFromCornerIndependentResizePatch
 
-        const patcher = patchRecord[handler.corner]({
-          cursor,
-          shape: {
-            ...shapes[0].geometry as RectangleGeometry,
-            id: shapes[0].id,
-            rotate: shapes[0].transform.rotate
-          }
-        })
+        return shapes.map((shape) => {
+          if (shape.client.isSelected && shape.geometry.kind === "rectangle-geometry") {
+            const patcher = patchRecord[handler.corner]({
+              cursor,
+              shape: {
+                ...shape.geometry as RectangleGeometry,
+                id: shape.id,
+                rotate: shape.transform.rotate
+              }
+            })
 
-        return shapes.map(shape => {
-          return {
-            ...shape,
-            geometry: {
-              ...shape.geometry,
-              ...patcher,
+            return {
+              ...shape,
+              geometry: {
+                ...shape.geometry,
+                ...patcher,
+              }
             }
           }
+
+          return shape
         }) as ClientShape[]
       }),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),

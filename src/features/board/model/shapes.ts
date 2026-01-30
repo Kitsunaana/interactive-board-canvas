@@ -11,6 +11,31 @@ export const initialShapes: Shape[] = [
     kind: "rectangle",
     colorId: generateRandomColor(),
     style: {
+      strokeColor: "#e03131",
+      fillColor: "#ffc9c9",
+      borderRadius: 25,
+      lineWidth: 1,
+      opacity: 0,
+    },
+    transform: {
+      rotate: 5,
+      scaleX: 1,
+      scaleY: 1,
+    },
+    geometry: {
+      kind: "rectangle-geometry",
+      x: 400,
+      y: 500,
+      width: 300,
+      height: 200,
+    },
+  },
+  {
+    id: nanoid(),
+    sketch: false,
+    kind: "rectangle",
+    colorId: generateRandomColor(),
+    style: {
       strokeColor: "#2f9e44",
       fillColor: "#b2f2bb",
       borderRadius: 25,
@@ -53,6 +78,8 @@ const shapesToClient = async (shapes: Shape[]) => {
 
 export const shapes$ = new rx.BehaviorSubject<ClientShape[]>([])
 
-rx.from(shapesToClient(initialShapes)).pipe(rx.tap((shapes) => {
-  shapes$.next(shapes)
+rx.from(shapesToClient(initialShapes)).pipe(rx.tap({
+  next: (shapes) => {
+    shapes$.next(shapes)
+  }
 })).subscribe()

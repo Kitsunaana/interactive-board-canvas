@@ -1,6 +1,4 @@
-import type { ClientShape } from "@/entities/shape/model/types";
 import type { Point, Rect } from "@/shared/type/shared";
-import React from "react";
 import type { Selection } from "../../domain/selection";
 
 export type IdleViewState = {
@@ -30,6 +28,8 @@ export type SelectionWindowViewState = {
 export type ShapesRotateViewState = {
   type: "shapesRotate",
   selectedIds: Selection
+  boundingBox: Rect
+  rotate: number
 }
 
 export type StartPenDrawViewState = {
@@ -41,13 +41,13 @@ export type PenDrawingViewState = {
 }
 
 export type ViewModelState =
-| SelectionWindowViewState
-| ShapesDraggingViewState
-| ShapesRotateViewState
-| ShapesResizeViewState
-| StartPenDrawViewState
-| PenDrawingViewState
-| IdleViewState
+  | SelectionWindowViewState
+  | ShapesDraggingViewState
+  | ShapesRotateViewState
+  | ShapesResizeViewState
+  | StartPenDrawViewState
+  | PenDrawingViewState
+  | IdleViewState
 
 export const isIdle = (state: ViewModelState) => state.type === "idle"
 
@@ -63,7 +63,12 @@ export const isPenDrawing = (state: ViewModelState) => state.type === "penDrawin
 
 export const isShapesRotate = (state: ViewModelState) => state.type === "shapesRotate"
 
-export const goToShapesRotate = (state: Partial<ShapesRotateViewState> = {}): ShapesRotateViewState => ({
+type GoToShapesRotateParams = Partial<ShapesRotateViewState> & {
+  boundingBox: Rect
+  rotate: number
+}
+
+export const goToShapesRotate = (state: GoToShapesRotateParams): ShapesRotateViewState => ({
   selectedIds: new Set(),
   type: "shapesRotate",
   ...state,

@@ -1,14 +1,16 @@
 import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
 import type { ClientShape } from "@/entities/shape/model/types"
 import { calculateLimitPointsFromRects } from "@/shared/lib/rect"
-import type { Rect } from "@/shared/type/shared"
+import type { RotatableRect } from "@/shared/type/shared"
+import type { ViewModelState } from "../../view-model/state"
+import { isShapesRotate } from "../../view-model/state/_view-model.type"
 
 export type SelectionBoundsArea = {
-  bounds: Array<Rect & { rotate: number }>
-  area: Rect & { rotate: number }
+  bounds: Array<RotatableRect>
+  area: RotatableRect
 }
 
-export const computeSelectionBoundsArea = (shapes: ClientShape[]): SelectionBoundsArea | null => {
+export const computeSelectionBoundsArea = (shapes: ClientShape[], state: ViewModelState): SelectionBoundsArea | null => {
   const selectedShapes = shapes.filter((shape) => shape.client.isSelected)
 
   const boundingBoxesWithoutRotate = selectedShapes.map((shape) => ({
@@ -24,7 +26,7 @@ export const computeSelectionBoundsArea = (shapes: ClientShape[]): SelectionBoun
   }
 
   if (selectedShapes.length > 1) {
-    const boundingBoxes = selectedShapes.map((shape) => ({
+    const boundingBoxes = isShapesRotate(state) ? boundingBoxesWithoutRotate : selectedShapes.map((shape) => ({
       ...getBoundingBox(shape.geometry, shape.transform.rotate),
       rotate: shape.transform.rotate,
     }))

@@ -4,7 +4,7 @@ import * as rx from "rxjs";
 import { calcSelectionAreaFromBound, calcSelectionAreaFromCorner, computeSelectionBoundsArea } from "../domain/selection-area";
 import { camera$ } from "../modules/camera";
 import type { HitBound, HitCorner } from "../modules/pick-node/_core";
-import { selectedShapesIds$, shapesToRender$ } from "./state";
+import { selectedShapesIds$, shapesToRender$, viewState$ } from "./state";
 
 export const pressedResizeHandlerSubject$ = new rx.BehaviorSubject<HitBound | HitCorner | null>(null)
 
@@ -30,35 +30,40 @@ const isCtrlPressed$ = rx.merge(pointerMove$, pointerDown$, pointerUp$).pipe(
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
 
-export const autoSelectionBounds$ = rx.combineLatest([shapesToRender$]).pipe(
-  rx.map(([shapes]) => computeSelectionBoundsArea(shapes)),
+export const autoSelectionBounds$ = rx.combineLatest({
+  shapes: shapesToRender$,
+  state: viewState$,
+}).pipe(
+  rx.map(({ shapes, state }) => computeSelectionBoundsArea(shapes, state)),
   rx.shareReplay({ bufferSize: 1, refCount: true })
 )
 
 export const manualSelectionBounds$ = rx.combineLatest({
   initialBounds: autoSelectionBounds$.pipe(rx.first(), rx.filter(isNotNull)),
-  activeHandler: pressedResizeHandler$
+  activeHandler: pressedResizeHandler$,
+  state: viewState$,
 }).pipe(
-  rx.map(({ initialBounds, activeHandler }) => {
-    if (activeHandler.type === "bound") {
-      return {
-        recalculateSelectionArea: calcSelectionAreaFromBound[activeHandler.bound],
-        initialBounds,
-      }
-    }
+  rx.map(({ state, initialBounds, activeHandler }) => {
+    const recalculateSelectionArea = activeHandler.type === "bound"
+      ? calcSelectionAreaFromBound[activeHandler.bound]
+      : calcSelectionAreaFromCorner[activeHandler.corner]
 
     return {
-      recalculateSelectionArea: calcSelectionAreaFromCorner[activeHandler.corner],
+      recalculateSelectionArea,
       initialBounds,
+      state,
     }
   }),
-  rx.switchMap(({ initialBounds, recalculateSelectionArea }) => pointerMove$.pipe(
+  rx.switchMap(({ state, initialBounds, recalculateSelectionArea }) => pointerMove$.pipe(
     rx.withLatestFrom(
-      shapesToRender$.pipe(rx.map(computeSelectionBoundsArea), rx.filter(isNotNull)),
       camera$,
+      shapesToRender$.pipe(
+        rx.map((shapes) => computeSelectionBoundsArea(shapes, state)),
+        rx.filter(isNotNull)
+      ),
     ),
 
-    rx.map(([moveEvent, currentBounds, camera]) => ({
+    rx.map(([moveEvent, camera, currentBounds]) => ({
       ...currentBounds,
       area: {
         ...currentBounds.area,

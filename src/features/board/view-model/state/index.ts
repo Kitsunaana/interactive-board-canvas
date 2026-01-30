@@ -10,9 +10,6 @@ export type {
   ShapesResizeViewState,
   ViewModelState,
   IdleViewState,
-
-  ViewModel,
-  ViewModelAction,
 } from "./_view-model.type"
 
 export {
