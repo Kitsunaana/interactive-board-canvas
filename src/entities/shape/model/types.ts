@@ -65,6 +65,7 @@ export type PenStyle = {
   strokeColor: string
   lineWidth: number
   opacity: number
+  fill: string
 }
 
 export type LineStyle = {

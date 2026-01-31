@@ -1,6 +1,7 @@
 import { SELECTION_BOUNDS_PADDING } from "@/entities/shape"
-import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
+import { getBoundingBox, getRotatedPolygoneAABB, getRotatedRectangleAABB } from "@/entities/shape/model/get-bounding-box"
 import { markDirtySelectedShapes } from "@/entities/shape/model/render-state"
+import type { PenShape } from "@/entities/shape/model/types"
 import { getPointFromEvent, screenToCanvasV2 } from "@/shared/lib/point"
 import { calculateLimitPointsFromRects, getAABBSize } from "@/shared/lib/rect"
 import { isNotNull } from "@/shared/lib/utils"
@@ -119,6 +120,91 @@ export const calcGroupRightBoundResizePatch = (state: GroupResizeState, cursor: 
   })
 }
 
+
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Shape {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotate: number;
+  geometry: Point[];
+}
+
+interface Cursor {
+  x: number;
+  y: number;
+}
+
+type CalcShapeResizePatch = ({ shape, cursor }: { shape: Shape; cursor: Cursor }) => Partial<Shape>;
+
+const calcShapeRightBoundResizePatch: CalcShapeResizePatch = ({ shape, cursor }) => {
+  const angle = shape.rotate;
+  const centerX = shape.x + shape.width / 2;
+  const centerY = shape.y + shape.height / 2;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const leftX = centerX - (shape.width / 2) * cos;
+  const leftY = centerY - (shape.width / 2) * sin;
+  const correctedCursorX = cursor.x - SELECTION_BOUNDS_PADDING;
+  const correctedCursorY = cursor.y;
+  const toCursorX = correctedCursorX - leftX;
+  const toCursorY = correctedCursorY - leftY;
+  const axisX = { x: cos, y: sin };
+  const dot = toCursorX * axisX.x + toCursorY * axisX.y;
+  const axisLength = Math.sqrt(axisX.x * axisX.x + axisX.y * axisX.y);
+  const projection = dot / axisLength;
+  const nextWidth = projection;
+  if (nextWidth > 0) {
+    const nextCenterX = leftX + (nextWidth / 2) * axisX.x;
+    const nextCenterY = leftY + (nextWidth / 2) * axisX.y;
+    const nextX = nextCenterX - (nextWidth / 2);
+    const nextY = nextCenterY - (shape.height / 2);
+    const scaleX = nextWidth / shape.width;
+    const nextGeometry = shape.geometry.map(p => ({
+      x: nextX + (p.x - shape.x) * scaleX,
+      y: nextY + (p.y - shape.y)
+    }));
+    return { width: nextWidth, x: nextX, y: nextY, geometry: nextGeometry };
+  }
+  const delta = leftX - correctedCursorX;
+  if (delta <= SELECTION_BOUNDS_PADDING * 2) {
+    const nextX = leftX;
+    const nextY = leftY - (shape.height / 2);
+    const nextGeometry = shape.geometry.map(p => ({
+      x: nextX + (p.x - shape.x) * 0,
+      y: nextY + (p.y - shape.y)
+    }));
+    return { width: 0, x: nextX, y: nextY, geometry: nextGeometry };
+  }
+  const flipWidth = delta - SELECTION_BOUNDS_PADDING * 2;
+  const nextLeftX = leftX - axisX.x * flipWidth;
+  const nextLeftY = leftY - axisX.y * flipWidth;
+  const nextCenterX = (nextLeftX + leftX) / 2;
+  const nextCenterY = (nextLeftY + leftY) / 2;
+  const nextX = nextCenterX - (flipWidth / 2);
+  const nextY = nextCenterY - (shape.height / 2);
+  const scaleX = flipWidth / shape.width;
+  const nextGeometry = shape.geometry.map(p => {
+    const localX = p.x - shape.x;
+    const flippedLocalX = shape.width - localX;
+    const scaledLocalX = flippedLocalX * scaleX;
+    return {
+      x: nextX + scaledLocalX,
+      y: nextY + (p.y - shape.y)
+    };
+  });
+  return { width: flipWidth, x: nextX, y: nextY, geometry: nextGeometry };
+};
+
+
+
+
 export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
   rx.map(event => event.node),
   rx.filter((node) => node.type === "bound"),
@@ -137,8 +223,8 @@ export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
-    const nodes = shapes.filter(shape => shape.geometry.kind === "rectangle-geometry")
-    const aabb = calculateLimitPointsFromRects({ rects: nodes.map((shape) => getBoundingBox(shape.geometry, shape.transform.rotate)) })
+    const shapesToResize = shapes.filter(shape => shape.client.isSelected)
+    const aabb = calculateLimitPointsFromRects({ rects: shapesToResize.map((shape) => getBoundingBox(shape.geometry, shape.transform.rotate)) })
     const boundingBox = getAABBSize({ minX: aabb.min.x, minY: aabb.min.y, maxX: aabb.max.x, maxY: aabb.max.y })
 
     const resizeActivation$ = sharedMove$.pipe(
@@ -153,13 +239,15 @@ export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
       rx.ignoreElements(),
     )
 
-    const resizeState = createGroupRightResizeState(nodes.map(shape => ({
+    const resizeState = createGroupRightResizeState(shapesToResize.map(shape => ({
       ...shape.geometry, rotate: shape.transform.rotate, id: shape.id,
     }) as unknown as RotatableRect<true>), boundingBox)
 
+    const unrotatedBoundingBox = getRotatedPolygoneAABB(shapesToResize[0].geometry.points, 0)
+
     const resizeProgress$ = sharedMove$.pipe(
       rx.withLatestFrom(
-        viewState$.pipe(rx.filter(isShapesResize)), 
+        viewState$.pipe(rx.filter(isShapesResize)),
         autoSelectionBounds$.pipe(rx.filter(isNotNull), rx.map(value => value.bounds))
       ),
       rx.map(([moveEvent, state, bounds]) => {
@@ -180,6 +268,20 @@ export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
 
         const groupRightBoundResizePatch = calcGroupRightBoundResizePatch(resizeState, cursor)
 
+        const testShape = shapesToResize[0] as PenShape
+
+        const res = calcShapeRightBoundResizePatch({
+          cursor,
+          shape: {
+            geometry: testShape.geometry.points,
+            height: getAABBSize(unrotatedBoundingBox).height,
+            width: getAABBSize(unrotatedBoundingBox).width,
+            x: getAABBSize(unrotatedBoundingBox).x,
+            y: getAABBSize(unrotatedBoundingBox).y,
+            rotate: testShape.transform.rotate,
+          }
+        }).geometry as Point[]
+
         return shapes.map((shape) => {
           if (shape.client.isSelected && shape.kind === "rectangle") {
             const found = groupRightBoundResizePatch.find(item => item.id === shape.id) as typeof groupRightBoundResizePatch[number]
@@ -189,6 +291,16 @@ export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
               geometry: {
                 ...shape.geometry,
                 ...found,
+              }
+            }
+          }
+
+          if (shape.client.isSelected && shape.kind === "pen") {
+            return {
+              ...shape,
+              geometry: {
+                ...shape.geometry,
+                points: res
               }
             }
           }

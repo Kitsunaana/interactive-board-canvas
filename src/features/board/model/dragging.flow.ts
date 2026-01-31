@@ -1,6 +1,6 @@
 import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
-import type { ClientShape } from "@/entities/shape/model/types"
-import { addPoint, distance, getPointFromEvent, screenToCanvas, subtractPoint } from "@/shared/lib/point"
+import type { ClientShape, Shape } from "@/entities/shape/model/types"
+import { addPoint, distance, getPointFromEvent, screenToCanvasV2, subtractPoint } from "@/shared/lib/point"
 import { isRectIntersectionWithRotate } from "@/shared/lib/rect"
 import { _u } from "@/shared/lib/utils"
 import type { Point } from "@/shared/type/shared"
@@ -26,29 +26,48 @@ const isValidShapeInteraction = ({ selectionBounds, point, node }: {
   })
 }
 
+const moveShapeGeometry = (geometry: Shape["geometry"], distance: Point): Shape["geometry"] => {
+  switch (geometry.kind) {
+    case "rectangle-geometry": {
+      return _u.merge(geometry, addPoint(geometry, distance))
+    }
+
+    case "ellipse-geometry":
+      return geometry
+
+    case "diamond-geometry":
+      return geometry
+
+    case "path-geometry": {
+      return {
+        ...geometry,
+        kind: "path-geometry",
+        points: geometry.points.map((point) => addPoint(point, distance)),
+      }
+    }
+  }
+}
+
 const mapPointerMoveToMovedShapes = ({ event, camera, shapes, startPoint }: {
   shapes: ClientShape[]
   event: PointerEvent
   startPoint: Point
   camera: Camera
 }): ClientShape[] => {
-  const distance = subtractPoint(startPoint, screenToCanvas({
-    point: getPointFromEvent(event),
-    camera,
-  }))
+  const distance = subtractPoint(startPoint, screenToCanvasV2(getPointFromEvent(event), camera,))
 
   return shapes.map((shape) => {
-    if (shape.client.isSelected && shape.geometry.kind === "rectangle-geometry") {
-      const updatedShape = {
-        ...shape,
-        geometry: _u.merge(shape.geometry, addPoint(shape.geometry, distance))
-      } as ClientShape
+    if (shape.client.isSelected) {
+      const movedGeometry = moveShapeGeometry(shape.geometry, distance)
 
-      if (updatedShape.client.renderMode.kind === "bitmap") {
-        updatedShape.client.renderMode.bbox = getBoundingBox(updatedShape.geometry, shape.transform.rotate)
+      if (shape.client.renderMode.kind === "bitmap") {
+        shape.client.renderMode.bbox = getBoundingBox(movedGeometry, shape.transform.rotate)
       }
 
-      return updatedShape
+      return {
+        ...shape,
+        geometry: movedGeometry
+      } as ClientShape
     }
 
     return shape

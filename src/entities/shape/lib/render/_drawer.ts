@@ -1,7 +1,8 @@
 import { match } from "@/shared/lib/match"
-import type { ClientShape, EllipseShape, RectangleShape } from "../../model/types"
-import { ensureBitmap } from "../../model/render-state"
+import { subtractPoint } from "@/shared/lib/point"
 import { getBoundingBox } from "../../model/get-bounding-box"
+import { ensureBitmap } from "../../model/render-state"
+import type { ClientShape, EllipseShape, PenShape, RectangleShape } from "../../model/types"
 
 export const drawDefaultEllipse = (context: CanvasRenderingContext2D, ellipse: EllipseShape) => {
   const radiusX = ellipse.geometry.cx / 2
@@ -58,6 +59,43 @@ export const drawVectorRectangle = (context: CanvasRenderingContext2D, rectangle
   context.restore()
 }
 
+export const drawVectorPath = (context: CanvasRenderingContext2D, shape: PenShape) => {
+  const points = shape.geometry.points
+
+  const bbox = getBoundingBox(shape.geometry, 0)
+
+  const centerX = bbox.x + bbox.width / 2
+  const centerY = bbox.y + bbox.height / 2
+
+  const center = { x: centerX, y: centerY }
+
+  const firstPoint = subtractPoint(center, points[0])
+
+  context.save()
+  context.translate(centerX, centerY)
+  context.rotate(shape.transform.rotate)
+
+  context.beginPath()
+  context.moveTo(firstPoint.x, firstPoint.y)
+
+  for (let i = 1; i < points.length; i++) {
+    const point = subtractPoint(center, points[i])
+
+    context.lineTo(point.x, point.y)
+  }
+
+  context.strokeStyle = shape.style.strokeColor
+  context.fillStyle = shape.style.fill
+
+  context.lineJoin = "round"
+  context.lineCap = "round"
+
+  context.closePath()
+  context.stroke()
+  context.fill()
+  context.restore()
+}
+
 export const drawShape = (context: CanvasRenderingContext2D, shape: ClientShape) => {
   context.imageSmoothingEnabled = true
   context.imageSmoothingQuality = 'high'
@@ -66,24 +104,26 @@ export const drawShape = (context: CanvasRenderingContext2D, shape: ClientShape)
 
   const renderMode = shape.client.renderMode
 
-  if (renderMode.kind === "bitmap" && renderMode.dirty === false) {
-    const bbox = getBoundingBox(shape.geometry, 0)
+  // if (renderMode.kind === "bitmap" && renderMode.dirty === false) {
+  //   const bbox = getBoundingBox(shape.geometry, 0)
 
-    context.save()
-    context.translate(bbox.x + bbox.width / 2, bbox.y + bbox.height / 2)
-    context.rotate(shape.transform.rotate)
-    context.drawImage(
-      renderMode.bitmap,
-      -(bbox.width + 10) / 2,
-      -(bbox.height + 10) / 2,
-      bbox.width + 10,
-      bbox.height + 10
-    )
-    context.restore()
-    return
-  }
+  //   context.save()
+  //   context.translate(bbox.x + bbox.width / 2, bbox.y + bbox.height / 2)
+  //   context.rotate(shape.transform.rotate)
+  //   context.drawImage(
+  //     renderMode.bitmap,
+  //     -(bbox.width + 10) / 2,
+  //     -(bbox.height + 10) / 2,
+  //     bbox.width + 10,
+  //     bbox.height + 10
+  //   )
+  //   context.restore()
+  //   return
+  // }
+
 
   match(shape, {
-    rectangle: (shape) => drawVectorRectangle(context, shape)
+    rectangle: (shape) => drawVectorRectangle(context, shape),
+    pen: (shape) => drawVectorPath(context, shape)
   }, "kind")
 }

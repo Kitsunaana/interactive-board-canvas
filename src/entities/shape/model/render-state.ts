@@ -1,7 +1,8 @@
 import type { Rect } from "@/shared/type/shared";
-import { drawVectorRectangle } from "../lib/render/_drawer";
+import { drawVectorPath, drawVectorRectangle } from "../lib/render/_drawer";
 import { getBoundingBox } from "./get-bounding-box";
 import type { ClientShape, RenderMode, Shape } from "./types";
+import { addPoint, subtractPoint } from "@/shared/lib/point";
 
 const renderShapeToBitmap = (shape: Shape, bbox: Rect) => {
   const canvas = document.createElement("canvas")
@@ -14,22 +15,21 @@ const renderShapeToBitmap = (shape: Shape, bbox: Rect) => {
 
   context.scale(QUALITY_SCALE, QUALITY_SCALE)
 
-  if (shape.kind === "rectangle") drawVectorRectangle(context, {
-    ...shape,
-    transform: {
-      ...shape.transform,
-      rotate: 0,
-    }
-  })
+  if (shape.kind === "rectangle") drawVectorRectangle(context, shape)
+  if (shape.kind === "pen") drawVectorPath(context, shape)
 
   return canvas
 }
 
-const getShapeShiftedToTopLeft = (shape: Shape): Shape => {
+const getShapeWithTranslateToTopLeft = (shape: Shape): Shape => {
   switch (shape.kind) {
     case "rectangle": {
       return {
         ...shape,
+        transform: {
+          ...shape.transform,
+          rotate: 0,
+        },
         geometry: {
           ...shape.geometry,
           x: 5,
@@ -39,20 +39,37 @@ const getShapeShiftedToTopLeft = (shape: Shape): Shape => {
         }
       }
     }
+    case "pen": {
+      const bbox = getBoundingBox(shape.geometry, 0)
+      
+      return {
+        ...shape,
+        transform: {
+          ...shape.transform,
+          rotate: 0,
+        },
+        geometry: {
+          ...shape.geometry,
+          points: shape.geometry.points.map((point) => addPoint(subtractPoint(bbox, point), 5))
+        }
+      }
+    }
+
     case "ellipse":
     case "diamond":
     case "image":
     case "arrow":
     case "line":
-    case "pen":
       throw new Error(`This ${shape.kind} is not supported`)
   }
 }
 
-export async function getShapeBitmap(shape: Shape) {
-  const shiftedShape = getShapeShiftedToTopLeft(shape)
+export const getShapeBitmap = async (shape: Shape) => {
+  const shiftedShape = getShapeWithTranslateToTopLeft(shape)
   const bboxAfterShift = getBoundingBox(shiftedShape.geometry, 0)
-  const bitmap = await createImageBitmap(renderShapeToBitmap(shiftedShape, bboxAfterShift))
+  const canvas = renderShapeToBitmap(shiftedShape, bboxAfterShift)
+
+  const bitmap = await createImageBitmap(canvas)
 
   return {
     bbox: getBoundingBox(shape.geometry, shape.transform.rotate),
