@@ -14,10 +14,10 @@ export type ShapesDraggingViewState = {
 }
 
 export type ShapesResizeViewState = {
+  boundingBox: RotatableRect
   bounds: RotatableRect[]
   selectedIds: Selection
   type: "shapesResize"
-  boundingBox: Rect
 }
 
 export type SelectionWindowViewState = {

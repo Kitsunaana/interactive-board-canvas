@@ -54,10 +54,13 @@ renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, viewStat
       selectionBoundsArea: {
         bounds: viewState.bounds,
         area: {
-          ...viewState.boundingBox, rotate: 0,
+          ...viewState.boundingBox,
         }
       },
     })
+
+    drawResizeHandlers({ context, camera, rect: viewState.boundingBox })
+    drawRotateHandler({ context, camera, rect: viewState.boundingBox })
   }
 
   if (isNotNull(selectionBounds) && isShapesRotate(viewState)) {
