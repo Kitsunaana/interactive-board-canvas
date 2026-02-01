@@ -103,6 +103,32 @@ export const calculateLimitPointsFromRects = ({ rects }: { rects: Rect[] }) => {
   )
 }
 
+export const calculateLimitPointsFromRectsV2 = (rects: Rect[]) => {
+  const { height, width, x, y } = _.defaultTo(_.first(rects), {
+    height: 0,
+    width: 0,
+    x: 0,
+    y: 0,
+  } satisfies Rect)
+
+  return rects.reduce(
+    (foundPoints, node) => {
+      foundPoints.minX = Math.min(foundPoints.minX, node.x)
+      foundPoints.minY = Math.min(foundPoints.minY, node.y)
+      foundPoints.maxX = Math.max(foundPoints.maxX, node.x + node.width)
+      foundPoints.maxY = Math.max(foundPoints.maxY, node.y + node.height)
+
+      return foundPoints
+    },
+    {
+      minX: x,
+      minY: y,
+      maxX: x + width,
+      maxY: y + height,
+    } satisfies AABB
+  )
+}
+
 export const rectBorderPointsStep = (rect: Rect, step = 5) => {
   const { x, y, width, height } = rect
   const points = []

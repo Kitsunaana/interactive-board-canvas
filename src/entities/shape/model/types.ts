@@ -19,21 +19,13 @@ export type RectangleGeometry = {
   height: number
 }
 
-export type EllipseGeometry = {
-  kind: "ellipse-geometry"
-  cx: number
-  cy: number
-  rx: number
-  ry: number
-}
-
-export type DiamondGeometry = {
-  kind: "diamond-geometry"
-  cx: number
-  cy: number
-  width: number
-  height: number
-}
+// export type EllipseGeometry = {
+//   kind: "ellipse-geometry"
+//   cx: number
+//   cy: number
+//   rx: number
+//   ry: number
+// }
 
 export type PathGeometry = {
   kind: "path-geometry"
@@ -42,8 +34,7 @@ export type PathGeometry = {
 
 export type ShapeGeometry = 
   | RectangleGeometry
-  | EllipseGeometry
-  | DiamondGeometry
+  // | EllipseGeometry
   | PathGeometry
 
 export type RectangleStyle = {
@@ -139,17 +130,11 @@ export type RectangleShape = Sketchable<BaseShape & AttachedText & {
   geometry: RectangleGeometry
 }>
 
-export type EllipseShape = Sketchable<BaseShape & AttachedText & {
-  kind: "ellipse"
-  style: EllipseStyle
-  geometry: EllipseGeometry
-}>
-
-export type DiamondShape = Sketchable<BaseShape & AttachedText & {
-  kind: "diamond"
-  style: RectangleStyle
-  geometry: DiamondGeometry
-}>
+// export type EllipseShape = Sketchable<BaseShape & AttachedText & {
+//   kind: "ellipse"
+//   style: EllipseStyle
+//   geometry: EllipseGeometry
+// }>
 
 export type PenShape = BaseShape & {
   kind: "pen"
@@ -185,8 +170,7 @@ export type TextNode = {
 
 export type Shape =
   | RectangleShape
-  | EllipseShape
-  | DiamondShape
+  // | EllipseShape
   | PenShape
   | LineShape
   | ArrowShape

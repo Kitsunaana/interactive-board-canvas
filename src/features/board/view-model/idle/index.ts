@@ -1,7 +1,7 @@
 import { shapesDraggingFlow$ } from "../../model/dragging.flow"
 import { shapesResizeFlowViaBound$, shapesResizeViaCorner$ } from "../../model/resize"
-import { shapesRotateFlow$ } from "../../model/rotate.flow"
 import { resolveShapeSelectionFlow$ } from "../../model/resolve-selection.flow"
+import { shapesRotateFlow$ } from "../../model/rotate/rotate.flow"
 import { shapes$ } from "../../model/shapes"
 import { viewState$ } from "../state"
 

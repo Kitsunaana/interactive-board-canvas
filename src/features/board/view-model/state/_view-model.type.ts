@@ -30,8 +30,10 @@ export type SelectionWindowViewState = {
 export type ShapesRotateViewState = {
   type: "shapesRotate",
   selectedIds: Selection
-  boundingBox: Rect
-  rotate: number
+  selection: {
+    bounds: RotatableRect<true>[]
+    area: RotatableRect
+  }
 }
 
 export type StartPenDrawViewState = {
@@ -66,8 +68,10 @@ export const isPenDrawing = (state: ViewModelState) => state.type === "penDrawin
 export const isShapesRotate = (state: ViewModelState) => state.type === "shapesRotate"
 
 type GoToShapesRotateParams = Partial<ShapesRotateViewState> & {
-  boundingBox: Rect
-  rotate: number
+  selection: {
+    bounds: RotatableRect<true>[]
+    area: RotatableRect
+  }
 }
 
 export const goToShapesRotate = (state: GoToShapesRotateParams): ShapesRotateViewState => ({
