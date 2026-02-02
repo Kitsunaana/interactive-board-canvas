@@ -1,124 +1,30 @@
-import { SELECTION_BOUNDS_PADDING } from "@/entities/shape"
-import { calcShapeRightBoundResizePatch } from "@/entities/shape/lib/geometries/path/resize/_indenpendent-single-from-bound"
-import { getBoundingBox, getRotatedPolygoneAABB } from "@/entities/shape/model/get-bounding-box"
+import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
 import { markDirtySelectedShapes } from "@/entities/shape/model/render-state"
-import type { PenShape } from "@/entities/shape/model/types"
+import type { ClientShape } from "@/entities/shape/model/types"
 import { getPointFromEvent, screenToCanvasV2 } from "@/shared/lib/point"
-import { calculateLimitPointsFromRects, getAABBSize } from "@/shared/lib/rect"
-import { isNotNull } from "@/shared/lib/utils"
-import type { Point, Rect, RotatableRect } from "@/shared/type/shared"
+import { calculateLimitPointsFromRectsV2, getAABBSize } from "@/shared/lib/rect"
+import type { RotatableRect } from "@/shared/type/shared"
 import * as rx from "rxjs"
 import type { Bound } from "../../domain/selection-area"
 import { camera$ } from "../../modules/camera"
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../../modules/pick-node"
-import { autoSelectionBounds$, pressedResizeHandlerSubject$ } from "../../view-model/selection-bounds"
 import { goToIdle, goToShapesResize, isIdle, isShapesResize, shapesToRender$, viewState$ } from "../../view-model/state"
 import { shapes$ } from "../shapes"
+import { createGroupFromBoundResizeState } from "./_get-group-resize-state"
+import { groupResizeFromBound } from "./_group-resize-from-bound"
+import { mapSelectedShapes } from "./_strategy/_lib"
 
-const applyResizeViaBoundCursor = (node: Bound) => {
+const applyResizeViaBoundCursor = (bound: Bound) => {
   document.documentElement.style.cursor = ({
     bottom: "ns-resize",
     right: "ew-resize",
     left: "ew-resize",
     top: "ns-resize",
-  }[node])
+  }[bound])
 }
 
 const resetResizeCursor = () => {
   document.documentElement.style.cursor = "default"
-}
-
-type GroupResizeState = {
-  pivotX: number
-  pivotY: number
-  initialWidth: number
-  shapes: Array<{
-    id: string
-    centerX: number
-    centerY: number
-    offsetX: number
-    width: number
-    height: number
-    rotate: number
-  }>
-}
-
-export const createGroupRightResizeState = (shapes: RotatableRect<true>[], bounds: Rect): GroupResizeState => {
-  const pivotX = bounds.x
-  const pivotY = bounds.y
-
-  return {
-    pivotX,
-    pivotY,
-    initialWidth: bounds.width,
-    shapes: shapes.map(shape => {
-      const centerX = shape.x + shape.width / 2
-      const centerY = shape.y + shape.height / 2
-
-      return {
-        id: shape.id,
-        centerX,
-        centerY,
-        width: shape.width,
-        height: shape.height,
-        rotate: shape.rotate,
-        offsetX: centerX - pivotX,
-      }
-    }),
-  }
-}
-
-export const calcGroupRightBoundResizePatch = (state: GroupResizeState, cursor: Point) => {
-  const { initialWidth, pivotX, shapes } = state
-
-  const correctedCursorX = cursor.x - SELECTION_BOUNDS_PADDING
-  const nextWidth = correctedCursorX - pivotX
-
-  if (nextWidth > 0) {
-    const scaleX = nextWidth / initialWidth
-
-    return shapes.map(shape => {
-      const nextCenterX = pivotX + shape.offsetX * scaleX
-      const nextWidthShape = shape.width * scaleX
-
-      return {
-        id: shape.id,
-        x: nextCenterX - nextWidthShape / 2,
-        y: shape.centerY - shape.height / 2,
-        width: nextWidthShape,
-        height: shape.height,
-        rotate: shape.rotate,
-      }
-    })
-  }
-
-  if (-nextWidth <= SELECTION_BOUNDS_PADDING * 2) {
-    return shapes.map(shape => ({
-      id: shape.id,
-      x: pivotX,
-      y: shape.centerY - shape.height / 2,
-      width: 0,
-      height: shape.height,
-      rotate: shape.rotate,
-    }))
-  }
-
-  const flipWidth = -nextWidth - SELECTION_BOUNDS_PADDING * 2
-  const scaleX = flipWidth / initialWidth
-
-  return shapes.map(shape => {
-    const nextCenterX = pivotX - shape.offsetX * scaleX
-    const nextWidthShape = shape.width * scaleX
-
-    return {
-      id: shape.id,
-      x: nextCenterX - nextWidthShape / 2,
-      y: shape.centerY - shape.height / 2,
-      width: nextWidthShape,
-      height: shape.height,
-      rotate: shape.rotate,
-    }
-  })
 }
 
 export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
@@ -126,114 +32,68 @@ export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
   rx.filter((node) => node.type === "bound"),
   rx.withLatestFrom(
     viewState$.pipe(rx.filter(isIdle), rx.map((state) => state.selectedIds)),
-    autoSelectionBounds$.pipe(rx.filter(isNotNull), rx.map((selection) => selection.bounds)),
     shapesToRender$,
     camera$
   ),
-  rx.map(([{ bound }, selectedIds, selectionBounds, shapes, camera]) => ({ selectionBounds, selectedIds, camera, shapes, handler: bound })),
-  rx.switchMap(({ camera, handler, shapes, selectedIds, selectionBounds }) => {
-    shapes.map((shape) => {
-      if (shape.client.isSelected) shape.client.renderMode.kind = "vector"
-      return shape
+  rx.map(([{ bound }, selectedIds, shapes, camera]) => ({ selectedIds, camera, shapes, handler: bound })),
+  rx.switchMap(({ camera, handler, shapes, selectedIds }) => {
+
+    new Promise(() => {
+      shapes.forEach((shape) => {
+        if (shape.client.isSelected) {
+          shape.client.renderMode.kind = "vector"
+        }
+      })
     })
 
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
     const shapesToResize = shapes.filter(shape => shape.client.isSelected)
-    const aabb = calculateLimitPointsFromRects({ rects: shapesToResize.map((shape) => getBoundingBox(shape.geometry, shape.transform.rotate)) })
-    const boundingBox = getAABBSize({ minX: aabb.min.x, minY: aabb.min.y, maxX: aabb.max.x, maxY: aabb.max.y })
-    const unrotatedBoundingBox = getRotatedPolygoneAABB(shapesToResize[0].geometry.points, 0)
-    const area = getAABBSize(unrotatedBoundingBox)
+    const aabb = calculateLimitPointsFromRectsV2(shapesToResize.map((shape) => getBoundingBox(shape.geometry, shape.transform.rotate)))
+    const boundingBox = getAABBSize(aabb)
 
     const resizeActivation$ = sharedMove$.pipe(
       rx.take(1),
       rx.tap(() => {
         applyResizeViaBoundCursor(handler)
 
-        pressedResizeHandlerSubject$.next({ type: "bound", bound: handler })
-        viewState$.next(goToShapesResize({ selectedIds, boundingBox: area, bounds: selectionBounds }))
+        viewState$.next(goToShapesResize({
+          selectedIds,
+          selection: {
+            bounds: [],
+            area: {
+              ...boundingBox,
+              rotate: 0,
+            },
+          }
+        }))
       }),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
       rx.ignoreElements(),
     )
 
-    const resizeState = createGroupRightResizeState(shapesToResize.map(shape => ({
-      ...shape.geometry, rotate: shape.transform.rotate, id: shape.id,
-    }) as unknown as RotatableRect<true>), boundingBox)
+    const resizeState = createGroupFromBoundResizeState[handler](shapesToResize.map((shape) => ({
+      ...shape.geometry,
+      id: shape.id,
+      rotate: shape.transform.rotate,
+    }) as RotatableRect<true>), boundingBox)
 
     const resizeProgress$ = sharedMove$.pipe(
-      rx.withLatestFrom(
-        viewState$.pipe(rx.filter(isShapesResize)),
-        autoSelectionBounds$.pipe(rx.filter(isNotNull), rx.map(value => value.bounds))
-      ),
-      rx.map(([moveEvent, state, bounds]) => {
-        const point = getPointFromEvent(moveEvent)
-        const cursor = screenToCanvasV2(point, camera)
+      rx.withLatestFrom(viewState$.pipe(rx.filter(isShapesResize))),
+      rx.map(([moveEvent, state]) => {
+        const cursor = screenToCanvasV2(getPointFromEvent(moveEvent), camera)
 
-        const areaRight = state.boundingBox.x + state.boundingBox.width
-        const delta = cursor.x - SELECTION_BOUNDS_PADDING - areaRight
+        viewState$.next(goToShapesResize({ ...state }))
 
-        viewState$.next(goToShapesResize({
-          ...state,
-          bounds,
-          boundingBox: bounds[0]
-          // boundingBox: {
-          //   ...state.boundingBox,
-          //   width: state.boundingBox.width + delta
-          // }
-        }))
+        const groupRightBoundResizePatch = groupResizeFromBound[handler](resizeState, cursor)
 
-        const groupRightBoundResizePatch = calcGroupRightBoundResizePatch(resizeState, cursor)
-
-        const testShape = shapesToResize[0] as PenShape
-
-        // const res = calcShapeBottomBoundResizePatch({
-        //   cursor,
-        //   shape: {
-        //     geometry: testShape.geometry.points,
-        //     rotate: testShape.transform.rotate,
-        //     ...area,
-        //   }
-        // })
-
-        const res = calcShapeRightBoundResizePatch({
-          angle: testShape.transform.rotate,
-          points: testShape.geometry.points,
-          bbox: area,
-          cursor,
-        })
-
-        return shapes.map((shape) => {
-          if (shape.client.isSelected && shape.kind === "rectangle") {
-            const found = groupRightBoundResizePatch.find(item => item.id === shape.id) as typeof groupRightBoundResizePatch[number]
-
-            return {
-              ...shape,
-              geometry: {
-                ...shape.geometry,
-                ...found,
-              }
-            }
+        return mapSelectedShapes(shapes, (shape) => ({
+          ...shape,
+          geometry: {
+            ...shape.geometry,
+            ...groupRightBoundResizePatch.find((item) => item.id === shape.id),
           }
-
-          if (shape.client.isSelected && shape.kind === "pen") {
-            return {
-              ...shape,
-              geometry: {
-                ...shape.geometry,
-                points: res
-              }
-            }
-          }
-
-          return shape
-        })
-
-        // return resizeShapesStrategy({
-        //   proportional: moveEvent.shiftKey,
-        //   reflow: moveEvent.ctrlKey,
-        //   cursor,
-        // })
+        }) as ClientShape)
       }),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
     )

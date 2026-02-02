@@ -14,10 +14,12 @@ export type ShapesDraggingViewState = {
 }
 
 export type ShapesResizeViewState = {
-  boundingBox: RotatableRect
-  bounds: RotatableRect[]
   selectedIds: Selection
   type: "shapesResize"
+  selection: {
+    bounds: RotatableRect<true>[]
+    area: RotatableRect
+  }
 }
 
 export type SelectionWindowViewState = {
@@ -95,8 +97,10 @@ export const goToShapesDragging = (state: Partial<ShapesDraggingViewState> = {})
 })
 
 type GoToShapesResizeParams = Partial<ShapesResizeViewState> & {
-  bounds: RotatableRect[]
-  boundingBox: Rect
+  selection: {
+    bounds: RotatableRect<true>[]
+    area: RotatableRect
+  }
 }
 
 export const goToShapesResize = (state: GoToShapesResizeParams): ShapesResizeViewState => ({
