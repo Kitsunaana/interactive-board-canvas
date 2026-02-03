@@ -1,6 +1,6 @@
 import { getBoundingBox } from "@/entities/shape/model/get-bounding-box"
 import type { ClientShape, PathGeometry, RectangleGeometry } from "@/entities/shape/model/types"
-import { calculateLimitPointsFromRectsV2, centerPointFromRect, getAABBSize } from "@/shared/lib/rect"
+import { calculateAABBFromRects, centerPointFromRect, getAABBSize } from "@/shared/lib/rect"
 import type { Point, Rect } from "@/shared/type/shared"
 import type { RotateableShapesStrategy } from "./rotate-interface"
 import { getAngleBetweenPoints } from "@/shared/lib/point"
@@ -116,7 +116,7 @@ export const getMultipleShapesRotateStrategy: RotateableShapesStrategy = ({ area
   const extractedMetadata = extractSelectedRectanglesData(shapes, initialCenter)
 
   const initialBoundingBox = getAABBSize(
-    calculateLimitPointsFromRectsV2(shapesToRotate.map((shape) => getBoundingBox(shape.geometry, shape.transform.rotate)))
+    calculateAABBFromRects(shapesToRotate.map((shape) => getBoundingBox(shape.geometry, shape.transform.rotate)))
   )
 
   const rotateAroundSelectionArea = getRotateAroundSelectionArea(area as RectangleGeometry)

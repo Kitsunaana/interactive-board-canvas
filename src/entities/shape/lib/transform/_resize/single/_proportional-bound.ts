@@ -1,26 +1,13 @@
 import type { Point, Rect, RotatableRect } from "@/shared/type/shared"
-import { SELECTION_BOUNDS_PADDING } from "../_const"
-
-export type ShapeToAspectResize = Rect & {
-  nextWidth: number
-  nextHeight: number
-}
-
-export type CalcShapeAspectResizePatchTransform = {
-  default?: (params: ShapeToAspectResize) => Partial<Rect>
-  frizen?: (params: ShapeToAspectResize) => Partial<Rect>
-  flip?: (params: ShapeToAspectResize) => Partial<Rect>
-}
+import { SELECTION_BOUNDS_PADDING } from "../../_const"
+import { isNotNull } from "@/shared/lib/utils"
 
 export type CalcShapeAspectResizePatchParms = {
-  shape: RotatableRect<true>
+  shape: RotatableRect<true> & { points: null | Point[] }
   cursor: Point
 }
 
-export type CalcShapeAspectResizePatch = (
-  params: CalcShapeAspectResizePatchParms,
-  transform?: CalcShapeAspectResizePatchTransform
-) => Partial<Rect>
+export type CalcShapeAspectResizePatch = (params: CalcShapeAspectResizePatchParms) => Partial<Rect & { points: null | Point[] }>
 
 const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
@@ -29,6 +16,7 @@ const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shap
   const sin = Math.sin(angle)
 
   const axisX = { x: cos, y: sin }
+  const axisY = { x: -sin, y: cos }
 
   const centerX = shape.x + shape.width / 2
   const centerY = shape.y + shape.height / 2
@@ -55,6 +43,26 @@ const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shap
     const nextCenterX = (leftX + rightX) / 2
     const nextCenterY = (leftY + rightY) / 2
 
+    if (isNotNull(shape.points)) {
+      return {
+        points: shape.points.map((point) => {
+          const dx = point.x - leftX
+          const dy = point.y - leftY
+
+          const localX = dx * axisX.x + dy * axisX.y
+          const localY = dx * axisY.x + dy * axisY.y
+
+          const scaledX = localX * scale
+          const scaledY = localY * scale
+
+          return {
+            x: leftX + scaledX * axisX.x + scaledY * axisY.x,
+            y: leftY + scaledX * axisX.y + scaledY * axisY.y,
+          }
+        })
+      }
+    }
+
     return {
       width: nextWidth,
       height: nextHeight,
@@ -64,6 +72,15 @@ const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shap
   }
 
   if (-nextWidth <= SELECTION_BOUNDS_PADDING * 2) {
+    if (isNotNull(shape.points)) {
+      return {
+        points: shape.points.map(() => ({
+          x: leftX,
+          y: leftY,
+        }))
+      }
+    }
+
     return {
       width: 0,
       height: 0,
@@ -82,6 +99,28 @@ const calcShapeRightBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shap
   const nextCenterX = (leftX + rightX) / 2
   const nextCenterY = (leftY + rightY) / 2
 
+  if (isNotNull(shape.points)) {
+    return {
+      points: shape.points.map((point) => {
+        const dx = point.x - leftX
+        const dy = point.y - leftY
+
+        const localX = dx * axisX.x + dy * axisX.y
+        const localY = dx * axisY.x + dy * axisY.y
+
+        const flippedLocalX = shape.width - localX
+
+        const scaledX = -flippedLocalX * scale
+        const scaledY = localY * scale
+
+        return {
+          x: leftX + scaledX * axisX.x + scaledY * axisY.x,
+          y: leftY + scaledX * axisX.y + scaledY * axisY.y,
+        }
+      })
+    }
+  }
+
   return {
     width: flipWidth,
     height: nextHeight,
@@ -97,6 +136,7 @@ const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape
   const sin = Math.sin(angle)
 
   const axisX = { x: cos, y: sin }
+  const axisY = { x: -sin, y: cos }
 
   const centerX = shape.x + shape.width / 2
   const centerY = shape.y + shape.height / 2
@@ -123,6 +163,26 @@ const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape
     const nextCenterX = (leftX + rightX) / 2
     const nextCenterY = (leftY + rightY) / 2
 
+    if (isNotNull(shape.points)) {
+      return {
+        points: shape.points.map((point) => {
+          const dx = point.x - rightX
+          const dy = point.y - rightY
+
+          const localX = dx * axisX.x + dy * axisX.y
+          const localY = dx * axisY.x + dy * axisY.y
+
+          const scaledX = localX * scale
+          const scaledY = localY * scale
+
+          return {
+            x: rightX + scaledX * axisX.x + scaledY * axisY.x,
+            y: rightY + scaledX * axisX.y + scaledY * axisY.y,
+          }
+        })
+      }
+    }
+
     return {
       width: nextWidth,
       height: nextHeight,
@@ -132,6 +192,15 @@ const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape
   }
 
   if (-nextWidth <= SELECTION_BOUNDS_PADDING * 2) {
+    if (isNotNull(shape.points)) {
+      return {
+        points: shape.points.map(() => ({
+          x: rightX,
+          y: rightY,
+        }))
+      }
+    }
+
     return {
       width: 0,
       height: 0,
@@ -150,6 +219,30 @@ const calcShapeLeftBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape
   const nextCenterX = (leftX + rightX) / 2
   const nextCenterY = (leftY + rightY) / 2
 
+  if (isNotNull(shape.points)) {
+    const axisY = { x: -sin, y: cos }
+
+    return {
+      points: shape.points.map((point) => {
+        const dx = point.x - rightX
+        const dy = point.y - rightY
+
+        const localX = dx * axisX.x + dy * axisX.y
+        const localY = dx * axisY.x + dy * axisY.y
+
+        const flippedLocalX = -localX
+
+        const scaledX = flippedLocalX * scale
+        const scaledY = localY * scale
+
+        return {
+          x: rightX + scaledX * axisX.x + scaledY * axisY.x,
+          y: rightY + scaledX * axisX.y + scaledY * axisY.y,
+        }
+      })
+    }
+  }
+
   return {
     width: flipWidth,
     height: nextHeight,
@@ -165,6 +258,7 @@ const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ sha
   const sin = Math.sin(angle)
 
   const axisY = { x: -sin, y: cos }
+  const axisX = { x: cos, y: sin }
 
   const centerX = shape.x + shape.width / 2
   const centerY = shape.y + shape.height / 2
@@ -191,6 +285,26 @@ const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ sha
     const nextCenterX = (topX + nextBottomX) / 2
     const nextCenterY = (topY + nextBottomY) / 2
 
+    if (isNotNull(shape.points)) {
+      return {
+        points: shape.points.map((point) => {
+          const dx = point.x - topX
+          const dy = point.y - topY
+
+          const localX = dx * axisX.x + dy * axisX.y
+          const localY = dx * axisY.x + dy * axisY.y
+
+          const scaledX = localX * scale
+          const scaledY = localY * scale
+
+          return {
+            x: topX + scaledX * axisX.x + scaledY * axisY.x,
+            y: topY + scaledX * axisX.y + scaledY * axisY.y,
+          }
+        })
+      }
+    }
+
     return {
       width: nextWidth,
       height: nextHeight,
@@ -200,6 +314,15 @@ const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ sha
   }
 
   if (-nextHeight <= SELECTION_BOUNDS_PADDING * 2) {
+    if (isNotNull(shape.points)) {
+      return {
+        points: shape.points.map(() => ({
+          x: topX,
+          y: topY,
+        }))
+      }
+    }
+
     return {
       width: 0,
       height: 0,
@@ -218,6 +341,28 @@ const calcShapeBottomBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ sha
   const nextCenterX = (topX + nextBottomX) / 2
   const nextCenterY = (topY + nextBottomY) / 2
 
+  if (isNotNull(shape.points)) {
+    return {
+      points: shape.points.map((point) => {
+        const dx = point.x - topX
+        const dy = point.y - topY
+
+        const localX = dx * axisX.x + dy * axisX.y
+        const localY = dx * axisY.x + dy * axisY.y
+
+        const flippedLocalY = -localY
+
+        const scaledX = localX * scale
+        const scaledY = flippedLocalY * scale
+
+        return {
+          x: topX + scaledX * axisX.x + scaledY * axisY.x,
+          y: topY + scaledX * axisX.y + scaledY * axisY.y,
+        }
+      })
+    }
+  }
+
   return {
     width: nextWidth,
     height: flipHeight,
@@ -233,6 +378,7 @@ const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape,
   const sin = Math.sin(angle)
 
   const axisY = { x: -sin, y: cos }
+  const axisX = { x: cos, y: sin }
 
   const centerX = shape.x + shape.width / 2
   const centerY = shape.y + shape.height / 2
@@ -259,6 +405,26 @@ const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape,
     const nextCenterX = (nextTopX + bottomX) / 2
     const nextCenterY = (nextTopY + bottomY) / 2
 
+    if (isNotNull(shape.points)) {
+      return {
+        points: shape.points.map((point) => {
+          const dx = point.x - bottomX
+          const dy = point.y - bottomY
+
+          const localX = dx * axisX.x + dy * axisX.y
+          const localY = dx * axisY.x + dy * axisY.y
+
+          const scaledX = localX * scale
+          const scaledY = localY * scale
+
+          return {
+            x: bottomX + scaledX * axisX.x + scaledY * axisY.x,
+            y: bottomY + scaledX * axisX.y + scaledY * axisY.y,
+          }
+        })
+      }
+    }
+
     return {
       width: nextWidth,
       height: nextHeight,
@@ -270,6 +436,15 @@ const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape,
   const delta = (correctedCursorX - bottomX) * axisY.x + (correctedCursorY - bottomY) * axisY.y
 
   if (delta <= SELECTION_BOUNDS_PADDING * 2) {
+    if (isNotNull(shape.points)) {
+      return {
+        points: shape.points.map(() => ({
+          x: bottomX,
+          y: bottomY,
+        }))
+      }
+    }
+
     return {
       width: 0,
       height: 0,
@@ -288,6 +463,28 @@ const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape,
   const nextCenterX = (bottomX + nextBottomX) / 2
   const nextCenterY = (bottomY + nextBottomY) / 2
 
+  if (isNotNull(shape.points)) {
+    return {
+      points: shape.points.map((point) => {
+        const dx = point.x - bottomX
+        const dy = point.y - bottomY
+
+        const localX = dx * axisX.x + dy * axisX.y
+        const localY = dx * axisY.x + dy * axisY.y
+
+        const flippedLocalY = -localY
+
+        const scaledX = localX * scale
+        const scaledY = flippedLocalY * scale
+
+        return {
+          x: bottomX + scaledX * axisX.x + scaledY * axisY.x,
+          y: bottomY + scaledX * axisX.y + scaledY * axisY.y,
+        }
+      })
+    }
+  }
+
   return {
     width: nextWidth,
     height: flipHeight,
@@ -296,7 +493,7 @@ const calcShapeTopBoundAspectResizePatch: CalcShapeAspectResizePatch = ({ shape,
   }
 }
 
-export const Short = {
+export const proportionalResizeFromBound = {
   bottom: calcShapeBottomBoundAspectResizePatch,
   right: calcShapeRightBoundAspectResizePatch,
   left: calcShapeLeftBoundAspectResizePatch,

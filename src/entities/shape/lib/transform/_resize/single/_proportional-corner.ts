@@ -1,6 +1,5 @@
-import type { Corner } from "@/features/board/domain/selection-area"
-import type { CalcShapeAspectResizePatch } from "./_proportional-single-from-bound"
-import { SELECTION_BOUNDS_PADDING } from "../_const"
+import { SELECTION_BOUNDS_PADDING } from "../../_const"
+import type { CalcShapeAspectResizePatch } from "./_proportional-bound"
 
 const calcShapeTopRightCornerAspectResizePatch: CalcShapeAspectResizePatch = ({ shape, cursor }) => {
   const angle = shape.rotate
@@ -307,7 +306,7 @@ const calcShapeBottomRightCornerAspectResizePatch: CalcShapeAspectResizePatch = 
   }
 }
 
-export const calcShapeFromCornerAspectResizePatch: Record<Corner, CalcShapeAspectResizePatch> = {
+export const proportionalResizeFromCorner = {
   bottomRight: calcShapeBottomRightCornerAspectResizePatch,
   bottomLeft: calcShapeBottomLeftCornerAspectResizePatch,
   topRight: calcShapeTopRightCornerAspectResizePatch,

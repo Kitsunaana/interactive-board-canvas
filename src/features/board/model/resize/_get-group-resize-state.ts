@@ -1,5 +1,4 @@
 import type { Point, Rect, RotatableRect } from "@/shared/type/shared"
-import type { Bound } from "../../domain/selection-area"
 
 export type GroupResizeState = {
   pivotX: number
@@ -59,97 +58,44 @@ const createGroupFromBoundResizeStateFactory = ({ getOffset, getPivot }: {
   }
 }
 
-// export const createGroupRightResizeState = createGroupFromBoundResizeStateFactory({
-//   getPivot: (area) => ({
-//     x: area.x,
-//     y: area.y,
-//   }),
-//   getOffset: (center, pivot) => ({
-//     x: center.x - pivot.x,
-//     y: center.y - pivot.y,
-//   })
-// })
+export const createGroupFromBoundResizeState = {
+  independent: {
+    bottom: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x, y: area.y }),
+      getOffset: (center, pivot) => ({ x: center.x - pivot.x, y: center.y - pivot.y })
+    }),
 
-export const createGroupRightResizeState = createGroupFromBoundResizeStateFactory({
-  getPivot: (area) => ({
-    x: area.x,
-    y: area.y + area.height / 2,
-  }),
-  getOffset: (center, pivot) => ({
-    x: center.x - pivot.x,
-    y: center.y - pivot.y,
-  })
-})
+    right: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x, y: area.y }),
+      getOffset: (center, pivot) => ({ x: center.x - pivot.x, y: center.y - pivot.y })
+    }),
 
-// export const createGroupBottomResizeState = createGroupFromBoundResizeStateFactory({
-//   getPivot: (area) => ({
-//     x: area.x,
-//     y: area.y,
-//   }),
-//   getOffset: (center, pivot) => ({
-//     x: center.x - pivot.x,
-//     y: center.y - pivot.y,
-//   })
-// })
+    left: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x + area.width, y: area.y }),
+      getOffset: (center, pivot) => ({ x: pivot.x - center.x, y: pivot.y - center.y })
+    }),
+    top: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x, y: area.y + area.height }),
+      getOffset: (center, pivot) => ({ x: pivot.x - center.x, y: pivot.y - center.y })
+    })
+  },
 
-export const createGroupBottomResizeState = createGroupFromBoundResizeStateFactory({
-  getPivot: (area) => ({
-    x: area.x + area.width / 2,
-    y: area.y,
-  }),
-  getOffset: (center, pivot) => ({
-    x: center.x - pivot.x,
-    y: center.y - pivot.y,
-  })
-})
-
-// export const createGroupTopResizeState = createGroupFromBoundResizeStateFactory({
-//   getPivot: (area) => ({
-//     x: area.x,
-//     y: area.y + area.height,
-//   }),
-//   getOffset: (center, pivot) => ({
-//     x: pivot.x - center.x,
-//     y: pivot.y - center.y,
-//   })
-// })
-
-export const createGroupTopResizeState = createGroupFromBoundResizeStateFactory({
-  getPivot: (area) => ({
-    x: area.x + area.width / 2,
-    y: area.y + area.height,
-  }),
-  getOffset: (center, pivot) => ({
-    x: pivot.x - center.x,
-    y: pivot.y - center.y,
-  })
-})
-
-// export const createGroupLeftResizeState = createGroupFromBoundResizeStateFactory({
-//   getPivot: (area) => ({
-//     x: area.x + area.width,
-//     y: area.y,
-//   }),
-//   getOffset: (center, pivot) => ({
-//     x: pivot.x - center.x,
-//     y: pivot.y - center.y,
-//   })
-// })
-
-export const createGroupLeftResizeState = createGroupFromBoundResizeStateFactory({
-  getPivot: (area) => ({
-    x: area.x + area.width,
-    y: area.y + area.height / 2,
-  }),
-  getOffset: (center, pivot) => ({
-    x: pivot.x - center.x,
-    y: pivot.y - center.y,
-  })
-})
-
-export const createGroupFromBoundResizeState: Record<Bound, (shapes: RotatableRect<true>[], area: Rect) => GroupResizeState> = {
-  bottom: createGroupBottomResizeState,
-  right: createGroupRightResizeState,
-  left: createGroupLeftResizeState,
-  top: createGroupTopResizeState,
+  proportional: {
+    bottom: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x + area.width / 2, y: area.y }),
+      getOffset: (center, pivot) => ({ x: center.x - pivot.x, y: center.y - pivot.y })
+    }),
+    right: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x, y: area.y + area.height / 2 }),
+      getOffset: (center, pivot) => ({ x: center.x - pivot.x, y: center.y - pivot.y })
+    }),
+    left: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x + area.width, y: area.y + area.height / 2 }),
+      getOffset: (center, pivot) => ({ x: pivot.x - center.x, y: pivot.y - center.y })
+    }),
+    top: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x + area.width / 2, y: area.y + area.height }),
+      getOffset: (center, pivot) => ({ x: pivot.x - center.x, y: pivot.y - center.y })
+    }),
+  }
 }

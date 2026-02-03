@@ -104,22 +104,22 @@ export const drawShape = (context: CanvasRenderingContext2D, shape: ClientShape)
 
   const renderMode = shape.client.renderMode
 
-  // if (renderMode.kind === "bitmap" && renderMode.dirty === false) {
-  //   const bbox = getBoundingBox(shape.geometry, 0)
+  if (renderMode.kind === "bitmap" && renderMode.dirty === false) {
+    const bbox = getBoundingBox(shape.geometry, 0)
 
-  //   context.save()
-  //   context.translate(bbox.x + bbox.width / 2, bbox.y + bbox.height / 2)
-  //   context.rotate(shape.transform.rotate)
-  //   context.drawImage(
-  //     renderMode.bitmap,
-  //     -(bbox.width + 10) / 2,
-  //     -(bbox.height + 10) / 2,
-  //     bbox.width + 10,
-  //     bbox.height + 10
-  //   )
-  //   context.restore()
-  //   return
-  // }
+    context.save()
+    context.translate(bbox.x + bbox.width / 2, bbox.y + bbox.height / 2)
+    context.rotate(shape.transform.rotate)
+    context.drawImage(
+      renderMode.bitmap,
+      -(bbox.width + 10) / 2,
+      -(bbox.height + 10) / 2,
+      bbox.width + 10,
+      bbox.height + 10
+    )
+    context.restore()
+    return
+  }
 
 
   match(shape, {

@@ -1,7 +1,7 @@
 import type { Point, Rect, RectEdges, RectWithId } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import { SELECTION_BOUNDS_PADDING } from "../_const"
-import { withDefaultTransformHandlers } from "../_lib"
+import { SELECTION_BOUNDS_PADDING } from "../../_const"
+import { withDefaultTransformHandlers } from "../../_lib"
 
 export type CalcSelectionAspectResizePatchesTransform = {
   default?: (params: Rect, areaEdges: RectEdges, scale: number) => Partial<Rect>

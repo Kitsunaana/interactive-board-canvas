@@ -3,7 +3,7 @@ import { isNotUndefined } from "@/shared/lib/utils"
 import type { Point } from "@/shared/type/shared"
 import type { GroupResizeState } from "./_get-group-resize-state"
 
-export const calcGroupRightBoundResizePatch = (state: GroupResizeState, cursor: Point) => {
+const calcGroupRightBoundResizePatch = (state: GroupResizeState, cursor: Point) => {
   const { initialWidth, pivotX, shapes } = state
 
   const correctedCursorX = cursor.x - SELECTION_BOUNDS_PADDING
@@ -85,7 +85,7 @@ export const calcGroupRightBoundResizePatch = (state: GroupResizeState, cursor: 
   })
 }
 
-export const calcGroupLeftBoundResizePatch = (state: GroupResizeState, cursor: Point) => {
+const calcGroupLeftBoundResizePatch = (state: GroupResizeState, cursor: Point) => {
   const { initialWidth, pivotX, shapes } = state
 
   const correctedCursorX = cursor.x + SELECTION_BOUNDS_PADDING
@@ -167,7 +167,7 @@ export const calcGroupLeftBoundResizePatch = (state: GroupResizeState, cursor: P
   })
 }
 
-export const calcGroupTopBoundResizePatch = (state: GroupResizeState, cursor: Point) => {
+const calcGroupTopBoundResizePatch = (state: GroupResizeState, cursor: Point) => {
   const { initialHeight, pivotY, shapes } = state
 
   const correctedCursorY = cursor.y + SELECTION_BOUNDS_PADDING
@@ -249,7 +249,7 @@ export const calcGroupTopBoundResizePatch = (state: GroupResizeState, cursor: Po
   })
 }
 
-export const calcGroupBottomBoundResizePatch = (state: GroupResizeState, cursor: Point) => {
+const calcGroupBottomBoundResizePatch = (state: GroupResizeState, cursor: Point) => {
   const { initialHeight, pivotY, shapes } = state
 
   const correctedCursorY = cursor.y - SELECTION_BOUNDS_PADDING
@@ -331,7 +331,7 @@ export const calcGroupBottomBoundResizePatch = (state: GroupResizeState, cursor:
   })
 }
 
-export const groupResizeFromBound = {
+export const independentGroupResizeFromBound = {
   bottom: calcGroupBottomBoundResizePatch,
   right: calcGroupRightBoundResizePatch,
   left: calcGroupLeftBoundResizePatch,

@@ -35,9 +35,6 @@ const moveShapeGeometry = (geometry: Shape["geometry"], distance: Point): Shape[
     case "ellipse-geometry":
       return geometry
 
-    case "diamond-geometry":
-      return geometry
-
     case "path-geometry": {
       return {
         ...geometry,

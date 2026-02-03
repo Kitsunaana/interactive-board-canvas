@@ -1,6 +1,6 @@
 import type { Point, Rect, RectWithId } from "@/shared/type/shared"
 import { forEach } from "lodash"
-import { SELECTION_BOUNDS_PADDING } from "../_const"
+import { SELECTION_BOUNDS_PADDING } from "../../_const"
 
 export type CalcSelectionResizePatchesParams = {
   selectionArea: Rect

@@ -56,7 +56,6 @@ const getShapeWithTranslateToTopLeft = (shape: Shape): Shape => {
     }
 
     case "ellipse":
-    case "diamond":
     case "image":
     case "arrow":
     case "line":

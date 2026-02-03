@@ -3,7 +3,7 @@ import type { GroupResizeState } from "./_get-group-resize-state"
 import { SELECTION_BOUNDS_PADDING } from "@/entities/shape"
 import { isNotUndefined } from "@/shared/lib/utils"
 
-export const calcGroupRightBoundProportionalResizePatch = (state: GroupResizeState, cursor: Point) => {
+const calcGroupRightBoundProportionalResizePatch = (state: GroupResizeState, cursor: Point) => {
   const { initialWidth, pivotX, pivotY, shapes } = state
 
   const correctedCursorX = cursor.x - SELECTION_BOUNDS_PADDING
@@ -91,7 +91,7 @@ export const calcGroupRightBoundProportionalResizePatch = (state: GroupResizeSta
   })
 }
 
-export const calcGroupLeftBoundProportionalResizePatch = (state: GroupResizeState, cursor: Point) => {
+const calcGroupLeftBoundProportionalResizePatch = (state: GroupResizeState, cursor: Point) => {
   const { initialWidth, pivotX, pivotY, shapes } = state
 
   const correctedCursorX = cursor.x + SELECTION_BOUNDS_PADDING
@@ -181,7 +181,7 @@ export const calcGroupLeftBoundProportionalResizePatch = (state: GroupResizeStat
   })
 }
 
-export const calcGroupTopBoundProportionalResizePatch = (state: GroupResizeState, cursor: Point) => {
+const calcGroupTopBoundProportionalResizePatch = (state: GroupResizeState, cursor: Point) => {
   const { initialHeight, pivotX, pivotY, shapes } = state
 
   const correctedCursorY = cursor.y + SELECTION_BOUNDS_PADDING
@@ -275,7 +275,7 @@ export const calcGroupTopBoundProportionalResizePatch = (state: GroupResizeState
   })
 }
 
-export const calcGroupBottomBoundProportionalResizePatch = (state: GroupResizeState, cursor: Point) => {
+const calcGroupBottomBoundProportionalResizePatch = (state: GroupResizeState, cursor: Point) => {
   const { initialHeight, pivotX, pivotY, shapes } = state
 
   const correctedCursorY = cursor.y - SELECTION_BOUNDS_PADDING
@@ -367,4 +367,11 @@ export const calcGroupBottomBoundProportionalResizePatch = (state: GroupResizeSt
       rotate: shape.rotate,
     }
   })
+}
+
+export const proporionalGroupResizeFromBound = {
+  bottom: calcGroupBottomBoundProportionalResizePatch,
+  right: calcGroupRightBoundProportionalResizePatch,
+  left: calcGroupLeftBoundProportionalResizePatch,
+  top: calcGroupTopBoundProportionalResizePatch,
 }

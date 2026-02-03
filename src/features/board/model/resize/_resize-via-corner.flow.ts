@@ -1,5 +1,3 @@
-import { calcShapeFromCornerIndependentResizePatch } from "@/entities/shape/lib/transform/_resize/_independent-single-from-corner"
-import { calcShapeFromCornerAspectResizePatch } from "@/entities/shape/lib/transform/_resize/_proportional-single-from-corner"
 import { markDirtySelectedShapes } from "@/entities/shape/model/render-state"
 import type { ClientShape, RectangleGeometry } from "@/entities/shape/model/types"
 import { getPointFromEvent, screenToCanvas } from "@/shared/lib/point"
@@ -12,7 +10,6 @@ import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../../modul
 import { autoSelectionBounds$, pressedResizeHandlerSubject$ } from "../../view-model/selection-bounds"
 import { goToIdle, goToShapesResize, isIdle, isShapesResize, shapesToRender$, viewState$ } from "../../view-model/state"
 import { shapes$ } from "../shapes"
-import { getShapesResizeViaCornerStrategy } from "./_strategy"
 
 const applyResizeViaCornerCursor = (node: Corner) => {
   document.documentElement.style.cursor = {
@@ -40,15 +37,15 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
   rx.switchMap(({ camera, handler, shapes, selectedIds, selectionArea }) => {
     const sharedMove$ = pointerMove$.pipe(rx.share())
 
-    getShapesResizeViaCornerStrategy({
-      selectionArea,
-      handler: handler.corner,
-      shapes: shapes.map((shape) => {
-        if (shape.client.isSelected) shape.client.renderMode.kind = "vector"
+    // getShapesResizeViaCornerStrategy({
+    //   selectionArea,
+    //   handler: handler.corner,
+    //   shapes: shapes.map((shape) => {
+    //     if (shape.client.isSelected) shape.client.renderMode.kind = "vector"
 
-        return shape
-      }),
-    })
+    //     return shape
+    //   }),
+    // })
 
     const resizeActivation$ = sharedMove$.pipe(
       rx.take(1),
@@ -56,7 +53,7 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
         applyResizeViaCornerCursor(handler.corner)
 
         pressedResizeHandlerSubject$.next(handler)
-        viewState$.next(goToShapesResize({ selectedIds, bounds: [], boundingBox: {} as Rect }))
+        // viewState$.next(goToShapesResize({ selectedIds, bounds: [], boundingBox: {} as Rect }))
       }),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
       rx.ignoreElements(),
@@ -67,32 +64,34 @@ export const shapesResizeViaCorner$ = mouseDown$.pipe(
         const cursorPosition = getPointFromEvent(moveEvent)
         const cursor = screenToCanvas({ camera, point: cursorPosition })
 
-        const patchRecord = moveEvent.shiftKey
-          ? calcShapeFromCornerAspectResizePatch
-          : calcShapeFromCornerIndependentResizePatch
+        // const patchRecord = moveEvent.shiftKey
+        //   ? calcShapeFromCornerAspectResizePatch
+        //   : calcShapeFromCornerIndependentResizePatch
 
-        return shapes.map((shape) => {
-          if (shape.client.isSelected && shape.geometry.kind === "rectangle-geometry") {
-            const patcher = patchRecord[handler.corner]({
-              cursor,
-              shape: {
-                ...shape.geometry as RectangleGeometry,
-                id: shape.id,
-                rotate: shape.transform.rotate
-              }
-            })
+        return shapes
 
-            return {
-              ...shape,
-              geometry: {
-                ...shape.geometry,
-                ...patcher,
-              }
-            }
-          }
+        // return shapes.map((shape) => {
+        //   if (shape.client.isSelected && shape.geometry.kind === "rectangle-geometry") {
+        //     const patcher = patchRecord[handler.corner]({
+        //       cursor,
+        //       shape: {
+        //         ...shape.geometry as RectangleGeometry,
+        //         id: shape.id,
+        //         rotate: shape.transform.rotate
+        //       }
+        //     })
 
-          return shape
-        }) as ClientShape[]
+        //     return {
+        //       ...shape,
+        //       geometry: {
+        //         ...shape.geometry,
+        //         ...patcher,
+        //       }
+        //     }
+        //   }
+
+        //   return shape
+        // }) as ClientShape[]
       }),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
     )

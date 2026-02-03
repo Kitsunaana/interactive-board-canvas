@@ -1,4 +1,4 @@
-import type { Point, Rect, RotatableRect } from "@/shared/type/shared";
+import type { Point, RotatableRect } from "@/shared/type/shared";
 import type { Selection } from "../../domain/selection";
 
 export type IdleViewState = {

@@ -103,7 +103,7 @@ export const calculateLimitPointsFromRects = ({ rects }: { rects: Rect[] }) => {
   )
 }
 
-export const calculateLimitPointsFromRectsV2 = (rects: Rect[]) => {
+export const calculateAABBFromRects = (rects: Rect[]) => {
   const { height, width, x, y } = _.defaultTo(_.first(rects), {
     height: 0,
     width: 0,
