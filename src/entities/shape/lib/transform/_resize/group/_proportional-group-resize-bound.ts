@@ -1,5 +1,5 @@
 import type { Point } from "@/shared/type/shared"
-import type { GroupResizeState } from "./_get-group-resize-state"
+import type { GroupResizeState } from "../../../../../../features/board/model/resize/_get-group-resize-state"
 import { SELECTION_BOUNDS_PADDING } from "@/entities/shape"
 import { isNotUndefined } from "@/shared/lib/utils"
 

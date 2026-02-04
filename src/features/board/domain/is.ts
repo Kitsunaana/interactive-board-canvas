@@ -1,22 +1,21 @@
-import type { ClientShape } from "@/entities/shape/model/types"
-import type { NodeBound, NodeCorner } from "./selection-area"
+import type { HitBound, HitCorner, HitShape } from "../modules/pick-node/_core"
 
-export const isBound = (candidate: { id: string }): candidate is NodeBound => (
-  candidate.id === "bottom" ||
-  candidate.id === "right" ||
-  candidate.id === "left" ||
-  candidate.id === "top"
+export const isBound = (candidate: { type: string }): candidate is HitBound => (
+  candidate.type === "bottom" ||
+  candidate.type === "right" ||
+  candidate.type === "left" ||
+  candidate.type === "top"
 )
 
-export const isCorner = (candidate: { id: string }): candidate is NodeCorner => (
-  candidate.id === "bottomRight" ||
-  candidate.id === "bottomLeft" ||
-  candidate.id === "topRight" ||
-  candidate.id === "topLeft"
+export const isCorner = (candidate: { type: string }): candidate is HitCorner => (
+  candidate.type === "bottomRight" ||
+  candidate.type === "bottomLeft" ||
+  candidate.type === "topRight" ||
+  candidate.type === "topLeft"
 )
 
-export const isShape = (candidate: { kind: string }): candidate is ClientShape => {
-  return candidate.kind === "shape"
+export const isShape = (candidate: { type: string }): candidate is HitShape => {
+  return candidate.type === "shape"
 }
 
 export const isCanvas = <T extends { type: string }>(candidate: T) => {

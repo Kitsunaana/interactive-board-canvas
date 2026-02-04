@@ -21,14 +21,9 @@ export type HitShape = {
   shapeId: string
 }
 
-export type HitBound = {
-  type: "bound"
-  bound: Bound
-}
-
-export type HitCorner = {
-  type: "corner"
-  corner: Corner
+export type HitResizeHandler = {
+  type: "resize-handler",
+  handler: Bound | Corner
 }
 
 export type HitRotateHandler = {
@@ -37,11 +32,9 @@ export type HitRotateHandler = {
 
 export type HitTarget =
   | HitRotateHandler
+  | HitResizeHandler
   | HitCanvas
   | HitShape
-  | HitBound
-  | HitCorner
-
 
 export type BoundLinesColor = Record<Bound, string>
 export type CornerLinesColor = Record<Corner, string>
@@ -105,9 +98,9 @@ export const isPickedBound = (colorId: string, selectionBounds: SelectionBoundsT
 
     if (isNotUndefined(pickedBound)) {
       return right({
-        bound: pickedBound[0],
-        type: "bound",
-      } as HitBound)
+        type: "resize-handler",
+        handler: pickedBound[0],
+      } satisfies HitResizeHandler)
     }
   }
 
@@ -122,9 +115,9 @@ export const isPickedCorner = (colorId: string, resizeHandlers: ResizeHandlersPr
 
     if (isNotUndefined(pickedCorner)) {
       return right({
-        type: "corner",
-        corner: pickedCorner[0],
-      } as HitCorner)
+        type: "resize-handler",
+        handler: pickedCorner[0],
+      } satisfies HitResizeHandler)
     }
   }
 

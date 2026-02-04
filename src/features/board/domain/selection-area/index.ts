@@ -1,4 +1,4 @@
-export type { Bound, NodeBound, SelectionBounds, Corner, NodeCorner } from "./_types"
+export type { Bound, SelectionBounds, Corner } from "./_types"
 
 export { computeSelectionBoundsArea } from "./_compute"
 
