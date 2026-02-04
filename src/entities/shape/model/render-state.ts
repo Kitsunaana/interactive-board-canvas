@@ -8,7 +8,7 @@ const renderShapeToBitmap = (shape: Shape, bbox: Rect) => {
   const canvas = document.createElement("canvas")
   const context = canvas.getContext("2d") as CanvasRenderingContext2D
 
-  const QUALITY_SCALE = 4
+  const QUALITY_SCALE = 1
 
   canvas.width = (bbox.width + 10) * QUALITY_SCALE
   canvas.height = (bbox.height + 10) * QUALITY_SCALE

@@ -12,10 +12,10 @@ export const drawDefaultEllipse = (context: CanvasRenderingContext2D, ellipse: E
 
   context.translate(ellipse.geometry.rx + radiusX, ellipse.geometry.ry + radiusY)
 
-  context.shadowColor = 'rgba(0, 0, 0, 0.2)'
-  context.shadowOffsetX = 2
-  context.shadowOffsetY = 2
-  context.shadowBlur = 11
+  // context.shadowColor = 'rgba(0, 0, 0, 0.2)'
+  // context.shadowOffsetX = 2
+  // context.shadowOffsetY = 2
+  // context.shadowBlur = 11
 
   context.beginPath()
   // context.ellipse(ellipse.geometry.x + radiusX, ellipse.geometry.y + radiusY, radiusX, radiusY, 0, 0, Math.PI * 2)
@@ -39,18 +39,13 @@ export const drawVectorRectangle = (context: CanvasRenderingContext2D, rectangle
 
   context.translate(centerX, centerY)
   context.rotate(rectangle.transform.rotate)
-  // context.translate(-centerX, -centerY)
-  // context.translate(geometry.x, geometry.y)
 
-  context.shadowColor = 'rgba(0, 0, 0, 0.2)'
-  context.shadowOffsetX = 2
-  context.shadowOffsetY = 2
-  context.shadowBlur = 11
+  // context.shadowColor = 'rgba(0, 0, 0, 0.2)'
+  // context.shadowOffsetX = 2
+  // context.shadowOffsetY = 2
+  // context.shadowBlur = 11
 
-  // context.rotate(rectangle.transform.rotate)
   context.beginPath()
-  // context.roundRect(geometry.x, geometry.y, geometry.height, style.borderRadius)
-
   context.roundRect(-geometry.width / 2, -geometry.height / 2, geometry.width, geometry.height, style.borderRadius)
   context.stroke()
   context.closePath()

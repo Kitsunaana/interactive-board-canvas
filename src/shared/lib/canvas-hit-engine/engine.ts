@@ -31,7 +31,7 @@ const createNode = <Metadata extends AnyMetadata>({ metadata, colorId }: CreateR
   nodesToRender.add(colorId, metadata)
 
   return {
-    draw: (context: CanvasRenderingContext2D, geometry: RectangleGeometry, style: RectangleStyle) => {
+    draw: (context: CanvasRenderingContext2D, geometry: RectangleGeometry, _style: RectangleStyle) => {
       const centerX = geometry.x + geometry.width / 2
       const centerY = geometry.y + geometry.height / 2
 

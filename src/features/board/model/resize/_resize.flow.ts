@@ -1,3 +1,5 @@
+import { independentGroupResizeFromCorner } from "@/entities/shape/lib/transform/_resize/group/_independent-group-resize-corner"
+import { proportionalGroupResizeFromCorner } from "@/entities/shape/lib/transform/_resize/group/_proportional-group-resize-corner"
 import { independentResizeFromBound } from "@/entities/shape/lib/transform/_resize/single/_independent-bound"
 import { independentResizeFromCorner } from "@/entities/shape/lib/transform/_resize/single/_independent-corner"
 import { proportionalResizeFromBound } from "@/entities/shape/lib/transform/_resize/single/_proportional-bound"
@@ -41,20 +43,20 @@ const resetResizeCursor = () => {
 const resize = {
   group: {
     bottomRight: {
-      independent: independentGroupResizeFromBound.bottom,
-      proportional: proporionalGroupResizeFromBound.bottom,
+      independent: independentGroupResizeFromCorner.bottomRight,
+      proportional: proportionalGroupResizeFromCorner.bottomRight,
     },
     bottomLeft: {
-      independent: independentGroupResizeFromBound.bottom,
-      proportional: proporionalGroupResizeFromBound.bottom,
+      independent: independentGroupResizeFromCorner.bottomLeft,
+      proportional: proportionalGroupResizeFromCorner.bottomLeft,
     },
     topRight: {
-      independent: independentGroupResizeFromBound.bottom,
-      proportional: proporionalGroupResizeFromBound.bottom,
+      independent: independentGroupResizeFromCorner.topRight,
+      proportional: proportionalGroupResizeFromCorner.topRight,
     },
     topLeft: {
-      independent: independentGroupResizeFromBound.bottom,
-      proportional: proporionalGroupResizeFromBound.bottom,
+      independent: independentGroupResizeFromCorner.topLeft,
+      proportional: proportionalGroupResizeFromCorner.topLeft,
     },
 
     bottom: {
