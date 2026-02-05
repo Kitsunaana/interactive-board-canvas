@@ -21,7 +21,7 @@ export type GroupResizeState = {
   }>
 }
 
-const createGroupFromBoundResizeStateFactory = ({ getOffset, getPivot }: {
+export const createGroupFromBoundResizeStateFactory = ({ getOffset, getPivot }: {
   getOffset: (center: Point, pivot: Point) => Point,
   getPivot: (area: Rect) => Point,
 }) => {
@@ -60,6 +60,44 @@ const createGroupFromBoundResizeStateFactory = ({ getOffset, getPivot }: {
       }),
     }
   }
+}
+
+export const createGroupReflowState = {
+  bottomRight: {},
+
+  bottomLeft: {},
+
+  topRight: {},
+
+  topLeft: {},
+
+  bottom: {
+    independent: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x, y: area.y }),
+      getOffset: (center, pivot) => ({ x: center.x - pivot.x, y: center.y - pivot.y }),
+    })
+  },
+
+  right: {
+    independent: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x, y: 0 }),
+      getOffset: (center, pivot) => ({ x: center.x - pivot.x, y: 0 }),
+    })
+  },
+
+  left: {
+    independent: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x, y: 0 }),
+      getOffset: (center, pivot) => ({ x: center.x - pivot.x, y: center.y - pivot.y })
+    })
+  },
+
+  top: {
+    independent: createGroupFromBoundResizeStateFactory({
+      getPivot: (area) => ({ x: area.x, y: area.y }),
+      getOffset: (center, pivot) => ({ x: center.x - pivot.x, y: center.y - pivot.y })
+    })
+  },
 }
 
 export const createGroupResizeState = {
@@ -110,8 +148,6 @@ export const createGroupResizeState = {
       getOffset: (center, pivot) => ({ x: center.x - pivot.x, y: center.y - pivot.y })
     }),
   },
-
-
 
   bottom: {
     independent: createGroupFromBoundResizeStateFactory({

@@ -20,8 +20,9 @@ import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../../modul
 import type { HitResizeHandler } from "../../modules/pick-node/_core"
 import { goToIdle, goToShapesResize, isIdle, isShapesResize, shapesToRender$, viewState$, type ShapesResizeViewState } from "../../view-model/state"
 import { shapes$ } from "../shapes"
-import { createGroupResizeState } from "./_get-group-resize-state"
+import { createGroupFromBoundResizeStateFactory, createGroupReflowState, createGroupResizeState } from "./_get-group-resize-state"
 import { mapSelectedShapes } from "./_strategy/_lib"
+import { calcGroupBottomBoundReflowPatch, calcGroupLeftBoundReflowPatch, calcGroupRightBoundReflowPatch, calcGroupTopBoundReflowPatch, independentGroupReflowFromBound } from "@/entities/shape/lib/transform/_reflow/_independent-multiple"
 
 const applyResizeCursor = (bound: Bound | Corner) => {
   document.documentElement.style.cursor = ({
@@ -40,42 +41,71 @@ const resetResizeCursor = () => {
   document.documentElement.style.cursor = "default"
 }
 
-const resize = {
+const transform = {
   group: {
     bottomRight: {
-      independent: independentGroupResizeFromCorner.bottomRight,
-      proportional: proportionalGroupResizeFromCorner.bottomRight,
+      resize: {
+        independent: independentGroupResizeFromCorner.bottomRight,
+        proportional: proportionalGroupResizeFromCorner.bottomRight,
+      },
     },
     bottomLeft: {
-      independent: independentGroupResizeFromCorner.bottomLeft,
-      proportional: proportionalGroupResizeFromCorner.bottomLeft,
+      resize: {
+        independent: independentGroupResizeFromCorner.bottomLeft,
+        proportional: proportionalGroupResizeFromCorner.bottomLeft,
+      },
     },
     topRight: {
-      independent: independentGroupResizeFromCorner.topRight,
-      proportional: proportionalGroupResizeFromCorner.topRight,
+      resize: {
+        independent: independentGroupResizeFromCorner.topRight,
+        proportional: proportionalGroupResizeFromCorner.topRight,
+      },
     },
     topLeft: {
-      independent: independentGroupResizeFromCorner.topLeft,
-      proportional: proportionalGroupResizeFromCorner.topLeft,
+      resize: {
+        independent: independentGroupResizeFromCorner.topLeft,
+        proportional: proportionalGroupResizeFromCorner.topLeft,
+      },
     },
 
     bottom: {
-      independent: independentGroupResizeFromBound.bottom,
-      proportional: proporionalGroupResizeFromBound.bottom,
+      resize: {
+        independent: independentGroupResizeFromBound.bottom,
+        proportional: proporionalGroupResizeFromBound.bottom,
+      },
+      reflow: {
+        independent: independentGroupReflowFromBound.bottom,
+      },
     },
     right: {
-      independent: independentGroupResizeFromBound.right,
-      proportional: proporionalGroupResizeFromBound.right,
+      resize: {
+        independent: independentGroupResizeFromBound.right,
+        proportional: proporionalGroupResizeFromBound.right,
+      },
+      reflow: {
+        independent: independentGroupReflowFromBound.right,
+      },
     },
     left: {
-      independent: independentGroupResizeFromBound.left,
-      proportional: proporionalGroupResizeFromBound.left,
+      resize: {
+        independent: independentGroupResizeFromBound.left,
+        proportional: proporionalGroupResizeFromBound.left,
+      },
+      reflow: {
+        independent: independentGroupReflowFromBound.left,
+      },
     },
     top: {
-      independent: independentGroupResizeFromBound.top,
-      proportional: proporionalGroupResizeFromBound.top,
+      resize: {
+        independent: independentGroupResizeFromBound.top,
+        proportional: proporionalGroupResizeFromBound.top,
+      },
+      reflow: {
+        independent: independentGroupReflowFromBound.top,
+      },
     },
   },
+
   single: {
     bottomRight: {
       independent: independentResizeFromCorner.bottomRight,
@@ -129,7 +159,7 @@ const getShapesResizeStrategy = (shapes: ClientShape[], hitTarget: HitResizeHand
 
   return ({
     single: () => {
-      const resizeHandler = resize.single[hitTarget.handler]
+      const resizeHandler = transform.single[hitTarget.handler]
 
       return {
         activation: (selectedIds: Selection) => {
@@ -188,7 +218,9 @@ const getShapesResizeStrategy = (shapes: ClientShape[], hitTarget: HitResizeHand
       }
     },
     group: () => {
-      const resizeHandler = resize.group[hitTarget.handler]
+      const resizeHandler = transform.group[hitTarget.handler]
+
+      // RIGHT
 
       return {
         activation: (selectedIds: Selection) => {
@@ -216,15 +248,31 @@ const getShapesResizeStrategy = (shapes: ClientShape[], hitTarget: HitResizeHand
               const resizeType = shiftKey ? "proportional" : "independent"
 
               const initialResizeState = createGroupResizeState[hitTarget.handler][resizeType](mapedShapesToStae, boundingBox)
-              const patcher = resizeHandler[resizeType](initialResizeState, cursor)
+              // const patcher = resizeHandler[resizeType](initialResizeState, cursor)
 
-              return mapSelectedShapes(shapes, (shape) => ({
-                ...shape,
-                geometry: {
-                  ...shape.geometry,
-                  ...patcher.find((item) => item.id === shape.id),
-                }
-              }) as ClientShape)
+              const state = createGroupReflowState[hitTarget.handler]
+              const pathcer = calcGroupBottomBoundReflowPatch(state["independent"](mapedShapesToStae, boundingBox), cursor)
+
+              return mapSelectedShapes(shapes, (shape) => {
+                // console.log(pathcer.get(shape.id))
+
+                return {
+                  ...shape,
+                  geometry: {
+                    ...shape.geometry,
+                    ...pathcer[shape.id]
+                    // ...pathcer.get(shape.id),
+                  }
+                } as ClientShape
+              })
+
+              // return mapSelectedShapes(shapes, (shape) => ({
+              //   ...shape,
+              //   geometry: {
+              //     ...shape.geometry,
+              //     ...patcher.find((item) => item.id === shape.id),
+              //   }
+              // }) as ClientShape)
             }
           }
         },
