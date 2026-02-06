@@ -49,21 +49,11 @@ renderLoop$.subscribe(({ selectionBounds, selectionWindow, canvasSizes, viewStat
   drawShapes({ context, shapes })
 
   if (isShapesResize(viewState)) {
-    drawSelectionBoundsArea({
-      context,
-      selectionBoundsArea: viewState.selection,
-    })
-
-    // drawResizeHandlers({ context, camera, rect: viewState.boundingBox })
-    // drawRotateHandler({ context, camera, rect: viewState.boundingBox })
+    drawSelectionBoundsArea({ context, selectionBoundsArea: viewState.selection })
+    drawResizeHandlers({ context, camera, rect: viewState.selection.area })
   }
 
   if (isNotNull(selectionBounds) && isShapesRotate(viewState)) {
-    // const area = {
-    //   ...viewState.boundingBox,
-    //   rotate: viewState.rotate
-    // }
-
     drawSelectionBoundsArea({
       context,
       dashed: true,

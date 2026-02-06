@@ -9,175 +9,193 @@ export type CalcSelectionResizeOffsetsParams = {
   cursor: Point
 }
 
-export type CalcSelectionResizeOffsets = (params: CalcSelectionResizeOffsetsParams) => Record<string, Partial<RotatableRect<true> & {
+export type CalcSelectionResizeOffsets = (params: CalcSelectionResizeOffsetsParams) => Record<string, Partial<Rect & {
   points: Point[]
 }>>
 
 export const calcGroupRightBoundReflowPatch = (state: GroupResizeState, cursor: Point) => {
-  const { shapes, pivotX, initialWidth } = state
+  const { pivotX, initialWidth, shapes } = state
 
-  const correctedCursorX = cursor.x - SELECTION_BOUNDS_PADDING
-  const delta = correctedCursorX - (pivotX + initialWidth)
+  const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
-  const padding2 = SELECTION_BOUNDS_PADDING * 2
+  const left = pivotX - initialWidth / 2
 
-  if (delta <= padding2 && delta >= -padding2) return {}
+  const rawWidth = cursorX - left
+  const flipped = rawWidth < 0
+
+  const nextWidth = Math.abs(rawWidth)
 
   return shapes.reduce((acc, shape) => {
-    const shapeLeft = shape.centerX - shape.width / 2
-    const t = (shapeLeft - pivotX) / initialWidth
-    const easedT = Math.max(0, Math.min(1, t))
+    const tRaw = (shape.centerX - left) / initialWidth
+    const easedT = Math.max(0, Math.min(1, tRaw))
 
-    const offsetX = delta < 0 ? easedT * (delta + padding2) : easedT * delta
+    const nextCenterX = flipped
+      ? left - easedT * nextWidth
+      : left + easedT * nextWidth
+
+    const dx = nextCenterX - shape.centerX
+    const dy = 0
+
+    const updatedX = shape.x + dx
+    const updatedY = shape.y + dy
 
     if (isNotUndefined(shape.points)) {
-      const cos = Math.cos(shape.rotate)
-      const sin = Math.sin(shape.rotate)
+      acc[shape.id] = {
+        points: shape.points.map((point) => ({
+          x: point.x + dx,
+          y: point.y + dy,
+        }))
+      }
 
-      const movedPoints = shape.points.map((point) => ({
-        x: point.x + offsetX * cos,
-        y: point.y + offsetX * sin,
-      }))
-
-      acc[shape.id] = { points: movedPoints }
       return acc
     }
 
-    const nextCenterX = shape.centerX + offsetX
-    const nextX = nextCenterX - shape.width / 2
+    acc[shape.id] = {
+      x: updatedX,
+      y: updatedY,
+    }
 
-    acc[shape.id] = { x: nextX }
     return acc
-  }, {} as Record<string, Partial<RotatableRect<true> & { points: Point[] }>>)
+  }, {} as Record<string, Partial<RotatableRect<true> & { points?: Point[] }>>)
 }
 
 export const calcGroupLeftBoundReflowPatch = (state: GroupResizeState, cursor: Point) => {
-  const { shapes, pivotX, initialWidth } = state
+  const { pivotX, initialWidth, shapes } = state
 
-  const correctedCursorX = cursor.x + SELECTION_BOUNDS_PADDING
-  const delta = correctedCursorX - pivotX
+  const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
-  const padding2 = SELECTION_BOUNDS_PADDING * 2
+  const right = pivotX + initialWidth / 2
 
-  if (delta <= padding2 && delta >= -padding2) return {}
+  const rawWidth = right - cursorX
+  const flipped = rawWidth < 0
 
-  const pivotRight = pivotX + initialWidth
+  const nextWidth = Math.abs(rawWidth)
 
   return shapes.reduce((acc, shape) => {
-    const shapeRight = shape.centerX + shape.width / 2
+    const tRaw = (right - shape.centerX) / initialWidth
+    const easedT = Math.max(0, Math.min(1, tRaw))
 
-    const t = (pivotRight - shapeRight) / initialWidth
-    const easedT = Math.max(0, Math.min(1, t))
+    const nextCenterX = flipped
+      ? right + easedT * nextWidth
+      : right - easedT * nextWidth
 
-    const offsetX = delta > 0 ? easedT * (delta - padding2) : easedT * delta
+    const dx = nextCenterX - shape.centerX
+    const dy = 0
+
+    const updatedX = shape.x + dx
+    const updatedY = shape.y + dy
 
     if (isNotUndefined(shape.points)) {
-      const cos = Math.cos(shape.rotate)
-      const sin = Math.sin(shape.rotate)
+      acc[shape.id] = {
+        points: shape.points.map((point) => ({
+          x: point.x + dx,
+          y: point.y + dy,
+        })),
+      }
 
-      const movedPoints = shape.points.map((point) => ({
-        x: point.x + offsetX * cos,
-        y: point.y + offsetX * sin,
-      }))
-
-      acc[shape.id] = { points: movedPoints }
       return acc
     }
 
-    const nextCenterX = shape.centerX + offsetX
-    const nextX = nextCenterX - shape.width / 2
+    acc[shape.id] = {
+      x: updatedX,
+      y: updatedY,
+    }
 
-    acc[shape.id] = { x: nextX }
     return acc
-  }, {} as Record<string, Partial<RotatableRect<true> & { points: Point[] }>>)
+  }, {} as Record<string, Partial<RotatableRect<true> & { points?: Point[] }>>)
 }
 
 export const calcGroupTopBoundReflowPatch = (state: GroupResizeState, cursor: Point) => {
-  const { shapes, pivotY, initialHeight } = state
+  const { pivotY, initialHeight, shapes } = state
 
-  const correctedCursorY = cursor.y - SELECTION_BOUNDS_PADDING
-  const delta = correctedCursorY - pivotY
+  const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
-  const padding2 = SELECTION_BOUNDS_PADDING * 2
+  const bottom = pivotY + initialHeight / 2
 
-  if (delta <= padding2 && delta >= -padding2) return {}
+  const rawHeight = bottom - cursorY
+  const flipped = rawHeight < 0
 
-  const pivotBottom = pivotY + initialHeight
+  const nextHeight = Math.abs(rawHeight)
 
   return shapes.reduce((acc, shape) => {
-    const shapeBottom = shape.centerY + shape.height / 2
+    const tRaw = (bottom - shape.centerY) / initialHeight
+    const easedT = Math.max(0, Math.min(1, tRaw))
 
-    const t = (pivotBottom - shapeBottom) / initialHeight
-    const easedT = Math.max(0, Math.min(1, t))
+    const nextCenterY = flipped
+      ? bottom + easedT * nextHeight
+      : bottom - easedT * nextHeight
 
-    const offsetY = delta > 0 ? easedT * (delta - padding2) : easedT * delta
+    const dy = nextCenterY - shape.centerY
+    const dx = 0
+
+    const updatedX = shape.x + dx
+    const updatedY = shape.y + dy
 
     if (isNotUndefined(shape.points)) {
-      const cos = Math.cos(shape.rotate)
-      const sin = Math.sin(shape.rotate)
+      acc[shape.id] = {
+        points: shape.points.map((point) => ({
+          x: point.x + dx,
+          y: point.y + dy,
+        })),
+      }
 
-      const movedPoints = shape.points.map((point) => ({
-        x: point.x - offsetY * sin,
-        y: point.y + offsetY * cos,
-      }))
-
-      acc[shape.id] = { points: movedPoints }
       return acc
     }
 
-    const nextCenterY = shape.centerY + offsetY
-    const nextY = nextCenterY - shape.height / 2
+    acc[shape.id] = {
+      x: updatedX,
+      y: updatedY,
+    }
 
-    acc[shape.id] = { y: nextY }
     return acc
-  }, {} as Record<string, Partial<RotatableRect<true> & { points: Point[] }>>)
+  }, {} as Record<string, Partial<RotatableRect<true> & { points?: Point[] }>>)
 }
 
-export const calcGroupBottomBoundReflowPatch = (
-  state: GroupResizeState,
-  cursor: Point
-) => {
-  const { shapes, pivotY, initialHeight } = state
+export const calcGroupBottomBoundReflowPatch = (state: GroupResizeState, cursor: Point) => {
+  const { pivotY, initialHeight, shapes } = state
 
-  const correctedCursorY = cursor.y - SELECTION_BOUNDS_PADDING
-  const delta = correctedCursorY - (pivotY + initialHeight)
+  const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
-  const padding2 = SELECTION_BOUNDS_PADDING * 2
+  const top = pivotY - initialHeight / 2
 
-  if (delta <= padding2 && delta >= -padding2) return {}
+  const rawHeight = cursorY - top
+  const flipped = rawHeight < 0
+
+  const nextHeight = Math.abs(rawHeight)
 
   return shapes.reduce((acc, shape) => {
-    const shapeTop = shape.centerY - shape.height / 2
+    const tRaw = (shape.centerY - top) / initialHeight
+    const easedT = Math.max(0, Math.min(1, tRaw))
 
-    const t = (shapeTop - pivotY) / initialHeight
-    const easedT = Math.max(0, Math.min(1, t))
+    const nextCenterY = flipped
+      ? top - easedT * nextHeight
+      : top + easedT * nextHeight
 
-    const offsetY =
-      delta < 0
-        ? easedT * (delta + padding2)
-        : easedT * delta
+    const dy = nextCenterY - shape.centerY
+    const dx = 0
+
+    const updatedX = shape.x + dx
+    const updatedY = shape.y + dy
 
     if (isNotUndefined(shape.points)) {
-      const cos = Math.cos(shape.rotate)
-      const sin = Math.sin(shape.rotate)
+      acc[shape.id] = {
+        points: shape.points.map((point) => ({
+          x: point.x + dx,
+          y: point.y + dy,
+        })),
+      }
 
-      const movedPoints = shape.points.map((point) => ({
-        x: point.x - offsetY * sin,
-        y: point.y + offsetY * cos,
-      }))
-
-      acc[shape.id] = { points: movedPoints }
       return acc
     }
 
-    const nextCenterY = shape.centerY + offsetY
-    const nextY = nextCenterY - shape.height / 2
+    acc[shape.id] = {
+      x: updatedX,
+      y: updatedY,
+    }
 
-    acc[shape.id] = { y: nextY }
     return acc
-  }, {} as Record<string, Partial<RotatableRect<true> & { points: Point[] }>>)
+  }, {} as Record<string, Partial<RotatableRect<true> & { points?: Point[] }>>)
 }
-
 
 export const independentGroupReflowFromBound = {
   bottom: calcGroupBottomBoundReflowPatch,

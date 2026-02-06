@@ -1,3 +1,4 @@
+import { independentGroupReflowFromBound } from "@/entities/shape/lib/transform/_reflow/_independent-multiple"
 import { independentGroupResizeFromCorner } from "@/entities/shape/lib/transform/_resize/group/_independent-group-resize-corner"
 import { proportionalGroupResizeFromCorner } from "@/entities/shape/lib/transform/_resize/group/_proportional-group-resize-corner"
 import { independentResizeFromBound } from "@/entities/shape/lib/transform/_resize/single/_independent-bound"
@@ -9,7 +10,7 @@ import { markDirtySelectedShapes } from "@/entities/shape/model/render-state"
 import type { ClientShape } from "@/entities/shape/model/types"
 import { getPointFromEvent, screenToCanvasV2 } from "@/shared/lib/point"
 import { calculateAABBFromRects, getAABBSize } from "@/shared/lib/rect"
-import type { Point, RotatableRect } from "@/shared/type/shared"
+import type { Point, Rect, RotatableRect } from "@/shared/type/shared"
 import * as rx from "rxjs"
 import { independentGroupResizeFromBound } from "../../../../entities/shape/lib/transform/_resize/group/_independent-group-resize-bound"
 import { proporionalGroupResizeFromBound } from "../../../../entities/shape/lib/transform/_resize/group/_proportional-group-resize-bound"
@@ -20,9 +21,10 @@ import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../../modul
 import type { HitResizeHandler } from "../../modules/pick-node/_core"
 import { goToIdle, goToShapesResize, isIdle, isShapesResize, shapesToRender$, viewState$, type ShapesResizeViewState } from "../../view-model/state"
 import { shapes$ } from "../shapes"
-import { createGroupFromBoundResizeStateFactory, createGroupReflowState, createGroupResizeState } from "./_get-group-resize-state"
+import { createGroupReflowState, createGroupResizeState } from "./_get-group-resize-state"
 import { mapSelectedShapes } from "./_strategy/_lib"
-import { calcGroupBottomBoundReflowPatch, calcGroupLeftBoundReflowPatch, calcGroupRightBoundReflowPatch, calcGroupTopBoundReflowPatch, independentGroupReflowFromBound } from "@/entities/shape/lib/transform/_reflow/_independent-multiple"
+import { SELECTION_BOUNDS_PADDING } from "@/entities/shape"
+import { proportionalGroupReflowFromBound } from "@/entities/shape/lib/transform/_reflow/_proportional-multiple"
 
 const applyResizeCursor = (bound: Bound | Corner) => {
   document.documentElement.style.cursor = ({
@@ -143,12 +145,56 @@ const transform = {
   }
 }
 
+const computeAreaWhenIndependentReflowFromBound = (cursor: Point, boundingBox: Rect) => ({
+  bottomRight: () => ({}),
+  bottomLeft: () => ({}),
+  topRight: () => ({}),
+  topLeft: () => ({}),
+
+  bottom: () => {
+    const correctedCursorY = cursor.y - SELECTION_BOUNDS_PADDING
+    const bottom = boundingBox.y + boundingBox.height
+    const delta = correctedCursorY - bottom
+
+    return {
+      height: boundingBox.height + delta,
+    }
+  },
+  right: () => {
+    const correctedCursorX = cursor.x - SELECTION_BOUNDS_PADDING
+    const right = boundingBox.x + boundingBox.width
+    const delta = correctedCursorX - right
+
+    return {
+      width: boundingBox.width + delta,
+    }
+  },
+  left: () => {
+    const correctedCursorX = cursor.x + SELECTION_BOUNDS_PADDING
+    const delta = boundingBox.x - correctedCursorX
+
+    return {
+      x: boundingBox.x - delta,
+      width: boundingBox.width + delta
+    }
+  },
+  top: () => {
+    const correctedCursorY = cursor.y + SELECTION_BOUNDS_PADDING
+    const delta = boundingBox.y - correctedCursorY
+
+    return {
+      y: boundingBox.y - delta,
+      height: boundingBox.height + delta
+    }
+  },
+})
+
 const getShapesResizeStrategy = (shapes: ClientShape[], hitTarget: HitResizeHandler, selectedIds: Selection) => {
   const shapesToResize = shapes.filter(shape => shape.client.isSelected)
   const aabb = calculateAABBFromRects(shapesToResize.map((shape) => getBoundingBox(shape.geometry, shape.transform.rotate)))
   const boundingBox = getAABBSize(aabb)
 
-  const mapedShapesToStae = shapesToResize.map((shape) => ({
+  const mapedShapesToState = shapesToResize.map((shape) => ({
     ...getBoundingBox(shape.geometry, 0),
     points: shape.geometry.kind === "path-geometry" ? shape.geometry.points : null,
     rotate: shape.transform.rotate,
@@ -178,13 +224,13 @@ const getShapesResizeStrategy = (shapes: ClientShape[], hitTarget: HitResizeHand
           })
         },
 
-        resize: (cursor: Point) => {
+        resize: (cursor: Point, shiftKey: boolean) => {
           return {
             nextState: (state: ShapesResizeViewState) => {
               return goToShapesResize({ ...state })
             },
 
-            nextShapes: (shiftKey: boolean) => {
+            nextShapes: () => {
               const resizeType = shiftKey ? "proportional" : "independent"
               const shape = shapesToResize[0]
 
@@ -229,7 +275,7 @@ const getShapesResizeStrategy = (shapes: ClientShape[], hitTarget: HitResizeHand
           return goToShapesResize({
             selectedIds,
             selection: {
-              bounds: mapedShapesToStae,
+              bounds: mapedShapesToState,
               area: {
                 ...boundingBox,
                 rotate: 0,
@@ -238,42 +284,44 @@ const getShapesResizeStrategy = (shapes: ClientShape[], hitTarget: HitResizeHand
           })
         },
 
-        resize: (cursor: Point) => {
+        resize: (cursor: Point, shiftKey: boolean) => {
+          const resizeType = shiftKey ? "proportional" : "independent"
+
+          const initialResizeState = createGroupResizeState[hitTarget.handler][resizeType](mapedShapesToState, boundingBox)
+          // const patcher = resizeHandler[resizeType](initialResizeState, cursor)
+
+          const state = createGroupReflowState[hitTarget.handler]["proportional"](mapedShapesToState, boundingBox)
+          const pathcer = proportionalGroupReflowFromBound[hitTarget.handler](state, cursor)
+
+          const nextShapes = mapSelectedShapes(shapes, (shape) => ({
+            ...shape,
+            geometry: {
+              ...shape.geometry,
+              ...pathcer[shape.id]
+            }
+          })) as ClientShape[]
+
           return {
             nextState: (state: ShapesResizeViewState) => {
-              return goToShapesResize({ ...state })
+              const selectionAreaPatch = computeAreaWhenIndependentReflowFromBound(cursor, boundingBox)[hitTarget.handler]
+
+              return goToShapesResize({
+                ...state,
+                selection: {
+                  area: {
+                    ...state.selection.area,
+                    ...selectionAreaPatch()
+                  },
+                  bounds: nextShapes.filter((shape) => shape.client.isSelected).map((shape) => ({
+                    ...getBoundingBox(shape.geometry, 0),
+                    rotate: shape.transform.rotate,
+                    id: shape.id,
+                  }))
+                }
+              })
             },
 
-            nextShapes: (shiftKey: boolean) => {
-              const resizeType = shiftKey ? "proportional" : "independent"
-
-              const initialResizeState = createGroupResizeState[hitTarget.handler][resizeType](mapedShapesToStae, boundingBox)
-              // const patcher = resizeHandler[resizeType](initialResizeState, cursor)
-
-              const state = createGroupReflowState[hitTarget.handler]
-              const pathcer = calcGroupBottomBoundReflowPatch(state["independent"](mapedShapesToStae, boundingBox), cursor)
-
-              return mapSelectedShapes(shapes, (shape) => {
-                // console.log(pathcer.get(shape.id))
-
-                return {
-                  ...shape,
-                  geometry: {
-                    ...shape.geometry,
-                    ...pathcer[shape.id]
-                    // ...pathcer.get(shape.id),
-                  }
-                } as ClientShape
-              })
-
-              // return mapSelectedShapes(shapes, (shape) => ({
-              //   ...shape,
-              //   geometry: {
-              //     ...shape.geometry,
-              //     ...patcher.find((item) => item.id === shape.id),
-              //   }
-              // }) as ClientShape)
-            }
+            nextShapes: () => nextShapes
           }
         },
 
@@ -321,11 +369,11 @@ export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
       rx.withLatestFrom(viewState$.pipe(rx.filter(isShapesResize))),
       rx.map(([moveEvent, state]) => {
         const cursor = screenToCanvasV2(getPointFromEvent(moveEvent), camera)
-        const resized = resizeStrategy.resize(cursor)
+        const resized = resizeStrategy.resize(cursor, moveEvent.shiftKey)
 
         viewState$.next(resized.nextState(state))
 
-        return resized.nextShapes(moveEvent.shiftKey)
+        return resized.nextShapes()
       }),
       rx.takeUntil(rx.merge(pointerUp$, pointerLeave$)),
     )

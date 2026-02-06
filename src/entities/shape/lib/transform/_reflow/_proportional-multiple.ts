@@ -1,149 +1,205 @@
-import type { Point, Rect, RectWithId } from "@/shared/type/shared"
-import { forEach } from "lodash"
+import type { GroupResizeState } from "@/features/board/model/resize/_get-group-resize-state"
+import { isNotUndefined } from "@/shared/lib/utils"
+import type { Point, Rect, RectWithId, RotatableRect } from "@/shared/type/shared"
 import { SELECTION_BOUNDS_PADDING } from "../_const"
 
-export type CalcSelectionReflowPatchesParams = {
+export type CalcSelectionResizeOffsetsParams = {
   selectionArea: Rect
   shapes: RectWithId[]
   cursor: Point
 }
 
-export type CalcSelectionReflowPatches = (params: CalcSelectionReflowPatchesParams) => Map<string, Partial<Rect>>
+export type CalcSelectionResizeOffsets = (params: CalcSelectionResizeOffsetsParams) => Record<string, Partial<RotatableRect<true> & {
+  points: Point[]
+}>>
 
-export const calcSelectionRightBoundReflowPatches: CalcSelectionReflowPatches = ({ selectionArea, shapes, cursor }) => {
+export const calcGroupRightBoundProportionalReflowPatch = (state: GroupResizeState, cursor: Point) => {
+  const { initialWidth, shapes, pivotX, pivotY } = state
+
   const cursorX = cursor.x - SELECTION_BOUNDS_PADDING
 
-  const left = selectionArea.x
+  const anchorX = pivotX
+  const anchorY = pivotY
 
-  const centerY = selectionArea.y + selectionArea.height / 2
-  const scale = (cursorX - left) / selectionArea.width
+  const rawWidth = cursorX - anchorX
+  const flipped = rawWidth < 0
 
-  const toReflowShapes = new Map<string, Partial<Rect>>()
+  const nextWidth = Math.abs(rawWidth)
+  const scale = initialWidth === 0 ? 1 : nextWidth / initialWidth
 
-  forEach(shapes, (shape) => {
-    const centerHeight = shape.height / 2
-    const centerWidth = shape.width / 2
+  return shapes.reduce((acc, shape) => {
+    const relCenterX = shape.centerX - anchorX
+    const relCenterY = shape.centerY - anchorY
 
-    const shapeCenterX = shape.x + centerWidth
-    const shapeCenterY = shape.y + centerHeight
+    const nextCenterX = flipped
+      ? anchorX - relCenterX * scale
+      : anchorX + relCenterX * scale
 
-    const t = (shapeCenterX - left) / selectionArea.width
-    const easedT = Math.max(0, Math.min(1, t))
+    const nextCenterY = anchorY + relCenterY * scale
 
-    const nextCenterX = left + easedT * selectionArea.width * scale
-    const nextCenterY = centerY + (shapeCenterY - centerY) * scale
+    const dx = nextCenterX - shape.centerX
+    const dy = nextCenterY - shape.centerY
 
-    toReflowShapes.set(shape.id, {
-      x: nextCenterX - centerWidth,
-      y: nextCenterY - centerHeight,
-    })
-  })
+    if (isNotUndefined(shape.points)) {
+      acc[shape.id] = {
+        points: shape.points.map(p => ({
+          x: p.x + dx,
+          y: p.y + dy,
+        }))
+      }
+      return acc
+    }
 
-  return toReflowShapes
+    acc[shape.id] = {
+      x: shape.x + dx,
+      y: shape.y + dy,
+    }
+
+    return acc
+  }, {} as Record<string, Partial<RotatableRect<true> & { points?: Point[] }>>)
 }
 
-export const calcSelectionLeftBoundReflowPatches: CalcSelectionReflowPatches = ({ selectionArea, shapes, cursor }) => {
+export const calcGroupLeftBoundProportionalReflowPatch = (state: GroupResizeState, cursor: Point) => {
+  const { initialWidth, shapes, pivotX, pivotY } = state
+
   const cursorX = cursor.x + SELECTION_BOUNDS_PADDING
 
-  const left = selectionArea.x
-  const right = left + selectionArea.width
+  const anchorX = pivotX
+  const anchorY = pivotY
 
-  const centerY = selectionArea.y + selectionArea.height / 2
-  const scale = (cursorX - right) / selectionArea.width
+  const rawWidth = anchorX - cursorX
+  const flipped = rawWidth < 0
 
-  const toReflowShapes = new Map<string, Partial<Rect>>()
+  const nextWidth = Math.abs(rawWidth)
+  const scale = initialWidth === 0 ? 1 : nextWidth / initialWidth
 
-  forEach(shapes, (shape) => {
-    const centerHeight = shape.height / 2
-    const centerWidth = shape.width / 2
+  return shapes.reduce((acc, shape) => {
+    const relCenterX = shape.centerX - anchorX
+    const relCenterY = shape.centerY - anchorY
 
-    const shapeCenterX = shape.x + centerWidth
-    const shapeCenterY = shape.y + centerHeight
+    const nextCenterX = flipped
+      ? anchorX - relCenterX * scale
+      : anchorX + relCenterX * scale
 
-    const t = (right - shapeCenterX) / selectionArea.width
-    const easedT = Math.max(0, Math.min(1, t))
+    const nextCenterY = anchorY + relCenterY * scale
 
-    const nextCenterX = right + easedT * selectionArea.width * scale
-    const nextCenterY = centerY + (centerY - shapeCenterY) * scale
+    const dx = nextCenterX - shape.centerX
+    const dy = nextCenterY - shape.centerY
 
-    toReflowShapes.set(shape.id, {
-      x: nextCenterX - centerWidth,
-      y: nextCenterY - centerHeight,
-    })
-  })
+    if (isNotUndefined(shape.points)) {
+      acc[shape.id] = {
+        points: shape.points.map(p => ({
+          x: p.x + dx,
+          y: p.y + dy,
+        }))
+      }
+      return acc
+    }
 
-  return toReflowShapes
+    acc[shape.id] = {
+      x: shape.x + dx,
+      y: shape.y + dy,
+    }
+
+    return acc
+  }, {} as Record<string, Partial<RotatableRect<true> & { points?: Point[] }>>)
 }
 
-export const calcSelectionTopBoundReflowPatches: CalcSelectionReflowPatches = ({ selectionArea, shapes, cursor }) => {
+export const calcGroupTopBoundProportionalReflowPatch = (state: GroupResizeState, cursor: Point) => {
+  const { initialHeight, shapes, pivotX, pivotY } = state
+
   const cursorY = cursor.y + SELECTION_BOUNDS_PADDING
 
-  const left = selectionArea.x
-  const top = selectionArea.y
-  const bottom = top + selectionArea.height
+  const anchorX = pivotX
+  const anchorY = pivotY
 
-  const centerX = left + selectionArea.width / 2
-  const scale = (cursorY - bottom) / selectionArea.height
+  const rawHeight = anchorY - cursorY
+  const flipped = rawHeight < 0
 
-  const toReflowShapes = new Map<string, Partial<Rect>>()
+  const nextHeight = Math.abs(rawHeight)
+  const scale = initialHeight === 0 ? 1 : nextHeight / initialHeight
 
-  forEach(shapes, (shape) => {
-    const centerHeight = shape.height / 2
-    const centerWidth = shape.width / 2
+  return shapes.reduce((acc, shape) => {
+    const relCenterX = shape.centerX - anchorX
+    const relCenterY = shape.centerY - anchorY
 
-    const shapeCenterX = shape.x + centerWidth
-    const shapeCenterY = shape.y + centerHeight
+    const nextCenterX = anchorX + relCenterX * scale
+    const nextCenterY = flipped
+      ? anchorY - relCenterY * scale
+      : anchorY + relCenterY * scale
 
-    const t = (bottom - shapeCenterY) / selectionArea.height
-    const easedT = Math.max(0, Math.min(1, t))
+    const dx = nextCenterX - shape.centerX
+    const dy = nextCenterY - shape.centerY
 
-    const nextCenterX = centerX + (centerX - shapeCenterX) * scale
-    const nextCenterY = bottom + easedT * selectionArea.height * scale
+    if (isNotUndefined(shape.points)) {
+      acc[shape.id] = {
+        points: shape.points.map(p => ({
+          x: p.x + dx,
+          y: p.y + dy,
+        }))
+      }
+      return acc
+    }
 
-    toReflowShapes.set(shape.id, {
-      x: nextCenterX - centerWidth,
-      y: nextCenterY - centerHeight,
-    })
-  })
+    acc[shape.id] = {
+      x: shape.x + dx,
+      y: shape.y + dy,
+    }
 
-  return toReflowShapes
+    return acc
+  }, {} as Record<string, Partial<RotatableRect<true> & { points?: Point[] }>>)
 }
 
-export const calcSelectionBottomBoundReflowPatches: CalcSelectionReflowPatches = ({ selectionArea, shapes, cursor }) => {
+export const calcGroupBottomBoundProportionalReflowPatch = (state: GroupResizeState, cursor: Point) => {
+  const { initialHeight, shapes, pivotX, pivotY } = state
+
   const cursorY = cursor.y - SELECTION_BOUNDS_PADDING
 
-  const top = selectionArea.y
+  const anchorX = pivotX
+  const anchorY = pivotY
 
-  const centerX = selectionArea.x + selectionArea.width / 2
-  const scale = (cursorY - top) / selectionArea.height
+  const rawHeight = cursorY - anchorY
+  const flipped = rawHeight < 0
 
-  const toReflowShapes = new Map<string, Partial<Rect>>()
+  const nextHeight = Math.abs(rawHeight)
+  const scale = initialHeight === 0 ? 1 : nextHeight / initialHeight
 
-  forEach(shapes, (shape) => {
-    const centerWidth = shape.width / 2
-    const centerHeight = shape.height / 2
+  return shapes.reduce((acc, shape) => {
+    const relCenterX = shape.centerX - anchorX
+    const relCenterY = shape.centerY - anchorY
 
-    const shapeCenterX = shape.x + centerWidth
-    const shapeCenterY = shape.y + centerHeight
+    const nextCenterX = anchorX + relCenterX * scale
+    const nextCenterY = flipped
+      ? anchorY - relCenterY * scale
+      : anchorY + relCenterY * scale
 
-    const t = (shapeCenterY - top) / selectionArea.height
-    const easedT = Math.max(0, Math.min(1, t))
+    const dx = nextCenterX - shape.centerX
+    const dy = nextCenterY - shape.centerY
 
-    const nextCenterX = centerX + (shapeCenterX - centerX) * scale
-    const nextCenterY = top + easedT * selectionArea.height * scale
+    if (isNotUndefined(shape.points)) {
+      acc[shape.id] = {
+        points: shape.points.map(p => ({
+          x: p.x + dx,
+          y: p.y + dy,
+        }))
+      }
+      return acc
+    }
 
-    toReflowShapes.set(shape.id, {
-      x: nextCenterX - centerWidth,
-      y: nextCenterY - centerHeight,
-    })
-  })
+    acc[shape.id] = {
+      x: shape.x + dx,
+      y: shape.y + dy,
+    }
 
-  return toReflowShapes
+    return acc
+  }, {} as Record<string, Partial<RotatableRect<true> & { points?: Point[] }>>)
 }
 
-export const Short = {
-  bottom: calcSelectionBottomBoundReflowPatches,
-  right: calcSelectionRightBoundReflowPatches,
-  left: calcSelectionLeftBoundReflowPatches,
-  top: calcSelectionTopBoundReflowPatches,
+
+export const proportionalGroupReflowFromBound = {
+  bottom: calcGroupBottomBoundProportionalReflowPatch,
+
+  right: calcGroupRightBoundProportionalReflowPatch,
+  left: calcGroupLeftBoundProportionalReflowPatch,
+  top: calcGroupTopBoundProportionalReflowPatch,
 }
