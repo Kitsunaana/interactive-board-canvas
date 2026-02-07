@@ -1,9 +1,9 @@
 import { match } from "@/shared/lib/match"
 import * as rx from "rxjs"
 import { selectItems } from "../domain/selection"
-import { spacePressed$ } from "../modules/camera"
 import { mouseUp$ } from "../modules/pick-node"
 import { goToIdle, viewState$, type IdleViewState } from "../view-model/state"
+import { spacePressed$ } from "../modules/camera/viewport"
 
 const shapeSelect = ({ event, shapeId, idleState }: {
   idleState: IdleViewState

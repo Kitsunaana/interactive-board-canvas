@@ -6,9 +6,9 @@ import * as rx from "rxjs";
 import { shapes$ } from "../../model/shapes.ts";
 import { autoSelectionBounds$ } from "../../view-model/selection-bounds.ts";
 import { getResizeCorners } from "../../view-model/shape-sketch.ts";
-import { camera$ } from "../camera/index.ts";
 import { context, createFormatterFoundNode, getPickedColor, isPickedBound, isPickedCanvas, isPickedCorner, isPickedRotateHandler, isPickedShape } from "./_core.ts";
 import { drawScene } from "./_ui.ts";
+import { viewport } from "../camera/viewport.ts";
 
 export const selectionBoundsToPick$ = autoSelectionBounds$.pipe(rx.map((selectionBounds) => {
   if (isNull(selectionBounds)) return null
@@ -24,7 +24,7 @@ export const selectionBoundsToPick$ = autoSelectionBounds$.pipe(rx.map((selectio
 }))
 
 const resizeHandlersPropertiesToPick$ = autoSelectionBounds$.pipe(
-  rx.withLatestFrom(camera$),
+  rx.withLatestFrom(viewport.camera$),
   rx.map(([selectionArea, camera]) => {
     if (isNull(selectionArea)) return null
 
@@ -43,7 +43,7 @@ const resizeHandlersPropertiesToPick$ = autoSelectionBounds$.pipe(
 
 export const createPointerNodePick$ = (pointer$: rx.Observable<PointerEvent>) =>
   pointer$.pipe(
-    rx.withLatestFrom(shapes$, camera$, selectionBoundsToPick$, resizeHandlersPropertiesToPick$),
+    rx.withLatestFrom(shapes$, viewport.camera$, selectionBoundsToPick$, resizeHandlersPropertiesToPick$),
     rx.map(([event, shapes, camera, selectionBounds, resizeHandlers]) => ({
       event, shapes, camera, context, selectionBounds, resizeHandlers
     })),

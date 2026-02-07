@@ -1,7 +1,7 @@
 import { getPointFromEvent, screenToCanvasV2 } from "@/shared/lib/point";
 import { isNotNull } from "@/shared/lib/utils";
 import * as rx from "rxjs";
-import { camera$ } from "../../modules/camera";
+import { viewport } from "../../modules/camera/viewport";
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../../modules/pick-node";
 import { selectionBounds$ } from "../../view-model/selection-bounds";
 import { isIdle, shapesToRender$, viewState$ } from "../../view-model/state";
@@ -16,7 +16,7 @@ export const shapesRotateFlow$ = mouseDown$.pipe(
     viewState$.pipe(rx.filter(isIdle)),
     selectionBounds$.pipe(rx.filter(isNotNull), rx.map((value) => value.area)),
     shapesToRender$,
-    camera$,
+    viewport.camera$,
   ),
 
   rx.switchMap(([{ event }, idleState, area, shapes, camera]) => {

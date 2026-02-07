@@ -1,3 +1,4 @@
+import { SELECTION_BOUNDS_PADDING } from "@/entities/shape"
 import { independentGroupReflowFromBound } from "@/entities/shape/lib/transform/_reflow/_independent-multiple"
 import { independentGroupResizeFromCorner } from "@/entities/shape/lib/transform/_resize/group/_independent-group-resize-corner"
 import { proportionalGroupResizeFromCorner } from "@/entities/shape/lib/transform/_resize/group/_proportional-group-resize-corner"
@@ -16,15 +17,12 @@ import { independentGroupResizeFromBound } from "../../../../entities/shape/lib/
 import { proporionalGroupResizeFromBound } from "../../../../entities/shape/lib/transform/_resize/group/_proportional-group-resize-bound"
 import type { Selection } from "../../domain/selection"
 import type { Bound, Corner } from "../../domain/selection-area"
-import { camera$ } from "../../modules/camera"
+import { viewport } from "../../modules/camera/viewport"
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$ } from "../../modules/pick-node"
 import type { HitResizeHandler } from "../../modules/pick-node/_core"
 import { goToIdle, goToShapesResize, isIdle, isShapesResize, shapesToRender$, viewState$, type ShapesResizeViewState } from "../../view-model/state"
 import { shapes$ } from "../shapes"
-import { createGroupReflowState, createGroupResizeState } from "./_get-group-resize-state"
 import { mapSelectedShapes } from "./_strategy/_lib"
-import { SELECTION_BOUNDS_PADDING } from "@/entities/shape"
-import { proportionalGroupReflowFromBound } from "@/entities/shape/lib/transform/_reflow/_proportional-multiple"
 
 const applyResizeCursor = (bound: Bound | Corner) => {
   document.documentElement.style.cursor = ({
@@ -264,9 +262,7 @@ const getShapesResizeStrategy = (shapes: ClientShape[], hitTarget: HitResizeHand
       }
     },
     group: () => {
-      const resizeHandler = transform.group[hitTarget.handler]
-
-      // RIGHT
+      // const resizeHandler = transform.group[hitTarget.handler]
 
       return {
         activation: (selectedIds: Selection) => {
@@ -284,20 +280,20 @@ const getShapesResizeStrategy = (shapes: ClientShape[], hitTarget: HitResizeHand
           })
         },
 
-        resize: (cursor: Point, shiftKey: boolean) => {
-          const resizeType = shiftKey ? "proportional" : "independent"
+        resize: (cursor: Point, _shiftKey: boolean) => {
+          // const resizeType = shiftKey ? "proportional" : "independent"
 
-          const initialResizeState = createGroupResizeState[hitTarget.handler][resizeType](mapedShapesToState, boundingBox)
+          // const initialResizeState = createGroupResizeState[hitTarget.handler][resizeType](mapedShapesToState, boundingBox)
           // const patcher = resizeHandler[resizeType](initialResizeState, cursor)
 
-          const state = createGroupReflowState[hitTarget.handler]["proportional"](mapedShapesToState, boundingBox)
-          const pathcer = proportionalGroupReflowFromBound[hitTarget.handler](state, cursor)
+          // const state = createGroupReflowState[hitTarget.handler]["proportional"](mapedShapesToState, boundingBox)
+          // const pathcer = proportionalGroupReflowFromBound[hitTarget.handler](state, cursor)
 
           const nextShapes = mapSelectedShapes(shapes, (shape) => ({
             ...shape,
             geometry: {
               ...shape.geometry,
-              ...pathcer[shape.id]
+              // ...pathcer[shape.id]
             }
           })) as ClientShape[]
 
@@ -354,12 +350,11 @@ export const shapesResizeFlowViaBound$ = mouseDown$.pipe(
   rx.withLatestFrom(
     viewState$.pipe(rx.filter(isIdle), rx.map((state) => state.selectedIds)),
     shapesToRender$,
-    camera$
+    viewport.camera$
   ),
   rx.map(([handler, selectedIds, shapes, camera]) => ({ selectedIds, camera, shapes, handler })),
   rx.switchMap(({ camera, handler, shapes, selectedIds }) => {
     const sharedMove$ = pointerMove$.pipe(rx.share())
-    console.log(handler)
 
     const resizeStrategy = getShapesResizeStrategy(shapes, handler, selectedIds)
     shapesMarkVectorAsync(shapes)

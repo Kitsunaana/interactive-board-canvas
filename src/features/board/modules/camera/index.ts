@@ -1,12 +1,1 @@
-export type { Camera, CameraState, ZoomAction } from "./_domain"
-
-export {
-  cameraSubject$,
-  zoomTrigger$,
-  camera$,
-
-  canvasSizes$,
-  canvasSegment$,
-
-  spacePressed$,
-} from "./_stream"
+export type { Camera, ZoomAction } from "./_domain"

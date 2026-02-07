@@ -1,5 +1,5 @@
-import { screenToCanvas, sizesToPoint } from "@/shared/lib/point"
-import type { Point, Sizes } from "@/shared/type/shared"
+import { screenToCanvasV2, sizesToPoint } from "@/shared/lib/point"
+import type { Sizes } from "@/shared/type/shared"
 import { START_POINT } from "./_const"
 
 export type Camera = {
@@ -8,27 +8,9 @@ export type Camera = {
   y: number
 }
 
-export type CameraState = {
-  lastPosition: Point
-  panOffset: Point
-  velocity: Point
-  camera: Camera
-}
+export type ZoomAction = "zoomIn" | "zoomOut"
 
-export type ZoomAction = {
-  action: "zoomIn" | "zoomOut"
-}
-
-export const getWorldPoints = ({ sizes, camera }: {
-  camera: Camera
-  sizes: Sizes
-}) => ({
-  startWorld: screenToCanvas({
-    point: START_POINT,
-    camera,
-  }),
-  endWorld: screenToCanvas({
-    point: sizesToPoint(sizes),
-    camera,
-  }),
+export const getWorldPoints = (camera: Camera, sizes: Sizes) => ({
+  startWorld: screenToCanvasV2(START_POINT, camera),
+  endWorld: screenToCanvasV2(sizesToPoint(sizes), camera),
 })

@@ -2,7 +2,8 @@ import { isNotUndefined } from "@/shared/lib/utils";
 import { bind } from "@react-rxjs/core";
 import * as rx from "rxjs";
 import { shapes$ } from "../model/shapes";
-import { camera$ } from "../modules/camera/_stream";
+// import { camera$ } from "../modules/camera/_stream";
+import { viewport } from "../modules/camera/viewport";
 import { viewState$ } from "./state";
 
 export const [useResizedShapeSizeToView] = bind(viewState$.pipe(
@@ -11,7 +12,7 @@ export const [useResizedShapeSizeToView] = bind(viewState$.pipe(
   rx.switchMap((viewState) => shapes$.pipe(
     rx.map((shapes) => shapes.find(shape => viewState.selectedIds.has(shape.id))),
     rx.filter(shape => isNotUndefined(shape)),
-    rx.withLatestFrom(camera$),
+    rx.withLatestFrom(viewport.camera$),
     rx.map(([_shape, _camera]) => {
       // const computeRect = (position: Point) => _u.merge(
       //   pointToSizes(multiplePoint(position, camera.scale)),

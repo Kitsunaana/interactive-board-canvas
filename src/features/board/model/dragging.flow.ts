@@ -7,11 +7,12 @@ import type { Point } from "@/shared/type/shared"
 import { isNull } from "lodash"
 import * as rx from "rxjs"
 import type { SelectionBounds } from "../domain/selection-area"
-import { type Camera, camera$, spacePressed$ } from "../modules/camera"
+import { type Camera } from "../modules/camera"
 import { mouseDown$, pointerLeave$, pointerMove$, pointerUp$, wheel$ } from "../modules/pick-node"
 import type { HitTarget } from "../modules/pick-node/_core"
 import { autoSelectionBounds$ } from "../view-model/selection-bounds"
 import { goToShapesDragging, isIdle, isShapesDragging, shapesToRender$, viewState$ } from "../view-model/state"
+import { spacePressed$, viewport } from "../modules/camera/viewport"
 
 const isValidShapeInteraction = ({ selectionBounds, point, node }: {
   selectionBounds: SelectionBounds | null
@@ -117,7 +118,7 @@ export const shapesDraggingFlow$ = mouseDown$.pipe(
     )
 
     const drag$ = waitForThreshold$.pipe(
-      rx.withLatestFrom(camera$, shapesToRender$, viewState$.pipe(rx.filter(isShapesDragging))),
+      rx.withLatestFrom(viewport.camera$, shapesToRender$, viewState$.pipe(rx.filter(isShapesDragging))),
       rx.switchMap(([_, camera, shapes]) => sharedMove$.pipe(
         rx.skip(1),
         rx.map((event) => mapPointerMoveToMovedShapes({ startPoint, camera, shapes, event })),

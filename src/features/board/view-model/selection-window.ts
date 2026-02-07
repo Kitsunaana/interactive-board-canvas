@@ -9,7 +9,8 @@ import type { Point } from "@/shared/type/shared";
 import { isNull } from "lodash";
 import * as rx from "rxjs";
 import { isCanvas } from "../domain/is";
-import { camera$, type Camera } from "../modules/camera";
+import { type Camera } from "../modules/camera";
+import { viewport } from "../modules/camera/viewport";
 import { pointerUp$ } from "../modules/pick-node";
 import { context, isPickedShape } from "../modules/pick-node/_core";
 import { canvasMouseDown$, canvasMouseMove$ } from "../modules/pick-node/_events";
@@ -81,7 +82,7 @@ const selectionWindowFlow$ = canvasMouseDown$.pipe(
     const startPoint = downEvent.point
 
     return canvasMouseMove$.pipe(
-      rx.withLatestFrom(camera$),
+      rx.withLatestFrom(viewport.camera$),
       rx.tap(([moveEvent, camera]) => {
         const endPoint = moveEvent.point
 

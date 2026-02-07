@@ -2,7 +2,8 @@ import * as rx from "rxjs";
 import { ShapeDrawer } from "./entities/shape/index.ts";
 import type { ClientShape } from "./entities/shape/model/types.ts";
 import { type Camera } from "./features/board/modules/camera/_domain.ts";
-import { camera$, canvasSizes$, gridTypeSubject$ } from "./features/board/modules/camera/_stream.ts";
+import { gridTypeSubject$ } from "./features/board/modules/camera/_stream.ts";
+import { viewport } from "./features/board/modules/camera/viewport.ts";
 import { gridTypeVariants } from "./features/board/ui/cavnas.ts";
 import { drawSelectionBoundsArea } from "./features/board/ui/selection-area.ts";
 import { gridProps$ } from "./features/board/view-model/canvas-props.ts";
@@ -19,10 +20,10 @@ export const renderLoop$ = rx.combineLatest([
   selectionBounds$,
   selectionWindow$,
   shapesToView$,
-  canvasSizes$,
+  viewport.canvasSizes$,
   viewState$,
   gridProps$,
-  camera$
+  viewport.camera$,
 ]).pipe(
   rx.map(([gridType, selectionBounds, selectionWindow, shapes, canvasSizes, viewState, gridProps, camera]) => ({
     selectionBounds,
