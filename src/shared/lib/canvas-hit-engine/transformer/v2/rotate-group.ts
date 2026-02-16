@@ -1,16 +1,14 @@
 import { distance, getAngleBetweenPoints, getPointFromEvent } from "../../../point"
-import type { Rectangle } from "../../math"
 import * as Maths from "../../math"
-import { Polygon } from "../../shapes"
+import * as Shapes from "../../shapes"
 import type { Transformer } from "../transformer"
-import { type RotaterRect } from "./rotate-shape"
-import type { RotateTransformerContext } from "./rotate.interface"
+import type { RotaterRect, RotateTransformerController, RotateTransformerModel } from "./rotate.interface"
 import { createDragEventsFlow } from "./shared"
 
-class RotateGroupModel {
+class RotateGroupModel implements RotateTransformerModel {
   public rotaterRect!: RotaterRect
-  public nodes: Array<Polygon>
-  public area!: Rectangle
+  public nodes: Array<Shapes.Polygon>
+  public area!: Maths.Rectangle
 
   public isRotating = false
   public startAngle = 0
@@ -238,7 +236,7 @@ class RotateGroupDrawer {
   }
 }
 
-export class RotateGroupTransformer implements RotateTransformerContext {
+export class RotateGroupTransformer implements RotateTransformerController {
   private _drawer: RotateGroupDrawer
   private _model: RotateGroupModel
 

@@ -1,25 +1,19 @@
 import { distance, getAngleBetweenPoints, getPointFromEvent } from "../../../point"
-import { Matrix, Polygon, Rectangle, type PointData } from "../../math"
+import * as Maths from "../../math"
 import * as Shapes from "../../shapes"
 import type { Transformer } from "../transformer"
-import type { RotateTransformerContext } from "./rotate.interface"
+import type { RotaterRect, RotateTransformerController, RotateTransformerModel } from "./rotate.interface"
 import { createDragEventsFlow } from "./shared"
 
-export type RotaterRect = {
-  radius: number
-  x: number
-  y: number
-}
-
-class RotateShapeModel {
+class RotateShapeModel implements RotateTransformerModel {
   public tempAngle = 0
   public startAngle = 0
 
   public isRotating = false
 
   public rotaterRect!: RotaterRect
-  public corners!: Array<PointData>
-  public bounds!: Rectangle
+  public corners!: Array<Maths.PointData>
+  public bounds!: Maths.Rectangle
   public shape!: Shapes.Polygon
 
   public constructor(private readonly transformer: Transformer) { }
@@ -37,8 +31,8 @@ class RotateShapeModel {
 
   public setCorners(): void {
     const bounds = this.bounds
-    const corners = new Polygon(bounds.getCorner())
-      .applyMatrix(new Matrix()
+    const corners = new Maths.Polygon(bounds.getCorner())
+      .applyMatrix(new Maths.Matrix()
         .setPivot(bounds.centerX, bounds.centerY)
         .rotate(this.shape.angle)
       )
@@ -72,7 +66,7 @@ class RotateShapeModel {
     }
   }
 
-  public getBoundsCenter(): PointData {
+  public getBoundsCenter(): Maths.PointData {
     return {
       x: this.bounds.centerX,
       y: this.bounds.centerY,
@@ -105,7 +99,7 @@ class RotateShapeModel {
 
   public finishRotate(_event: PointerEvent): void {
     const bounds = this.shape.boundsSkippedRotate
-    const matrix = new Matrix()
+    const matrix = new Maths.Matrix()
       .setPivot(bounds.centerX, bounds.centerY)
       .rotate(this.tempAngle)
 
@@ -182,7 +176,7 @@ class RotateShapeDrawer {
   }
 }
 
-export class RotateShapeTransform implements RotateTransformerContext {
+export class RotateShapeTransform implements RotateTransformerController {
   private _drawer: RotateShapeDrawer
   private _model: RotateShapeModel
 
