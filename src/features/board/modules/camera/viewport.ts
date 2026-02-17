@@ -4,7 +4,6 @@ import type { Point, Sizes } from "@/shared/type/shared"
 import { isEqual } from "lodash"
 import type { KeyboardEvent } from "react"
 import * as rx from "rxjs"
-import { VELOCITY_SCALE, ZOOM, ZOOM_INTENSITY, ZOOM_MAX_SCALE, ZOOM_MIN_SCALE } from "./_const"
 import { getWorldPoints, type Camera, type ZoomAction } from "./_domain"
 
 export const gridTypeSubject$ = new rx.BehaviorSubject<"lines" | "dots">("lines")
@@ -28,6 +27,19 @@ type EnableInertiaOptionsStream = {
   minVelocity: number
   friction: number
 }
+
+type EnableWheelOptionsStream = {
+  intensity: number
+  minScale: number
+  maxScale: number
+}
+
+export const ZOOM_INTENSITY = 0.1
+export const ZOOM_MIN_SCALE = 0.01
+export const ZOOM_MAX_SCALE = 10
+
+export const VELOCITY_SCALE = 1.0
+export const FRICTION = 0.90
 
 export class Viewport {
   public readonly zoomTrigger$ = new rx.Subject<ZoomAction>()
@@ -69,8 +81,35 @@ export class Viewport {
   private _wheelStream: rx.Subscription | null = null
   private _panStream: rx.Subscription | null = null
 
+  private _inertiaOptions: EnableInertiaOptionsStream | null = null
+  private _wheelOptions: EnableWheelOptionsStream | null = null
+
   get camera$() {
     return this.cameraSubject$
+  }
+
+  public get velocityScale() {
+    return this._inertiaOptions?.velocityScale ?? VELOCITY_SCALE
+  }
+
+  public get minVelocity() {
+    return this._inertiaOptions?.minVelocity ?? FRICTION
+  }
+
+  public get friction() {
+    return this._inertiaOptions?.friction ?? FRICTION
+  }
+
+  public get minScale() {
+    return this._wheelOptions?.minScale ?? ZOOM_MIN_SCALE
+  }
+
+  public get maxScale() {
+    return this._wheelOptions?.maxScale ?? ZOOM_MAX_SCALE
+  }
+
+  public get intensity() {
+    return this._wheelOptions?.intensity ?? ZOOM_INTENSITY
   }
 
   constructor(canvas: HTMLCanvasElement) {
@@ -94,7 +133,7 @@ export class Viewport {
     }).pipe(rx.map(({ camera, sizes }) => getWorldPoints(camera, sizes)))
   }
 
-  public remove() {
+  public unsubscribe() {
     this._inertiaStream?.unsubscribe()
     this._wheelStream?.unsubscribe()
     this._panStream?.unsubscribe()
@@ -126,8 +165,8 @@ export class Viewport {
         rx.map((moveEvent) => ({ moveEvent, dragState })),
         rx.takeUntil(rx.merge(this._pointerUp$, this._pointerLeave$)),
         rx.map(({ moveEvent, dragState: [_, camera] }) => {
-          this._velocity.x = (moveEvent.offsetX - this._lastPosition.x) * (this._inertiaOptions.velocityScale ?? VELOCITY_SCALE)
-          this._velocity.y = (moveEvent.offsetY - this._lastPosition.y) * (this._inertiaOptions.velocityScale ?? VELOCITY_SCALE)
+          this._velocity.x = (moveEvent.offsetX - this._lastPosition.x) * this.velocityScale
+          this._velocity.y = (moveEvent.offsetY - this._lastPosition.y) * this.velocityScale
 
           this._lastPosition.x = moveEvent.offsetX
           this._lastPosition.y = moveEvent.offsetY
@@ -146,7 +185,9 @@ export class Viewport {
     return this
   }
 
-  public wheel() {
+  public wheel(options: EnableWheelOptionsStream) {
+    this._wheelOptions = options
+
     const wheelCamera$ = this._wheel$.pipe(
       rx.withLatestFrom(this.camera$),
       rx.map(([event, camera]) => this._changeZoom(camera, event)),
@@ -166,8 +207,6 @@ export class Viewport {
     return this
   }
 
-  private _inertiaOptions!: EnableInertiaOptionsStream
-
   public inertia(options: EnableInertiaOptionsStream) {
     this._inertiaOptions = options
 
@@ -177,7 +216,7 @@ export class Viewport {
         rx.scan(this._getCameraWithAppliedInertia.bind(this), camera),
         rx.pairwise(),
         rx.takeWhile(([prev, current]) => {
-          const hasVelocity = Math.hypot(this._velocity.x, this._velocity.y) > this._inertiaOptions.minVelocity
+          const hasVelocity = Math.hypot(this._velocity.x, this._velocity.y) > this.minVelocity
           const hasMovement = !isEqual(prev, current)
 
           return hasVelocity && hasMovement
@@ -196,8 +235,8 @@ export class Viewport {
       scale: camera.scale,
     }
 
-    this._velocity.x *= this._inertiaOptions.friction
-    this._velocity.y *= this._inertiaOptions.friction
+    this._velocity.x *= this.friction
+    this._velocity.y *= this.friction
 
     return cameraWithVelocity
   }
@@ -206,8 +245,8 @@ export class Viewport {
     return (event.button === 1 && event.ctrlKey === false) || (spacePressed && event.button === 0)
   }
 
-  private _zoomIn(camera: Camera, intensity = ZOOM_INTENSITY) {
-    if (camera.scale >= ZOOM_MAX_SCALE) return camera
+  private _zoomIn(camera: Camera, intensity = this.intensity) {
+    if (camera.scale >= this.maxScale) return camera
 
     return {
       ...camera,
@@ -215,8 +254,8 @@ export class Viewport {
     }
   }
 
-  private _zoomOut(camera: Camera, intensity = ZOOM_INTENSITY) {
-    if (camera.scale <= ZOOM_MIN_SCALE) return camera
+  private _zoomOut(camera: Camera, intensity = this.intensity) {
+    if (camera.scale <= this.minScale) return camera
 
     return {
       ...camera,
@@ -225,10 +264,10 @@ export class Viewport {
   }
 
   private _changeZoom(camera: Camera, event: WheelEvent) {
-    const delta = event.deltaY > 0 ? -ZOOM.INTENSITY : ZOOM.INTENSITY
+    const delta = event.deltaY > 0 ? -this.intensity : this.intensity
     const newScale = camera.scale * (1 + delta)
 
-    if (newScale < ZOOM.MIN_SCALE || newScale > ZOOM.MAX_SCALE) return camera
+    if (newScale < this.minScale || newScale > this.maxScale) return camera
 
     const mouseX = event.offsetX
     const mouseY = event.offsetY
@@ -249,5 +288,9 @@ viewport
     minVelocity: 0.5,
     friction: 0.9,
   })
-  .wheel()
+  .wheel({
+    intensity: 0.1,
+    minScale: 0.1,
+    maxScale: 10,
+  })
   .pan()

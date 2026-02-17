@@ -1,100 +1,124 @@
-// import { generateRandomColor, toRGB } from "@/shared/lib/color"
-// import { nanoid } from "nanoid"
-// import type { RectangleGeometry, RectangleStyle } from "./types"
+import * as Shapes from "./shapes"
+import { PolygonV2 } from "./shapes/polygon-v2"
+import { Stage } from "./shapes/stage"
+import { Transformer } from "./transformer/transformer"
 
-// import { fromEvent, map } from "rxjs"
-// import "../../../app/index.css"
-// import { getPointFromEvent } from "../point"
+const canvas = document.createElement("canvas")
+const context = canvas.getContext("2d") as CanvasRenderingContext2D
 
-// type AnyMetadata = { type: string }
+// canvas.style.display = "none"
+canvas.style.position = "absolute"
+canvas.style.top = "0px"
+canvas.style.left = "0px"
 
-// type CreateRectangleParams<Metadata extends AnyMetadata> = {
-//   metadata: Metadata
-//   colorId: string
-// }
+document.body.appendChild(canvas)
 
-// const nodesToRender = {
-//   list: new Map(),
+canvas.width = window.innerWidth
+canvas.height = window.innerHeight
 
-//   add: <Metadata extends AnyMetadata>(colorId: string, metadata: Metadata) => {
-//     if (!nodesToRender.list.has(colorId)) {
-//       nodesToRender.list.set(colorId, metadata)
-//     }
-//   },
+const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
+const points2 = [{ x: 402, y: 398 }, { x: 421, y: 300 }, { x: 439, y: 351 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
 
-//   remove: (colorId: string) => {
-//     nodesToRender.list.delete(colorId)
-//   }
-// }
+const polygon1 = new Shapes.Polygon({
+  points: points1,
+  rotation: 0.3
+})
 
-// const createNode = <Metadata extends AnyMetadata>({ metadata, colorId }: CreateRectangleParams<Metadata>) => {
-//   nodesToRender.add(colorId, metadata)
+polygon1.on("pointerdown", () => {
+  console.log("CLICK")
+})
 
-//   return {
-//     draw: (context: CanvasRenderingContext2D, geometry: RectangleGeometry, _style: RectangleStyle) => {
-//       const centerX = geometry.x + geometry.width / 2
-//       const centerY = geometry.y + geometry.height / 2
-
-//       context.save()
-
-//       context.fillStyle = colorId
-//       context.strokeStyle = colorId
-
-//       context.translate(centerX, centerY)
-//       context.rotate(0)
-//       context.rect(-geometry.width / 2, -geometry.height / 2, geometry.width, geometry.height)
-//       context.fill()
-//       context.stroke()
-//       context.restore()
-//     },
-
-//     remove: () => {
-//       nodesToRender.remove(colorId)
-//     }
-//   }
-// }
-
-// const rectangle = createNode({
-//   colorId: generateRandomColor(),
-//   metadata: {
-//     type: "shape",
-//     id: nanoid(),
-//   },
+// const polygon2 = new Shapes.Polygon({
+//   points: points2,
+//   rotation: 0.4,
 // })
 
-// const canvas = document.createElement("canvas")
-// const context = canvas.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D
+// const tr = new Transformer()
+// tr.nodes([polygon1, polygon2])
 
-// canvas.style.backgroundColor = "#a8604f"
+const stage = new Stage({
+  width: 100,
+  height: 100,
+  bgColor: "red"
+})
 
-// canvas.width = window.innerWidth
-// canvas.height = window.innerHeight
+const shape = new PolygonV2({
+  points: points2,
+})
 
-// document.body.appendChild(canvas)
+setInterval(() => {
+  shape.rotate(0.001)
+}, 10)
 
-// rectangle.draw(context, {
-//   kind: "rectangle-geometry",
-//   height: 100,
-//   width: 100,
-//   x: 100,
-//   y: 100,
-// }, {
-//   strokeColor: "#b2f2bb",
-//   fillColor: "#2f9e44",
-//   borderRadius: 12,
-//   lineWidth: 2,
-//   opacity: 0,
-// })
+animate()
+function animate() {
+  context.clearRect(0, 0, canvas.width, canvas.height)
 
-// const pointerDown$ = fromEvent<PointerEvent>(window, "pointerdown").pipe(
-//   map((event) => {
-//     const cursor = getPointFromEvent(event)
-//     const [r, g, b] = context.getImageData(cursor.x, cursor.y, 1, 1).data
+  context.save()
+  shape.draw(context)
+  // tr.draw(context)
+  context.restore()
 
-//     const pickedNode = nodesToRender.list.get(toRGB(r, g, b))
+  requestAnimationFrame(animate)
+}
 
-//     return pickedNode
-//   })
-// )
+/**
+ * Создаёт путь повёрнутого эллипса через 4 кривые Безье
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} cx - центр X
+ * @param {number} cy - центр Y
+ * @param {number} rx - радиус по X (автоматически берёт модуль)
+ * @param {number} ry - радиус по Y (автоматически берёт модуль)
+ * @param {number} angle - поворот в радианах
+ */
+function createRotatedEllipsePath(ctx: CanvasRenderingContext2D, cx: number, cy: number, rx: number, ry: number, angle: number) {
+  rx = Math.abs(rx);
+  ry = Math.abs(ry);
 
-// pointerDown$.subscribe(node => console.log(node))
+  // Ключевая константа для аппроксимации четверти эллипса
+  const K = 4 * (Math.sqrt(2) - 1) / 3; // ≈ 0.5522847498
+
+  // Кэшируем тригонометрию
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+
+  // Вспомогательная функция: поворот + смещение точки
+  const transform = (x: number, y: number) => {
+    return [
+      cx + x * cos - y * sin,
+      cy + x * sin + y * cos
+    ];
+  };
+
+  // === Строим путь ===
+  ctx.beginPath();
+
+  // Начало: правая точка эллипса
+  const [x0, y0] = transform(rx, 0);
+  ctx.moveTo(x0, y0);
+
+  // Сегмент 1: (rx,0) → (0,ry)
+  const [x1, y1] = transform(rx, K * ry);
+  const [x2, y2] = transform(K * rx, ry);
+  const [x3, y3] = transform(0, ry);
+  ctx.bezierCurveTo(x1, y1, x2, y2, x3, y3);
+
+  // Сегмент 2: (0,ry) → (-rx,0)
+  const [x4, y4] = transform(-K * rx, ry);
+  const [x5, y5] = transform(-rx, K * ry);
+  const [x6, y6] = transform(-rx, 0);
+  ctx.bezierCurveTo(x4, y4, x5, y5, x6, y6);
+
+  // Сегмент 3: (-rx,0) → (0,-ry)
+  const [x7, y7] = transform(-rx, -K * ry);
+  const [x8, y8] = transform(-K * rx, -ry);
+  const [x9, y9] = transform(0, -ry);
+  ctx.bezierCurveTo(x7, y7, x8, y8, x9, y9);
+
+  // Сегмент 4: (0,-ry) → (rx,0) — замыкание
+  const [x10, y10] = transform(K * rx, -ry);
+  const [x11, y11] = transform(rx, -K * ry);
+  ctx.bezierCurveTo(x10, y10, x11, y11, x0, y0);
+
+  ctx.closePath(); // Гарантирует замыкание пути
+}

@@ -3,7 +3,11 @@ import type { PointData } from "./point"
 import { Rectangle } from "./rectangle"
 
 export class Polygon {
-  constructor(public points: PointData[]) { }
+  // public points: number[]
+
+  constructor(public points: PointData[]) {
+    // this.points = points.flatMap((point) => [point.x, point.y])
+  }
 
   public get lastX(): number {
     return this.points[this.points.length - 1].x
@@ -22,7 +26,7 @@ export class Polygon {
   }
 
   public clone() {
-    const points = this.points.slice()
+    const points = this.points.map((point) => ({ ...point }))
     const polygon = new Polygon(points)
 
     return polygon
