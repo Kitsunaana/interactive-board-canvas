@@ -7,7 +7,8 @@ export interface NodeConfig {
 }
 
 export abstract class Node {
-  private readonly _type = "Node"
+  abstract _type: string
+
   private readonly _pointerPosition: PointData = {
     x: 0,
     y: 0,

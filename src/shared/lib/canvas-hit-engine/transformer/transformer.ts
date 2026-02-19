@@ -66,6 +66,8 @@ export class Transformer {
         ? new RotateShapeTransform(this)
         : new RotateGroupTransformer(this)
 
+      // this._rotater = new RotateGroupTransformer(this)
+
       this._rotater.start()
     }
 

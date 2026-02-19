@@ -1,15 +1,14 @@
-import * as Shapes from "./shapes"
+import { addPoint, getPointFromEvent } from "../point"
+import { Group } from "./shapes/group"
 import { PolygonV2 } from "./shapes/polygon-v2"
-import { Stage } from "./shapes/stage"
-import { Transformer } from "./transformer/transformer"
+import { createDragEventsFlow } from "./transformer/v2/shared"
 
 const canvas = document.createElement("canvas")
 const context = canvas.getContext("2d") as CanvasRenderingContext2D
 
-// canvas.style.display = "none"
 canvas.style.position = "absolute"
-canvas.style.top = "0px"
 canvas.style.left = "0px"
+canvas.style.top = "0px"
 
 document.body.appendChild(canvas)
 
@@ -18,45 +17,34 @@ canvas.height = window.innerHeight
 
 const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
 const points2 = [{ x: 402, y: 398 }, { x: 421, y: 300 }, { x: 439, y: 351 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
+const points3 = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }]
 
-const polygon1 = new Shapes.Polygon({
-  points: points1,
-  rotation: 0.3
+const group2 = new Group({ x: 100, y: 100, name: "group2" })
+const group1 = new Group({ x: 20, y: 20, name: "group1" })
+
+window.addEventListener("pointermove", (event) => {
+  group1.absolutePositionCursor.x = event.clientX
+  group1.absolutePositionCursor.y = event.clientY
+
+  group2.absolutePositionCursor.x = event.clientX
+  group2.absolutePositionCursor.y = event.clientY
 })
 
-polygon1.on("pointerdown", () => {
-  console.log("CLICK")
-})
+const shape1 = new PolygonV2({ points: points1, x: 20, y: 20, })
+const shape2 = new PolygonV2({ points: points2 })
+const shape3 = new PolygonV2({ points: points3 })
 
-// const polygon2 = new Shapes.Polygon({
-//   points: points2,
-//   rotation: 0.4,
-// })
+shape1.rotate(0.5)
 
-// const tr = new Transformer()
-// tr.nodes([polygon1, polygon2])
-
-const stage = new Stage({
-  width: 100,
-  height: 100,
-  bgColor: "red"
-})
-
-const shape = new PolygonV2({
-  points: points2,
-})
-
-setInterval(() => {
-  shape.rotate(0.001)
-}, 10)
+group1.add(shape1, shape2)
+group2.add(group1, shape3)
 
 animate()
 function animate() {
   context.clearRect(0, 0, canvas.width, canvas.height)
 
   context.save()
-  shape.draw(context)
-  // tr.draw(context)
+  group2.draw(context)
   context.restore()
 
   requestAnimationFrame(animate)

@@ -80,6 +80,4 @@ export class Stage {
       layer.clear()
     })
   }
-
-  
 }
