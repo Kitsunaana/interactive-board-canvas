@@ -5,13 +5,11 @@ import { Polygon, Rectangle, type PointData } from "../math";
 import { createDragEventsFlow } from "../transformer/v2/shared";
 
 interface Shape extends Node {
-  __parent: Group | null
+  _parent: Group | null
 
   getType(): "Shape"
   draw(context: CanvasRenderingContext2D): void
   getClientRect(): Rectangle
-
-  __onUpdate(callback: () => void): void
 }
 
 type AvailableChild = Group | Shape
@@ -23,34 +21,48 @@ interface GroupConfig {
   name?: string
 }
 
-export class Container {
-
+export interface Observerable {
+  update(): void
 }
 
-export abstract class Draggable {
-  public abstract readonly absolutePositionCursor: PointData
+export class Observer {
+  private _observers: Array<Observerable> = []
 
-  public abstract position: PointData
+  public attach(observer: Observerable) {
+    const isExist = this._observers.includes(observer)
+    if (isExist) return
 
-  public abstract contains(point: PointData): boolean
-  public abstract getAbsolutePosition(): PointData
+    this._observers.push(observer)
+  }
 
+  public detach(observer: Observerable) {
+    const index = this._observers.indexOf(observer)
+    if (index === -1) return
+
+    this._observers.splice(index, 1)
+  }
+
+  public notify() {
+    this._observers.forEach((observer) => {
+      observer.update()
+    })
+  }
+}
+
+export interface Node {
+  _position: PointData
+  absolutePositionCursor: PointData
+
+  getAbsolutePosition(): PointData
+  getParent(): Group | null
+  contains(point: PointData): boolean
+}
+
+export abstract class Draggable extends Observer {
   private _startDragPosition: PointData | null = null
   private _startDragPointer: PointData | null = null
 
   private _isDragging: boolean = false
-
-  constructor() {
-    const that = this
-
-    createDragEventsFlow({
-      guard: this._canStartDrag.bind(that),
-
-      process: this._processDrag.bind(that),
-      finish: this._finishDrag.bind(that),
-      start: this._startDrag.bind(that),
-    })
-  }
 
   public isDragging() {
     return this._isDragging
@@ -64,92 +76,120 @@ export abstract class Draggable {
     this._isDragging = false
   }
 
+  public init(node: NodeV3) {
+    createDragEventsFlow({
+      guard: this._canStartDrag.bind(this, node),
+
+      process: this._processDrag.bind(this, node),
+      finish: this._finishDrag.bind(this),
+      start: this._startDrag.bind(this, node),
+    })
+  }
+
   private _finishDrag() {
     this._startDragPointer = null
     this._startDragPosition = null
+
+    this.stopDrag()
+    this.notify()
   }
 
-  private _canStartDrag() {
-    const absolutePosition = this.getAbsolutePosition()
-
-    const positionWithoutOwnShift = subtractPoint(this.position, absolutePosition)
-    const cursorPositionInClientRect = subtractPoint(positionWithoutOwnShift, this.absolutePositionCursor)
-
-    return this.contains(cursorPositionInClientRect)
-  }
-
-  private _processDrag() {
+  private _processDrag(node: NodeV3) {
     if (this.isDragging() && isNotNull(this._startDragPointer) && isNotNull(this._startDragPosition)) {
-      const offset = subtractPoint(this._startDragPointer, this.absolutePositionCursor)
+      const offset = subtractPoint(this._startDragPointer, node.absolutePositionCursor)
 
-      this.position = addPoint(this._startDragPosition, offset)
+      node._position = addPoint(this._startDragPosition, offset)
     }
   }
 
-  private _startDrag() {
-    if (this instanceof Node) {
-      Group
-        .getAllParentGroups(this)
-        .forEach((parent) => parent.stopDrag())
-    }
+  private _startDrag(node: NodeV3) {
+    this._startDragPointer = clone(node.absolutePositionCursor)
+    this._startDragPosition = clone(node._position)
 
-    this._startDragPointer = clone(this.absolutePositionCursor)
-    this._startDragPosition = clone(this.position)
+    node
+      .getAllParents()
+      .forEach((parent) => parent.stopDrag())
 
     this.startDrag()
+    this.notify()
+  }
+
+  private _canStartDrag(node: NodeV3) {
+    const absolutePosition = node.getAbsolutePosition()
+
+    const positionWithoutOwnShift = subtractPoint(node._position, absolutePosition)
+    const cursorPositionInClientRect = subtractPoint(positionWithoutOwnShift, node.absolutePositionCursor)
+
+    return node.contains(cursorPositionInClientRect)
   }
 }
 
-export abstract class Node extends Draggable {
-  public parent: AvailableChild | null = null
+export abstract class NodeV3 extends Draggable {
+  public abstract readonly absolutePositionCursor: PointData
+  public abstract contains(point: PointData): boolean
+
+  protected _name: string | undefined = undefined
+
+  public _parent: Group | null = null
+  public _position: PointData = {
+    x: 0,
+    y: 0,
+  }
 
   public getParent() {
-    return this.parent
+    return this._parent
+  }
+
+  public getName() {
+    return this._name
+  }
+
+  public getAbsolutePosition(): PointData {
+    if (isNotNull(this._parent)) {
+      const parentPosition = this._parent.getAbsolutePosition()
+      return addPoint(parentPosition, this._position)
+    }
+
+    return this._position
+  }
+
+  public getAllParents<T extends NodeV3>(list: Array<T> = []): Array<T> {
+    const parent = this.getParent() as unknown as T
+
+    return isNull(parent)
+      ? list
+      : this.getAllParents.call(parent, list.concat(parent)) as Array<T>
   }
 }
 
-export class Group extends Node {
-  private readonly _name: string | undefined
+export class Group extends NodeV3 implements Observerable {
   private readonly _type = "Group" as const
 
   private _children: Array<AvailableChild> = []
   private _needUpdateClientRect: boolean = true
 
   private readonly _clientRect: Rectangle = new Rectangle()
-  public readonly position: PointData = {
-    x: 0,
-    y: 0,
-  }
 
   public readonly absolutePositionCursor: PointData = {
     x: 0,
     y: 0,
   }
 
-  public startDragPosition: PointData | null = null
-
   public constructor(config?: GroupConfig) {
     super()
 
-    if (isNotUndefined(config)) {
-      this.position.x = config.x
-      this.position.y = config.y
+    this.init(this)
+    this.attach(this)
 
+    if (isNotUndefined(config)) {
+      this._position.x = config.x
+      this._position.y = config.y
       this._name = config.name
     }
   }
 
-  public static getAllParentGroups<T extends Node>(group: T, list: Array<T> = []): Array<T> {
-    const parent = group.getParent() as unknown as T
-
-    return isNull(parent)
-      ? list
-      : Group.getAllParentGroups<T>(parent, list.concat(parent))
-  }
-
-  private readonly __listeners: Array<Function> = []
-  public __onUpdate(callback: () => void): void {
-    this.__listeners.push(callback)
+  public update(): void {
+    this._needUpdateClientRect = true
   }
 
   public getType() {
@@ -161,7 +201,7 @@ export class Group extends Node {
 
     context.save()
 
-    context.translate(this.position.x, this.position.y)
+    context.translate(this._position.x, this._position.y)
     this._children.forEach((child) => child.draw(context))
 
     context.restore()
@@ -180,15 +220,6 @@ export class Group extends Node {
     }
   }
 
-  public getAbsolutePosition(): PointData {
-    if (isNotNull(this.parent)) {
-      const parentPosition = this.parent.getAbsolutePosition()
-      return addPoint(parentPosition, this.position)
-    }
-
-    return this.position
-  }
-
   public getClientRect(): Rectangle {
     if (this._needUpdateClientRect) {
       this._needUpdateClientRect = false
@@ -201,8 +232,8 @@ export class Group extends Node {
 
       new Polygon(corners).getBounds(this._clientRect)
 
-      this._clientRect.x += this.position.x
-      this._clientRect.y += this.position.y
+      this._clientRect.x += this._position.x
+      this._clientRect.y += this._position.y
     }
 
     return this._clientRect
@@ -211,11 +242,8 @@ export class Group extends Node {
   public add(...children: Array<AvailableChild>) {
     children.forEach((child) => {
       this._children.push(child)
-      child.parent = this
 
-      child.__onUpdate(() => {
-        this._needUpdateClientRect = true
-      })
+      child._parent = this
     })
   }
 
