@@ -1,5 +1,5 @@
-import { Matrix } from "./matrix"
-import { Rectangle } from "./rectangle"
+import { Matrix } from "./Matrix"
+import { Rectangle } from "./Rectangle"
 
 export interface BoundsData {
   minX: number

@@ -1,6 +1,6 @@
-import type { Bounds } from "./bounds"
-import type { Matrix } from "./matrix"
-import type { PointData } from "./point"
+import type { Bounds } from "./Bounds"
+import type { Matrix } from "./Matrix"
+import type { PointData } from "./Point"
 
 export class Rectangle {
   constructor(public x: number = 0, public y: number = 0, public width: number = 0, public height: number = 0) { }

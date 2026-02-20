@@ -1,7 +1,5 @@
-import { addPoint, getPointFromEvent } from "../point"
-import { Group } from "./shapes/group"
-import { PolygonV2 } from "./shapes/polygon-v2"
-import { createDragEventsFlow } from "./transformer/v2/shared"
+import { Group } from "../../../../engine"
+import { PolygonV2 } from "./shapes/polygon"
 
 const canvas = document.createElement("canvas")
 const context = canvas.getContext("2d") as CanvasRenderingContext2D

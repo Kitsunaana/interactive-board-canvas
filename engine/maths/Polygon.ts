@@ -1,13 +1,9 @@
-import type { Matrix } from "./matrix"
-import type { PointData } from "./point"
-import { Rectangle } from "./rectangle"
+import type { Matrix } from "./Matrix"
+import type { PointData } from "./Point"
+import { Rectangle } from "./Rectangle"
 
 export class Polygon {
-  // public points: number[]
-
-  constructor(public points: PointData[]) {
-    // this.points = points.flatMap((point) => [point.x, point.y])
-  }
+  constructor(public points: PointData[]) {  }
 
   public get lastX(): number {
     return this.points[this.points.length - 1].x

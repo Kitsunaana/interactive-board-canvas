@@ -1,80 +1,79 @@
-import { isNotUndefined } from "../../utils";
-import { EventBus, events, type EventName, type Unsubscribe } from "../events/event-bus";
-import * as Maths from "../math";
-import { getListWithoutItem } from "../utils/list-without-item";
+import { Primitive, Group } from "../../../../../engine"
 
 export type PolygonConfig = {
-  id?: string
-  name?: string
-  rotation?: number
-  points: Maths.PointData[],
+  points: Primitive.PointData[],
+  x?: number
+  y?: number
 }
 
-export class Polygon extends Maths.Polygon {
-  private _bounds = this.getBounds()
+export class PolygonV2 {
+  private readonly _type = "Shape" as const
 
-  private _events = new EventBus()
-  private _interactive = true
+  public __parent: Group | null = null
 
-  public boundsSkippedRotate: Maths.Rectangle
+  public boundsSkippedRotate: Primitive.Rectangle
 
-  public needUpdateBounds: boolean = true
-  public angle: number
+  private _needUpdate: boolean = true
+
+  private readonly _math: Primitive.Polygon
+  private readonly _matrix: Primitive.Matrix = new Primitive.Matrix()
+  private readonly _bounds: Primitive.Rectangle = new Primitive.Rectangle()
+
+  private readonly _position: Primitive.PointData = {
+    x: 0,
+    y: 0,
+  }
 
   constructor(config: PolygonConfig) {
-    super(config.points);
+    this._math = new Primitive.Polygon(config.points)
 
-    this.angle = config.rotation ?? 0.0
-    this.boundsSkippedRotate = this.getBounds()
+    this._position.x = config.x ?? 0
+    this._position.y = config.y ?? 0
 
-    const matrix = new Maths.Matrix()
-      .setPivot(this.bounds.centerX, this.bounds.centerY)
-      .rotate(this.angle)
-
-    this.applyMatrix(matrix)
-    this.needUpdateBounds = true
+    this.boundsSkippedRotate = this._math.getBounds()
   }
 
-  public get interactive() {
-    return this._interactive
+  private readonly __listeners: Array<Function> = []
+  public __onUpdate(callback: () => void) {
+    this.__listeners.push(callback)
   }
 
-  public subscribedEvents = new Set<EventName>()
-
-  public set interactive(value: boolean) {
-    this._interactive = value
-
-    this.subscribedEvents.forEach((key) => {
-      if (value) events[key].push(this)
-      else events[key] = getListWithoutItem(events[key], this)
-    })
+  public __update() {
+    this.__listeners.forEach(listener => listener())
   }
 
-  public on(key: EventName, callback: Function): Unsubscribe {
-    const unsubscribe = this._events.on(key, callback)
-    this.subscribedEvents.add(key)
+  public getType() {
+    return this._type
+  }
 
-    if (events[key].indexOf(this) === -1)
-      events[key].push(this)
+  public getParent() {
+    return this.__parent
+  }
 
-    return () => {
-      events[key] = getListWithoutItem(events[key], this)
-      unsubscribe()
+  public rotate(angle: number): void {
+    const bounds = this.boundsSkippedRotate
+
+    this._matrix
+      .clear()
+      .setPivot(bounds.centerX, bounds.centerY)
+      .rotate(angle)
+
+    this._math.applyMatrix(this._matrix)
+    this.__update()
+  }
+
+  public contains(point: Primitive.PointData): boolean {
+    return this._math.contains(point.x + this._position.x, point.y + this._position.y)
+  }
+
+  public getClientRect(): Primitive.Rectangle {
+    if (this._needUpdate) {
+      this._math.getBounds(this._bounds)
+      this._bounds.x += this._position.x
+      this._bounds.y += this._position.y
     }
-  }
-
-  public emit(key: EventName, cursor: Maths.PointData) {
-    this._events.emit(key, cursor)
-  }
-
-  public getClientRect(): Maths.Rectangle {
-    this._bounds = super.getBounds()
 
     return this._bounds
-  }
-
-  public get bounds() {
-    return this.boundsSkippedRotate
   }
 
   public __debugDrawShape(context: CanvasRenderingContext2D) {
@@ -83,7 +82,7 @@ export class Polygon extends Maths.Polygon {
     context.strokeStyle = "#e87123"
     context.beginPath()
 
-    this.points.forEach((point) => context.lineTo(point.x, point.y))
+    this._math.points.forEach((point) => context.lineTo(point.x + this._position.x, point.y + this._position.y))
 
     context.closePath()
     context.stroke()
@@ -91,42 +90,41 @@ export class Polygon extends Maths.Polygon {
   }
 
   public __debugDrawBounds(context: CanvasRenderingContext2D) {
-    const bounds = this.boundsSkippedRotate
+    const bounds = this.getClientRect()
 
     context.save()
-    context.lineWidth = 3
-    context.strokeStyle = "#000000"
+    context.strokeStyle = "red"
     context.beginPath()
     context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
     context.closePath()
     context.restore()
   }
 
-  public draw(context: CanvasRenderingContext2D, config?: {
-    points?: Maths.PointData[]
-    angle?: number
-  }): void {
-    // this.__debugDrawShape(context)
-    // this.__debugDrawBounds(context)
+  public __drawCenterBounds(context: CanvasRenderingContext2D) {
+    const bounds = this.boundsSkippedRotate
 
     context.save()
+    context.strokeStyle = "red"
     context.beginPath()
-
-    if (isNotUndefined(config)) {
-      const points = config.points ?? this.points
-      const angle = config.angle ?? 0
-      const bounds = this.boundsSkippedRotate
-
-      context.translate(bounds.centerX, this.bounds.centerY)
-      context.rotate(angle)
-
-      points.forEach((point) => context.lineTo(point.x - this.bounds.centerX, point.y - this.bounds.centerY))
-    } else {
-      this.points.forEach((point) => context.lineTo(point.x, point.y))
-    }
-
+    context.arc(bounds.centerX, bounds.centerY, 5, 0, Math.PI * 2)
     context.closePath()
     context.stroke()
+    context.restore()
+  }
+
+  public draw(context: CanvasRenderingContext2D): void {
+    this.__debugDrawBounds(context)
+    this.__drawCenterBounds(context)
+    this.__debugDrawShape(context)
+
+    context.save()
+    context.translate(this._position.x, this._position.y)
+
+    context.beginPath()
+    this._math.points.forEach((point) => context.lineTo(point.x, point.y))
+    context.closePath()
+    context.stroke()
+
     context.restore()
   }
 }

@@ -1,4 +1,4 @@
-import { Point, type PointData } from "./point";
+import { Point, type PointData } from "./Point";
 
 export interface TransformableObject {
   position: PointData
