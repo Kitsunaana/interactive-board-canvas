@@ -1,9 +1,9 @@
-import { defaultTo, isNull } from "lodash"
-import { Node, Primitive, type NodeConfig } from "../../../../../engine"
+import { isNull } from "lodash"
+import { Node, type NodeConfig } from "../Node"
+import * as Primitive from "../maths"
 
 export interface PolygonConfig extends NodeConfig {
   points: Primitive.PointData[],
-  name?: string
 }
 
 export class Polygon extends Node {
@@ -31,27 +31,10 @@ export class Polygon extends Node {
   }
 
   constructor(config: PolygonConfig) {
-    super()
+    super(config)
 
-    if (defaultTo(config.isDraggable, true)) {
-      this.init(this)
-      this.attach(this)
-    }
-
-    this._name = config.name
     this._math = new Primitive.Polygon(config.points)
-
     this.boundsSkippedRotate = this._math.getBounds()
-
-    this.position({
-      x: config.x ?? 0,
-      y: config.y ?? 0,
-    })
-
-    this.scale({
-      x: config.scaleX ?? 1,
-      y: config.scaleY ?? 1,
-    })
   }
 
   public getType() {

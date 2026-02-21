@@ -1,5 +1,4 @@
-import { Group } from "../../../../engine"
-import { Polygon } from "./shapes/polygon"
+import { Group, Shape } from "../../../../engine"
 
 const canvas = document.createElement("canvas")
 const context = canvas.getContext("2d") as CanvasRenderingContext2D
@@ -22,8 +21,8 @@ const group2 = new Group({
   name: "group2",
   scaleX: 1,
   scaleY: 1,
-  x: 0,
-  y: 0,
+  x: 40,
+  y: 40,
 })
 
 const group1 = new Group({
@@ -43,14 +42,14 @@ window.addEventListener("pointermove", (event) => {
   group2.absolutePositionCursor.y = event.clientY
 })
 
-const shape1 = new Polygon({
+const shape1 = new Shape.Polygon({
   isDraggable: true,
   points: points1,
   x: 20,
   y: 20,
 })
 
-const shape2 = new Polygon({
+const shape2 = new Shape.Polygon({
   isDraggable: true,
   points: points2,
   name: "test",
@@ -58,7 +57,7 @@ const shape2 = new Polygon({
   y: 0,
 })
 
-const shape3 = new Polygon({
+const shape3 = new Shape.Polygon({
   points: points3,
   x: 0,
   y: 0,

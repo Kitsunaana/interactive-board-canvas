@@ -59,17 +59,8 @@ export abstract class Draggable extends Observer {
   private _startDrag(node: Node) {
     const parent = node.parent()
 
-    this._startDragPointer = parent
-      ? parent.getRelativePointerPosition()
-      : {
-        x: node.absolutePositionCursor.x,
-        y: node.absolutePositionCursor.y,
-      }
-
-    this._startDragPosition = {
-      x: node.position().x,
-      y: node.position().y,
-    }
+    this._startDragPointer = parent ? parent.getRelativePointerPosition() : clone(node.absolutePositionCursor)
+    this._startDragPosition = node.position().clone()
 
     node
       .getAllParents()
@@ -80,18 +71,6 @@ export abstract class Draggable extends Observer {
   }
 
   private _canStartDrag(node: Node) {
-    const pointer = node.getRelativePointerPosition()
-
-    if (node.getName() === "group1") {
-      console.log(node.getAbsolutePosition(), node.absolutePositionCursor)
-      console.log(JSON.stringify(node.getClientRect(), null, 2))
-      console.log(pointer)
-    }
-
-    return node.contains(pointer)
-    // return node.contains({
-    //   x: pointer.x + node.position().x,
-    //   y: pointer.y + node.position().y,
-    // })
+    return node.contains(node.getRelativePointerPosition())
   }
 }

@@ -1,23 +1,40 @@
 import { isNull, isUndefined } from "lodash"
 import { Draggable } from "./behaviors/Draggable"
 import * as Primitive from "./maths"
+import type { Observable } from "./shared/Observer"
 import { addPoint, multiplePoint } from "./shared/point"
 
 export interface NodeConfig {
   isDraggable?: boolean
-
-  x?: number
-  y?: number
   scaleX?: number
   scaleY?: number
+  name?: string
+  x?: number
+  y?: number
 }
 
-export abstract class Node extends Draggable {
+type FilledNodeConfig = Omit<Required<NodeConfig>, "name"> & {
+  name: string | undefined
+}
+
+export const fillConfigDefaultValues = (config: NodeConfig): FilledNodeConfig => ({
+  isDraggable: true,
+  name: undefined,
+  scaleX: 1,
+  scaleY: 1,
+  x: 0,
+  y: 0,
+
+  ...config,
+})
+
+export abstract class Node extends Draggable implements Observable {
   public abstract readonly absolutePositionCursor: Primitive.PointData
 
   public abstract contains(point: Primitive.PointData): boolean
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract getClientRect(): Primitive.Rectangle
+  public abstract update(): void
 
   protected _name: string | undefined = undefined
   protected _needUpdate: boolean = true
@@ -32,9 +49,20 @@ export abstract class Node extends Draggable {
     _onUpdate: this._onUpdate.bind(this)
   })
 
-  private _onUpdate() {
-    this._needUpdate = true
-    this._notifyParent()
+  public constructor(config: NodeConfig) {
+    super()
+
+    const filledConfig = fillConfigDefaultValues(config)
+
+    this._name = config.name
+
+    if (filledConfig.isDraggable) {
+      this.attach(this)
+      this.init(this)
+    }
+
+    this.scale({ x: filledConfig.scaleX, y: filledConfig.scaleY })
+    this.position({ x: filledConfig.x, y: filledConfig.y })
   }
 
   public position(): Primitive.ObservablePoint
@@ -64,6 +92,11 @@ export abstract class Node extends Draggable {
       return this._parent
 
     this._parent = node
+  }
+
+  private _onUpdate() {
+    this._needUpdate = true
+    this._notifyParent()
   }
 
   public getName() {
