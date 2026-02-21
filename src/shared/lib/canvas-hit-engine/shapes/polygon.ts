@@ -4,11 +4,9 @@ import { Node, Primitive, type NodeConfig } from "../../../../../engine"
 export interface PolygonConfig extends NodeConfig {
   points: Primitive.PointData[],
   name?: string
-  x?: number
-  y?: number
 }
 
-export class PolygonV2 extends Node {
+export class Polygon extends Node {
   public _absolutePositionCursor: Primitive.PointData = {
     x: 0,
     y: 0,
@@ -49,6 +47,11 @@ export class PolygonV2 extends Node {
       x: config.x ?? 0,
       y: config.y ?? 0,
     })
+
+    this.scale({
+      x: config.scaleX ?? 1,
+      y: config.scaleY ?? 1,
+    })
   }
 
   public getType() {
@@ -67,15 +70,18 @@ export class PolygonV2 extends Node {
   }
 
   public contains(point: Primitive.PointData): boolean {
-    return this._math.contains(point.x - this.position().x, point.y - this.position().y)
+    return this._math.contains(point.x, point.y)
   }
 
   public getClientRect(): Primitive.Rectangle {
     if (this._needUpdate) {
+      const scale = this.scale()
       this._math.getBounds(this._bounds)
 
-      this._bounds.x += this.position().x
-      this._bounds.y += this.position().y
+      this._bounds.x = this._bounds.x * scale.x + this.position().x
+      this._bounds.y = this._bounds.y * scale.y + this.position().y
+      this._bounds.width *= scale.x
+      this._bounds.height *= scale.y
     }
 
     return this._bounds
@@ -124,11 +130,14 @@ export class PolygonV2 extends Node {
 
     context.save()
     context.translate(this.position().x, this.position().y)
+    context.scale(this.scale().x, this.scale().y)
 
+    context.fillStyle = "darkorange"
     context.beginPath()
     this._math.points.forEach((point) => context.lineTo(point.x, point.y))
     context.closePath()
     context.stroke()
+    context.fill()
 
     context.restore()
   }

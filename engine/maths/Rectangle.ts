@@ -64,7 +64,7 @@ export class Rectangle {
   public contains(x: number, y: number): boolean {
     if (this.width <= 0 || this.height <= 0) return false
 
-    if (x >= this.x && x <= this.x + this.width && y >= this.y && this.y <= this.y + this.height) {
+    if (x >= this.x && x <= this.x + this.width && y >= this.y && y <= this.y + this.height) {
       return true
     }
 

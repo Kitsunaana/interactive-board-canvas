@@ -44,7 +44,7 @@ export const angleBetweenPoints = (center: PointData, cursor: PointData) => {
   return Math.atan2(cursor.y - center.y, cursor.x - center.x)
 }
 
-export const getPointFromEvent = (event: PointerEvent | globalThis.MouseEvent): PointData => ({
+export const getPointFromEvent = (event: PointerEvent | MouseEvent): PointData => ({
   x: event.clientX,
   y: event.clientY,
 })

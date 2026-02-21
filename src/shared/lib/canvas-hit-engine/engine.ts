@@ -1,5 +1,5 @@
 import { Group } from "../../../../engine"
-import { PolygonV2 } from "./shapes/polygon"
+import { Polygon } from "./shapes/polygon"
 
 const canvas = document.createElement("canvas")
 const context = canvas.getContext("2d") as CanvasRenderingContext2D
@@ -14,20 +14,25 @@ canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 
 const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
-const points2 = [{ x: 402, y: 398 }, { x: 421, y: 300 }, { x: 439, y: 351 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
+const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
 const points3 = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }]
 
 const group2 = new Group({
+  isDraggable: true,
   name: "group2",
-  x: 100,
-  y: 100,
+  scaleX: 1,
+  scaleY: 1,
+  x: 0,
+  y: 0,
 })
 
 const group1 = new Group({
-  isDraggable: false,
+  isDraggable: true,
   name: "group1",
-  x: 20,
-  y: 20,
+  scaleX: 1,
+  scaleY: 1,
+  x: 0,
+  y: 0,
 })
 
 window.addEventListener("pointermove", (event) => {
@@ -38,20 +43,22 @@ window.addEventListener("pointermove", (event) => {
   group2.absolutePositionCursor.y = event.clientY
 })
 
-const shape1 = new PolygonV2({
+const shape1 = new Polygon({
+  isDraggable: true,
   points: points1,
   x: 20,
   y: 20,
 })
 
-const shape2 = new PolygonV2({
+const shape2 = new Polygon({
+  isDraggable: true,
   points: points2,
   name: "test",
   x: 0,
   y: 0,
 })
 
-const shape3 = new PolygonV2({
+const shape3 = new Polygon({
   points: points3,
   x: 0,
   y: 0,

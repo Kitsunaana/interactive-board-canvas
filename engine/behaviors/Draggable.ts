@@ -43,8 +43,12 @@ export abstract class Draggable extends Observer {
 
   private _processDrag(node: Node) {
     if (this.isDragging() && !isNull(this._startDragPointer) && !isNull(this._startDragPosition)) {
-      const offset = subtractPoint(this._startDragPointer, node.absolutePositionCursor)
-      const newPosition = addPoint(this._startDragPosition, offset)
+      const parent = node.parent()
+
+      const currentPointer = parent ? parent.getRelativePointerPosition() : node.absolutePositionCursor
+      const delta = subtractPoint(this._startDragPointer, currentPointer)
+      const newPosition = addPoint(this._startDragPosition, delta)
+
       const position = node.position()
 
       position.x = newPosition.x
@@ -53,7 +57,15 @@ export abstract class Draggable extends Observer {
   }
 
   private _startDrag(node: Node) {
-    this._startDragPointer = clone(node.absolutePositionCursor)
+    const parent = node.parent()
+
+    this._startDragPointer = parent
+      ? parent.getRelativePointerPosition()
+      : {
+        x: node.absolutePositionCursor.x,
+        y: node.absolutePositionCursor.y,
+      }
+
     this._startDragPosition = {
       x: node.position().x,
       y: node.position().y,
@@ -68,11 +80,18 @@ export abstract class Draggable extends Observer {
   }
 
   private _canStartDrag(node: Node) {
-    const absolutePosition = node.getAbsolutePosition()
+    const pointer = node.getRelativePointerPosition()
 
-    const positionWithoutOwnShift = subtractPoint(node.position(), absolutePosition)
-    const cursorPositionInClientRect = subtractPoint(positionWithoutOwnShift, node.absolutePositionCursor)
+    if (node.getName() === "group1") {
+      console.log(node.getAbsolutePosition(), node.absolutePositionCursor)
+      console.log(JSON.stringify(node.getClientRect(), null, 2))
+      console.log(pointer)
+    }
 
-    return node.contains(cursorPositionInClientRect)
+    return node.contains(pointer)
+    // return node.contains({
+    //   x: pointer.x + node.position().x,
+    //   y: pointer.y + node.position().y,
+    // })
   }
 }
