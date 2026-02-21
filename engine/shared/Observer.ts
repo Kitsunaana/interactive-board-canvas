@@ -1,18 +1,18 @@
-export interface Observerable {
+export interface Observable {
   update(): void
 }
 
 export class Observer {
-  private _observers: Array<Observerable> = []
+  private _observers: Array<Observable> = []
 
-  public attach(observer: Observerable) {
+  public attach(observer: Observable) {
     const isExist = this._observers.includes(observer)
     if (isExist) return
 
     this._observers.push(observer)
   }
 
-  public detach(observer: Observerable) {
+  public detach(observer: Observable) {
     const index = this._observers.indexOf(observer)
     if (index === -1) return
 

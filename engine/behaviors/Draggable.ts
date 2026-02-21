@@ -1,13 +1,13 @@
 import { clone, isNull } from "lodash"
 import { Node } from "../Node"
-import * as Maths from "../maths"
+import * as Primitive from "../maths"
 import { Observer } from "../shared/Observer"
 import { createDragEventsFlow } from "../shared/drag-events-flow"
 import { addPoint, subtractPoint } from "../shared/point"
 
 export abstract class Draggable extends Observer {
-  private _startDragPosition: Maths.PointData | null = null
-  private _startDragPointer: Maths.PointData | null = null
+  private _startDragPosition: Primitive.PointData | null = null
+  private _startDragPointer: Primitive.PointData | null = null
 
   private _isDragging: boolean = false
 
@@ -25,11 +25,11 @@ export abstract class Draggable extends Observer {
 
   public init(node: Node) {
     createDragEventsFlow({
-      guard: this._canStartDrag.bind(this, node),
-
       process: this._processDrag.bind(this, node),
-      finish: this._finishDrag.bind(this),
+      guard: this._canStartDrag.bind(this, node),
       start: this._startDrag.bind(this, node),
+
+      finish: this._finishDrag.bind(this),
     })
   }
 
@@ -44,14 +44,20 @@ export abstract class Draggable extends Observer {
   private _processDrag(node: Node) {
     if (this.isDragging() && !isNull(this._startDragPointer) && !isNull(this._startDragPosition)) {
       const offset = subtractPoint(this._startDragPointer, node.absolutePositionCursor)
+      const newPosition = addPoint(this._startDragPosition, offset)
+      const position = node.position()
 
-      node._position = addPoint(this._startDragPosition, offset)
+      position.x = newPosition.x
+      position.y = newPosition.y
     }
   }
 
   private _startDrag(node: Node) {
     this._startDragPointer = clone(node.absolutePositionCursor)
-    this._startDragPosition = clone(node._position)
+    this._startDragPosition = {
+      x: node.position().x,
+      y: node.position().y,
+    }
 
     node
       .getAllParents()
@@ -64,7 +70,7 @@ export abstract class Draggable extends Observer {
   private _canStartDrag(node: Node) {
     const absolutePosition = node.getAbsolutePosition()
 
-    const positionWithoutOwnShift = subtractPoint(node._position, absolutePosition)
+    const positionWithoutOwnShift = subtractPoint(node.position(), absolutePosition)
     const cursorPositionInClientRect = subtractPoint(positionWithoutOwnShift, node.absolutePositionCursor)
 
     return node.contains(cursorPositionInClientRect)

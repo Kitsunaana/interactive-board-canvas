@@ -1,24 +1,22 @@
-import { Node } from "./Node";
-import type { Observerable } from "./shared/Observer";
-import * as Maths from "./maths"
-import { isUndefined } from "lodash";
+import { Node, type NodeConfig } from "./Node";
+import type { Observable } from "./shared/Observer";
+import * as Primitive from "./maths"
+import { defaultTo, isUndefined } from "lodash";
 
-interface GroupConfig {
+interface GroupConfig extends NodeConfig {
+  name?: string
   x: number
   y: number
-
-  name?: string
 }
 
-export class Group extends Node implements Observerable {
+export class Group extends Node implements Observable {
   private readonly _type = "Group" as const
 
   private _children: Array<Node> = []
-  private _needUpdateClientRect: boolean = true
 
-  private readonly _clientRect: Maths.Rectangle = new Maths.Rectangle()
+  private readonly _clientRect: Primitive.Rectangle = new Primitive.Rectangle()
 
-  public readonly absolutePositionCursor: Maths.PointData = {
+  public readonly absolutePositionCursor: Primitive.PointData = {
     x: 0,
     y: 0,
   }
@@ -26,18 +24,20 @@ export class Group extends Node implements Observerable {
   public constructor(config?: GroupConfig) {
     super()
 
-    this.init(this)
-    this.attach(this)
+    if (defaultTo(config?.isDraggable, true)) {
+      this.attach(this)
+      this.init(this)
+    }
 
     if (!isUndefined(config)) {
-      this._position.x = config.x
-      this._position.y = config.y
+      this.position(config)
+
       this._name = config.name
     }
   }
 
   public update(): void {
-    this._needUpdateClientRect = true
+    this._needUpdate = true
   }
 
   public getType() {
@@ -49,13 +49,13 @@ export class Group extends Node implements Observerable {
 
     context.save()
 
-    context.translate(this._position.x, this._position.y)
+    context.translate(this.position().x, this.position().y)
     this._children.forEach((child) => child.draw(context))
 
     context.restore()
   }
 
-  public contains(point: Maths.PointData): boolean {
+  public contains(point: Primitive.PointData): boolean {
     return this._clientRect.contains(point.x, point.y)
   }
 
@@ -68,9 +68,9 @@ export class Group extends Node implements Observerable {
     }
   }
 
-  public getClientRect(): Maths.Rectangle {
-    if (this._needUpdateClientRect) {
-      this._needUpdateClientRect = false
+  public getClientRect(): Primitive.Rectangle {
+    if (this._needUpdate) {
+      this._needUpdate = false
 
       const corners = this._children.flatMap((child) => (
         child
@@ -78,10 +78,10 @@ export class Group extends Node implements Observerable {
           .getCorner()
       ))
 
-      new Maths.Polygon(corners).getBounds(this._clientRect)
+      new Primitive.Polygon(corners).getBounds(this._clientRect)
 
-      this._clientRect.x += this._position.x
-      this._clientRect.y += this._position.y
+      this._clientRect.x += this.position().x
+      this._clientRect.y += this.position().y
     }
 
     return this._clientRect
@@ -91,8 +91,12 @@ export class Group extends Node implements Observerable {
     children.forEach((child) => {
       this._children.push(child)
 
-      child._parent = this
+      child.parent(this)
     })
+  }
+
+  public getChildren() {
+    return this._children
   }
 
   private __debugDrawBounds(context: CanvasRenderingContext2D) {

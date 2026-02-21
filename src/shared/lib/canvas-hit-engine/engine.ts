@@ -17,8 +17,18 @@ const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
 const points2 = [{ x: 402, y: 398 }, { x: 421, y: 300 }, { x: 439, y: 351 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
 const points3 = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }]
 
-const group2 = new Group({ x: 100, y: 100, name: "group2" })
-const group1 = new Group({ x: 20, y: 20, name: "group1" })
+const group2 = new Group({
+  name: "group2",
+  x: 100,
+  y: 100,
+})
+
+const group1 = new Group({
+  isDraggable: false,
+  name: "group1",
+  x: 20,
+  y: 20,
+})
 
 window.addEventListener("pointermove", (event) => {
   group1.absolutePositionCursor.x = event.clientX
@@ -28,11 +38,27 @@ window.addEventListener("pointermove", (event) => {
   group2.absolutePositionCursor.y = event.clientY
 })
 
-const shape1 = new PolygonV2({ points: points1, x: 20, y: 20, })
-const shape2 = new PolygonV2({ points: points2 })
-const shape3 = new PolygonV2({ points: points3 })
+const shape1 = new PolygonV2({
+  points: points1,
+  x: 20,
+  y: 20,
+})
+
+const shape2 = new PolygonV2({
+  points: points2,
+  name: "test",
+  x: 0,
+  y: 0,
+})
+
+const shape3 = new PolygonV2({
+  points: points3,
+  x: 0,
+  y: 0,
+})
 
 shape1.rotate(0.5)
+shape2.rotate(0.3)
 
 group1.add(shape1, shape2)
 group2.add(group1, shape3)

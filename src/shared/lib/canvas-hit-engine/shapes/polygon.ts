@@ -1,53 +1,58 @@
-import { Primitive, Group } from "../../../../../engine"
+import { defaultTo, isNull } from "lodash"
+import { Node, Primitive, type NodeConfig } from "../../../../../engine"
 
-export type PolygonConfig = {
+export interface PolygonConfig extends NodeConfig {
   points: Primitive.PointData[],
+  name?: string
   x?: number
   y?: number
 }
 
-export class PolygonV2 {
+export class PolygonV2 extends Node {
+  public _absolutePositionCursor: Primitive.PointData = {
+    x: 0,
+    y: 0,
+  }
+
   private readonly _type = "Shape" as const
 
-  public __parent: Group | null = null
-
   public boundsSkippedRotate: Primitive.Rectangle
-
-  private _needUpdate: boolean = true
 
   private readonly _math: Primitive.Polygon
   private readonly _matrix: Primitive.Matrix = new Primitive.Matrix()
   private readonly _bounds: Primitive.Rectangle = new Primitive.Rectangle()
 
-  private readonly _position: Primitive.PointData = {
-    x: 0,
-    y: 0,
+  public update() {
+    this._needUpdate = true
+  }
+
+  public get absolutePositionCursor() {
+    return isNull(this.parent())
+      ? this._absolutePositionCursor
+      : this.parent().absolutePositionCursor
   }
 
   constructor(config: PolygonConfig) {
+    super()
+
+    if (defaultTo(config.isDraggable, true)) {
+      this.init(this)
+      this.attach(this)
+    }
+
+    this._name = config.name
     this._math = new Primitive.Polygon(config.points)
 
-    this._position.x = config.x ?? 0
-    this._position.y = config.y ?? 0
-
     this.boundsSkippedRotate = this._math.getBounds()
-  }
 
-  private readonly __listeners: Array<Function> = []
-  public __onUpdate(callback: () => void) {
-    this.__listeners.push(callback)
-  }
-
-  public __update() {
-    this.__listeners.forEach(listener => listener())
+    this.position({
+      x: config.x ?? 0,
+      y: config.y ?? 0,
+    })
   }
 
   public getType() {
     return this._type
-  }
-
-  public getParent() {
-    return this.__parent
   }
 
   public rotate(angle: number): void {
@@ -59,18 +64,18 @@ export class PolygonV2 {
       .rotate(angle)
 
     this._math.applyMatrix(this._matrix)
-    this.__update()
   }
 
   public contains(point: Primitive.PointData): boolean {
-    return this._math.contains(point.x + this._position.x, point.y + this._position.y)
+    return this._math.contains(point.x - this.position().x, point.y - this.position().y)
   }
 
   public getClientRect(): Primitive.Rectangle {
     if (this._needUpdate) {
       this._math.getBounds(this._bounds)
-      this._bounds.x += this._position.x
-      this._bounds.y += this._position.y
+
+      this._bounds.x += this.position().x
+      this._bounds.y += this.position().y
     }
 
     return this._bounds
@@ -82,7 +87,7 @@ export class PolygonV2 {
     context.strokeStyle = "#e87123"
     context.beginPath()
 
-    this._math.points.forEach((point) => context.lineTo(point.x + this._position.x, point.y + this._position.y))
+    this._math.points.forEach((point) => context.lineTo(point.x + this.position().x, point.y + this.position().y))
 
     context.closePath()
     context.stroke()
@@ -118,7 +123,7 @@ export class PolygonV2 {
     this.__debugDrawShape(context)
 
     context.save()
-    context.translate(this._position.x, this._position.y)
+    context.translate(this.position().x, this.position().y)
 
     context.beginPath()
     this._math.points.forEach((point) => context.lineTo(point.x, point.y))
