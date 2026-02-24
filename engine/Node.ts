@@ -34,12 +34,14 @@ export abstract class Node extends Draggable implements Observable {
   public abstract contains(point: Primitive.PointData): boolean
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract getClientRect(): Primitive.Rectangle
+  public abstract getType(): string
   public abstract update(): void
 
   protected _name: string | undefined = undefined
   protected _needUpdate: boolean = true
 
   private _parent: Node | null = null
+  private _isDragable: boolean = true
 
   private _position = new Primitive.ObservablePoint({
     _onUpdate: this._onUpdate.bind(this)
@@ -55,6 +57,7 @@ export abstract class Node extends Draggable implements Observable {
     const filledConfig = fillConfigDefaultValues(config)
 
     this._name = config.name
+    this._isDragable = filledConfig.isDraggable
 
     if (filledConfig.isDraggable) {
       this.attach(this)
@@ -64,6 +67,23 @@ export abstract class Node extends Draggable implements Observable {
     this.scale({ x: filledConfig.scaleX, y: filledConfig.scaleY })
     this.position({ x: filledConfig.x, y: filledConfig.y })
   }
+
+  public isDraggable(): boolean
+  public isDraggable(enable: boolean): void
+  public isDraggable(enable?: boolean) {
+    if (isUndefined(enable))
+      return this._isDragable
+
+    this._isDragable = enable
+
+    if (enable) {
+      this.attach(this)
+      this.init(this)
+    } else {
+      this.detach(this)
+    }
+  }
+
 
   public position(): Primitive.ObservablePoint
   public position(point: Primitive.PointData): void
@@ -94,7 +114,7 @@ export abstract class Node extends Draggable implements Observable {
     this._parent = node
   }
 
-  private _onUpdate() {
+  public _onUpdate() {
     this._needUpdate = true
     this._notifyParent()
   }
@@ -114,9 +134,11 @@ export abstract class Node extends Draggable implements Observable {
   }
 
   private _notifyParent(): void {
-    this.getAllParents().forEach((parent) => {
-      parent._needUpdate = true
-    })
+    this
+      .getAllParents()
+      .forEach((parent) => {
+        parent._needUpdate = true
+      })
   }
 
   public getAllParents<T extends Node>(list: Array<T> = []): Array<T> {

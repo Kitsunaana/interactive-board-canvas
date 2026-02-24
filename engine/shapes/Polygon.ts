@@ -14,7 +14,7 @@ export class Polygon extends Node {
 
   private readonly _type = "Shape" as const
 
-  public boundsSkippedRotate: Primitive.Rectangle
+  public readonly boundsSkippedRotate: Primitive.Rectangle
 
   private readonly _math: Primitive.Polygon
   private readonly _matrix: Primitive.Matrix = new Primitive.Matrix()

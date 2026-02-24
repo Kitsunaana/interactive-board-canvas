@@ -1,4 +1,4 @@
-import { Group, Shape } from "../../../../engine"
+import { Group, Shape, Stage } from "../../../../engine"
 
 const canvas = document.createElement("canvas")
 const context = canvas.getContext("2d") as CanvasRenderingContext2D
@@ -12,6 +12,11 @@ document.body.appendChild(canvas)
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 
+const stage = new Stage({
+  height: window.innerHeight,
+  width: window.innerWidth,
+})
+
 const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
 const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
 const points3 = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }]
@@ -19,8 +24,8 @@ const points3 = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }]
 const group2 = new Group({
   isDraggable: true,
   name: "group2",
-  scaleX: 1,
-  scaleY: 1,
+  scaleX: 1.2,
+  scaleY: 1.2,
   x: 40,
   y: 40,
 })
@@ -28,8 +33,8 @@ const group2 = new Group({
 const group1 = new Group({
   isDraggable: true,
   name: "group1",
-  scaleX: 1,
-  scaleY: 1,
+  scaleX: 1.5,
+  scaleY: 1.5,
   x: 0,
   y: 0,
 })
