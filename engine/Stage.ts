@@ -1,7 +1,10 @@
+import { isUndefined } from "lodash"
 import type { Layer } from "./Layer"
 import type { PointData } from "./maths"
+import { getPointFromEvent } from "./shared/point"
 
 interface StageConfig {
+  draggable: boolean
   height: number,
   width: number,
 }
@@ -9,7 +12,7 @@ interface StageConfig {
 export class Stage {
   private readonly _type = "Stage" as const
 
-  private readonly layers: Array<Layer> = []
+  private readonly _layers: Array<Layer> = []
 
   private _container: HTMLElement = document.body
   private _height: number
@@ -23,6 +26,35 @@ export class Stage {
   public constructor(config: StageConfig) {
     this._height = config.height
     this._width = config.width
+
+    window.addEventListener("pointermove", (event) => {
+      const cursor = getPointFromEvent(event)
+
+      this.absolutePositionCursor.x = cursor.x
+      this.absolutePositionCursor.y = cursor.y
+    })
+
+    this.render()
+  }
+
+  public height(): number
+  public height(value: number): void
+  public height(value?: number) {
+    if (isUndefined(value)) return this._height
+    this._height = value
+  }
+
+  public width(): number
+  public width(value: number): void
+  public width(value?: number) {
+    if (isUndefined(value)) return this._width
+    this._width = value
+  }
+
+  public render() {
+    this._layers.forEach((layer) => layer.draw())
+
+    requestAnimationFrame(this.render.bind(this))
   }
 
   public getType() {
@@ -32,7 +64,7 @@ export class Stage {
   public add(...layers: Array<Layer>) {
     layers.forEach((layer) => {
       this._container.appendChild(layer.getCanvas())
-      this.layers.push(layer)
+      this._layers.push(layer)
       layer.stage(this)
     })
   }

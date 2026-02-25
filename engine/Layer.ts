@@ -1,7 +1,10 @@
 import { isNull, isUndefined } from "lodash";
-import { Rectangle, type PointData } from "./maths";
+import { Container } from "./Container";
+import { ObservablePoint, type PointData } from "./maths";
 import { Node, type NodeConfig } from "./Node";
 import { Stage } from "./Stage";
+import Konva from "konva"
+import { Polygon } from "./shapes";
 
 export interface LayerConfig extends NodeConfig {
   zIndex?: number
@@ -9,11 +12,8 @@ export interface LayerConfig extends NodeConfig {
   width?: number
 }
 
-const toPx = (value: unknown) => `${value}px`
-
-export class Layer extends Node {
+export class Layer extends Container {
   private readonly _type = "Layer" as const
-  private readonly _children: Array<Node> = []
 
   private _stage: Stage | null = null
 
@@ -23,54 +23,50 @@ export class Layer extends Node {
   private _height: number = 150
   private _width: number = 300
 
-  private _clientRect = new Rectangle()
-
   public get absolutePositionCursor() {
     if (isNull(this._stage)) throw new Error("Слой должен быть добавлен в Stage")
-
     return this._stage.absolutePositionCursor
   }
 
   public constructor(config: LayerConfig) {
     super(config)
 
-    const position = this.position()
-
     this._canvas = document.createElement("canvas")
     this._context = this._canvas.getContext("2d") as CanvasRenderingContext2D
 
-    this._canvas.style.backgroundColor = "red"
     this._canvas.style.position = "absolute"
     this._canvas.style.zIndex = String(config.zIndex ?? 0)
-    this._canvas.style.left = toPx(position.x)
-    this._canvas.style.top = toPx(position.y)
-
-    if (config.height) this._height = config.height
-    if (config.width) this._width = config.width
-
-    this._canvas.height = this._height
-    this._canvas.width = this._width
   }
 
   public stage(): Stage | null
   public stage(parent: Stage): void
   public stage(parent?: Stage) {
     if (isUndefined(parent)) return this._stage
+
     this._stage = parent
+    this.width(parent.width())
+    this.height(parent.height())
+    this._canvas.width = this.width()
+    this._canvas.height = this.height()
   }
 
   public height(): number
   public height(value: number): void
   public height(value?: number) {
     if (isUndefined(value)) return this._height
-    return this._height = value
+    this._height = value
   }
 
   public width(): number
   public width(value: number): void
   public width(value?: number) {
     if (isUndefined(value)) return this._width
-    return this._width = value
+    this._width = value
+  }
+
+  public update(point?: ObservablePoint): void {
+    if (!isUndefined(this._canvas) && !isUndefined(point)) {
+    }
   }
 
   public getCanvas() {
@@ -85,32 +81,43 @@ export class Layer extends Node {
     return this._type
   }
 
-  public contains(point: PointData): boolean {
-    return true
+  public draw(): void {
+    const scale = this.scale()
+    const context = this.getContext()
+    const position = this.position()
+
+    context.clearRect(0, 0, this.width(), this.height())
+
+    context.save()
+    context.translate(position.x, position.y)
+    context.scale(scale.x, scale.y)
+
+    this.getChildren().forEach((child) => child.draw(context))
+
+    context.restore()
   }
 
-  public draw(context: CanvasRenderingContext2D): void {
-    this._children.forEach((child) => child.draw(context))
-  }
+  // public getCorners(): Array<PointData> {
+  //   const position = this.position()
+  //   const height = this.height()
+  //   const width = this.width()
 
-  public getClientRect(): Rectangle {
-    if (this._needUpdate) {
-      const position = this.position()
-      this._clientRect = new Rectangle(position.x, position.y, this.width(), this.height())
-    }
-
-    return this._clientRect
-  }
-
-  public update(): void {
-  }
+  //   return [
+  //     { x: position.x, y: position.y }, // top-left
+  //     { x: position.x + width, y: position.y }, // top-right
+  //     { x: position.x + width, y: position.y + height }, // bottom-right
+  //     { x: position.x - width, y: position.y + height }, // bottom-left
+  //   ]
+  // }
 
   public add(...children: Array<Node>) {
+    const loaded = this.getChildren()
+
     children.forEach((child) => {
       const type = child.getType()
 
       if (type === "Shape" || type === "Group") {
-        this._children.push(child)
+        loaded.push(child)
         child.parent(this)
       }
     })
@@ -120,14 +127,50 @@ export class Layer extends Node {
 const stage = new Stage({
   height: window.innerHeight,
   width: window.innerWidth,
+  draggable: true
 })
 
 const layer = new Layer({
-  height: 300,
-  width: 300,
+  scaleX: 1.2,
+  scaleY: 1.2,
   zIndex: 1,
-  x: 30,
-  y: 50,
+  x: 100,
+  y: 100,
 })
 
+layer.add(new Polygon({
+  points: [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }],
+}))
+
 stage.add(layer)
+
+// const konva = {
+//   stage: new Konva.Stage({
+//     container: "app",
+//     draggable: false,
+//     height: 500,
+//     width: 500,
+//   }),
+
+//   layer: new Konva.Layer({
+//     draggable: true,
+//     height: 20,
+//     width: 20,
+//     x: 120,
+//     y: 120,
+//   })
+// }
+
+// konva.layer.add(new Konva.Circle({
+//   x: 0,
+//   y: 0,
+//   draggable: false,
+//   radius: 70,
+//   fill: 'red',
+//   stroke: 'black',
+//   strokeWidth: 4,
+// }))
+
+// konva.stage.add(konva.layer)
+
+// konva.stage.content.classList.add("bg-red-200")

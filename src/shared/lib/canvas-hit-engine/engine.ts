@@ -1,4 +1,5 @@
 import { Group, Shape, Stage } from "../../../../engine"
+import "../../../app/index.css"
 
 const canvas = document.createElement("canvas")
 const context = canvas.getContext("2d") as CanvasRenderingContext2D
@@ -7,7 +8,7 @@ canvas.style.position = "absolute"
 canvas.style.left = "0px"
 canvas.style.top = "0px"
 
-document.body.appendChild(canvas)
+// document.body.appendChild(canvas)
 
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
@@ -15,6 +16,7 @@ canvas.height = window.innerHeight
 const stage = new Stage({
   height: window.innerHeight,
   width: window.innerWidth,
+  draggable: true,
 })
 
 const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
@@ -74,7 +76,7 @@ shape2.rotate(0.3)
 group1.add(shape1, shape2)
 group2.add(group1, shape3)
 
-animate()
+// animate()
 function animate() {
   context.clearRect(0, 0, canvas.width, canvas.height)
 

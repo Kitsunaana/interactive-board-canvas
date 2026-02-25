@@ -35,7 +35,7 @@ export abstract class Node extends Draggable implements Observable {
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract getClientRect(): Primitive.Rectangle
   public abstract getType(): string
-  public abstract update(): void
+  public abstract update(point?: Primitive.ObservablePoint): void
 
   protected _name: string | undefined = undefined
   protected _needUpdate: boolean = true
@@ -56,16 +56,23 @@ export abstract class Node extends Draggable implements Observable {
 
     const filledConfig = fillConfigDefaultValues(config)
 
-    this._name = config.name
     this._isDragable = filledConfig.isDraggable
+    this._name = config.name
 
     if (filledConfig.isDraggable) {
       this.attach(this)
       this.init(this)
     }
 
-    this.scale({ x: filledConfig.scaleX, y: filledConfig.scaleY })
-    this.position({ x: filledConfig.x, y: filledConfig.y })
+    this.scale({
+      x: filledConfig.scaleX,
+      y: filledConfig.scaleY,
+    })
+
+    this.position({
+      x: filledConfig.x,
+      y: filledConfig.y,
+    })
   }
 
   public isDraggable(): boolean
@@ -114,9 +121,11 @@ export abstract class Node extends Draggable implements Observable {
     this._parent = node
   }
 
-  public _onUpdate() {
+  public _onUpdate(point?: Primitive.ObservablePoint) {
     this._needUpdate = true
     this._notifyParent()
+
+    this.update(point)
   }
 
   public getName() {

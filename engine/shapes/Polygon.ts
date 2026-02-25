@@ -20,6 +20,10 @@ export class Polygon extends Node {
   private readonly _matrix: Primitive.Matrix = new Primitive.Matrix()
   private readonly _bounds: Primitive.Rectangle = new Primitive.Rectangle()
 
+  public _onUpdate(point?: Primitive.ObservablePoint): void {
+    
+  }
+
   public update() {
     this._needUpdate = true
   }
