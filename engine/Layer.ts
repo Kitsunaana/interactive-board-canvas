@@ -92,23 +92,30 @@ export class Layer extends Container {
     context.translate(position.x, position.y)
     context.scale(scale.x, scale.y)
 
+    context.fillRect(0, 0, this.width(), this.height())
+
     this.getChildren().forEach((child) => child.draw(context))
 
     context.restore()
   }
 
-  // public getCorners(): Array<PointData> {
-  //   const position = this.position()
-  //   const height = this.height()
-  //   const width = this.width()
+  public getCorners(): Array<PointData> {
+    // const position = this.position()
+    const height = this.height()
+    const width = this.width()
 
-  //   return [
-  //     { x: position.x, y: position.y }, // top-left
-  //     { x: position.x + width, y: position.y }, // top-right
-  //     { x: position.x + width, y: position.y + height }, // bottom-right
-  //     { x: position.x - width, y: position.y + height }, // bottom-left
-  //   ]
-  // }
+    const position = {
+      x: 0,
+      y: 0,
+    }
+
+    return [
+      { x: position.x, y: position.y }, // top-left
+      { x: position.x + width, y: position.y }, // top-right
+      { x: position.x + width, y: position.y + height }, // bottom-right
+      { x: position.x - width, y: position.y + height }, // bottom-left
+    ]
+  }
 
   public add(...children: Array<Node>) {
     const loaded = this.getChildren()
@@ -140,6 +147,12 @@ const layer = new Layer({
 
 layer.add(new Polygon({
   points: [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }],
+}))
+
+layer.add(new Polygon({
+  points: [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }],
+  x: 100,
+  y: 100,
 }))
 
 stage.add(layer)

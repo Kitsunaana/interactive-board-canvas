@@ -147,3 +147,5 @@ function createRotatedEllipsePath(ctx: CanvasRenderingContext2D, cx: number, cy:
 
   ctx.closePath(); // Гарантирует замыкание пути
 }
+
+
