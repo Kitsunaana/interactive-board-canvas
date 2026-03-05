@@ -1,6 +1,8 @@
 import { GLRenderer } from "./gl/gl"
 import { AttributeInfo, GlBuffer } from "./gl/glBuffer.ts"
 import { Shader } from "./gl/shader"
+import { Sprite } from "./graphics/sprite.ts"
+import { Matrix4x4 } from "./math/matrix4x4.ts"
 import { vertexShaderSource, fragmentShaderSource } from "./shaders/shader.ts"
 
 export type ResizeEvent = {
@@ -19,10 +21,10 @@ export type ApplicationOptions = {
 }
 
 export class Application {
-  private _renderer: GLRenderer
   private _shader!: Shader
-
-  private _buffer!: GlBuffer
+  private _sprite!: Sprite
+  private _renderer: GLRenderer
+  private _projection!: Matrix4x4
 
   public constructor(options: ApplicationOptions) {
     this._renderer = new GLRenderer()
@@ -36,7 +38,15 @@ export class Application {
 
     this._loadShaders()
     this._shader.use()
-    this._createBuffer()
+
+    const canvas = this._renderer.canvas
+
+    this._projection = Matrix4x4.orthographic(0, canvas.width, 0, canvas.height, -100, 100)
+    this._sprite = new Sprite(this._renderer, "test")
+    this._sprite.load()
+
+    this._sprite.position.x = 200
+    this._sprite.position.y = 200
 
     this._loop(0)
   }
@@ -50,6 +60,7 @@ export class Application {
         canvas.height = event.target.innerHeight
 
         this._renderer.gl.viewport(0, 0, canvas.width, canvas.height)
+        this._projection = Matrix4x4.orthographic(0, canvas.width, 0, canvas.height, -100, 100)
       }
     }
   }
@@ -77,31 +88,17 @@ export class Application {
     const colorPosition = this._shader.getUniformLocation("u_color")
     gl.uniform4f(colorPosition, 1, 0, 0, 1)
 
-    this._buffer.bind()
-    this._buffer.draw()
+    const projectionPosition = this._shader.getUniformLocation("u_projection")
+    gl.uniformMatrix4fv(projectionPosition, false, new Float32Array(this._projection.data))
+
+    const modelLocation = this._shader.getUniformLocation("u_model")
+    gl.uniformMatrix4fv(modelLocation, false, new Float32Array(
+      Matrix4x4.translation(this._sprite.position).data
+    ))
+
+    this._sprite.draw()
 
     requestAnimationFrame(this._loop.bind(this))
-  }
-
-  private _createBuffer(): void {
-    this._buffer = new GlBuffer(this._renderer, 3)
-
-    const positionAttribute = new AttributeInfo()
-    positionAttribute.location = this._shader.getAttributeLocation("a_position")
-    positionAttribute.offset = 0
-    positionAttribute.size = 3
-
-    this._buffer.addAttributeLocation(positionAttribute)
-
-    const vertices = [
-      // x, y, z
-      0.0, 0.0, 0.0,
-      0.5, 1, 0.0,
-      0.5, -1, 0.0,
-    ]
-
-    this._buffer.pushBackData(vertices)
-    this._buffer.unbind()
   }
 }
 

@@ -1,9 +1,7 @@
 import { GLRenderer } from "./gl"
 
 export class AttributeInfo {
-  public location!: number
-  public offset!: number
-  public size!: number
+  public constructor(public location: number, public offset: number, public size: number) {}
 }
 
 export class GlBuffer {
