@@ -1,4 +1,5 @@
 import { GLRenderer } from "./gl/gl"
+import { AttributeInfo, GlBuffer } from "./gl/glBuffer.ts"
 import { Shader } from "./gl/shader"
 import { vertexShaderSource, fragmentShaderSource } from "./shaders/shader.ts"
 
@@ -21,7 +22,7 @@ export class Application {
   private _renderer: GLRenderer
   private _shader!: Shader
 
-  private _buffer!: WebGLBuffer
+  private _buffer!: GlBuffer
 
   public constructor(options: ApplicationOptions) {
     this._renderer = new GLRenderer()
@@ -68,10 +69,29 @@ export class Application {
     this._shader = new Shader(this._renderer, "test", vertexShaderSource, fragmentShaderSource)
   }
 
-  private _createBuffer(): void {
+  private _loop(elapsed: number): void {
     const gl = this._renderer.gl
 
-    this._buffer = gl.createBuffer()
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    const colorPosition = this._shader.getUniformLocation("u_color")
+    gl.uniform4f(colorPosition, 1, 0, 0, 1)
+
+    this._buffer.bind()
+    this._buffer.draw()
+
+    requestAnimationFrame(this._loop.bind(this))
+  }
+
+  private _createBuffer(): void {
+    this._buffer = new GlBuffer(this._renderer, 3)
+
+    const positionAttribute = new AttributeInfo()
+    positionAttribute.location = this._shader.getAttributeLocation("a_position")
+    positionAttribute.offset = 0
+    positionAttribute.size = 3
+
+    this._buffer.addAttributeLocation(positionAttribute)
 
     const vertices = [
       // x, y, z
@@ -80,26 +100,8 @@ export class Application {
       0.5, -1, 0.0,
     ]
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer)
-    // gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0)
-    // gl.enableVertexAttribArray(0)
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW)
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, null)
-    gl.disableVertexAttribArray(0)
-  }
-
-  private _loop(elapsed: number): void {
-    const gl = this._renderer.gl
-
-    gl.clear(this._renderer.gl.COLOR_BUFFER_BIT)
-    gl.bindBuffer(gl.ARRAY_BUFFER, this._buffer)
-    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(0)
-    gl.drawArrays(gl.TRIANGLES, 0, 3)
-
-
-    requestAnimationFrame(this._loop.bind(this))
+    this._buffer.pushBackData(vertices)
+    this._buffer.unbind()
   }
 }
 

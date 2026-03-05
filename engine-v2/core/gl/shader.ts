@@ -1,7 +1,10 @@
+import { isNil } from "lodash"
 import { GLRenderer } from "./gl"
 
 export class Shader {
   private _program!: WebGLProgram
+  private _attributes: Record<string, number> = {}
+  private _uniforms: Record<string, WebGLUniformLocation> = {}
 
   public get name() {
     return this._name
@@ -15,10 +18,31 @@ export class Shader {
     const fragmentShader = this.loadShader(fragmentSource, _renderer.gl.FRAGMENT_SHADER)
 
     this.createProgram(vertexShader, fragmentShader)
+
+    this.detectAttributes()
+    this.detectUniforms()
   }
 
   public use(): void {
     this._renderer.gl.useProgram(this._program)
+  }
+
+  public getAttributeLocation(name: string): number {
+    const location = this._attributes[name]
+
+    if (location === undefined) 
+      throw new Error(`Unable to find attribute named '${name}'`)
+    
+    return location
+  }
+
+  public getUniformLocation(name: string): WebGLUniformLocation {
+    const location = this._uniforms[name] 
+    
+    if (location === undefined)
+      throw new Error(`Unable to find uniform named '${name}'`)
+
+    return location
   }
 
   private loadShader(source: string, shaderType: number): WebGLShader {
@@ -33,10 +57,10 @@ export class Shader {
 
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
       const info = gl.getShaderInfoLog(shader)
-      
-      throw new Error(`Error compiling shader ${this._name}: ${info}`)
+
+      throw new Error(`Error compiling shader '${this._name}': ${info}`)
     }
-    
+
     return shader
   }
 
@@ -53,7 +77,36 @@ export class Shader {
     if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
       const info = gl.getProgramInfoLog(this._program)
 
-      throw new Error(`Error linking shader ${this._name}: ${info}`)
+      throw new Error(`Error linking shader '${this._name}': ${info}`)
+    }
+  }
+
+  private detectAttributes(): void {
+    const gl = this._renderer.gl
+
+    const attributeCount = gl.getProgramParameter(this._program, gl.ACTIVE_ATTRIBUTES)
+
+    for (let i = 0; i < attributeCount; i++) {
+      const info = gl.getActiveAttrib(this._program, i)
+      if (isNil(info)) continue
+
+      this._attributes[info.name] = gl.getAttribLocation(this._program, info.name)
+    }
+  }
+
+  private detectUniforms(): void {
+    const gl = this._renderer.gl
+
+    const uniformCount = gl.getProgramParameter(this._program, gl.ACTIVE_UNIFORMS)
+
+    for (let i = 0; i < uniformCount; i++) {
+      const info = gl.getActiveUniform(this._program, i)
+      if (isNil(info)) continue
+
+      const location = gl.getUniformLocation(this._program, info.name)
+      if (isNil(location)) continue
+
+      this._uniforms[info.name] = location
     }
   }
 }
