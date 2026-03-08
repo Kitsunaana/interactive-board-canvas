@@ -1,0 +1,26 @@
+*, *::after, *::before {
+  box-sizing: border-box;
+  padding: 0px;
+  margin: 0px;
+}
+
+body {
+  overflow: hidden;
+}
+
+canvas {
+  outline: 1px solid black;
+}
+
+.left__panel {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+}
+
+.left__panel .style {
+  gap: 8px;
+  display: flex;
+  flex-direction: column;
+}
