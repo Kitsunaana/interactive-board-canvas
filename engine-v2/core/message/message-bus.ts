@@ -13,7 +13,7 @@ export class MessageBus {
   public static addSubscription(code: string, handler: MessageHandler): void {
     const subscriptions = MessageBus._subscriptions[code]
 
-    if (subscriptions !== undefined) {
+    if (subscriptions === undefined) {
       MessageBus._subscriptions[code] = []
     }
 
