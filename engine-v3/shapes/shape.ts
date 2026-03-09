@@ -1,4 +1,4 @@
-import { clone } from "lodash"
+import { cloneDeep } from "lodash"
 import { Point, type PointData } from "../Point"
 
 const generateColorId = () => {
@@ -27,13 +27,13 @@ export abstract class Shape {
   public selected: boolean = false
   public dirty: boolean = false
 
-  public readonly transform: ShapeTransform = clone(initialTransform)
+  public readonly transform: ShapeTransform = cloneDeep(initialTransform)
 
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract drawHitRegion(context: CanvasRenderingContext2D): void
   public abstract applyTranslate(): void
 
-  constructor(public readonly options: ShapeOptions) {}
+  constructor(public readonly options: ShapeOptions) { }
 
   public setTranslate(point: PointData) {
     this.transform.translate.x = point.x
@@ -76,6 +76,8 @@ export abstract class Shape {
     context.strokeStyle = this.options.strokeColor
     context.lineWidth = this.options.strokeWidth
     context.fillStyle = this.options.fillColor
+    context.lineJoin = "round"
+    context.lineCap = "round"
 
     if (this.options.fill) context.fill()
     context.stroke()

@@ -114,5 +114,3 @@ export class Path extends Shape {
     context.restore()
   }
 }
-
-// 5 27 33

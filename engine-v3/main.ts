@@ -1,3 +1,4 @@
+import { isFunction } from "lodash"
 import { Point, type PointData } from "./Point"
 import * as Shape from "./shapes"
 import './style.css'
@@ -74,23 +75,143 @@ const toolBox = document.getElementById("shape") as HTMLSelectElement
 
 toolBox.addEventListener("change", changeTool)
 
+
+type SubscribeCallback = (event: PointerEvent) => void
+
+export abstract class Draggable {
+  public abstract start(event: PointerEvent): void
+  public abstract process(event: PointerEvent): void
+  public abstract finish(event: PointerEvent): void
+
+  private _downCallback: SubscribeCallback | null = null
+  private _moveCallback: SubscribeCallback | null = null
+  private _upCallback: SubscribeCallback | null = null
+
+  public startPosition: PointData = Point.emptyPoint()
+  public currentPosition: PointData = Point.emptyPoint()
+
+  public getDelta() {
+    return Point.subtractPoints(this.currentPosition, this.startPosition)
+  }
+
+  public subscribe() {
+    this._moveCallback = (event: PointerEvent) => {
+      this.currentPosition = getOffsetPoint(event)
+      this.process(event)
+    }
+
+    this._upCallback = (event: PointerEvent) => {
+      this.finish(event)
+
+      if (isFunction(this._moveCallback) && isFunction(this._upCallback)) {
+        cavnas.removeEventListener("pointermove", this._moveCallback)
+        cavnas.removeEventListener("pointerup", this._upCallback)
+      }
+    }
+
+    this._downCallback = (event: PointerEvent) => {
+      this.startPosition = getOffsetPoint(event)
+      this.start(event)
+
+      cavnas.addEventListener("pointermove", this._moveCallback!)
+      cavnas.addEventListener("pointerup", this._upCallback!)
+    }
+
+    cavnas.addEventListener("pointerdown", this._downCallback)
+  }
+
+  public unsubscribe() {
+    if (isFunction(this._downCallback)) {
+      cavnas.removeEventListener("pointerdown", this._downCallback)
+    }
+  }
+}
+
+export class SelectFlow extends Draggable {
+  public shape: Shape.Path | Shape.Rectangle | undefined = undefined
+
+  public start(event: PointerEvent): void {
+    this.shape = shapes.find(
+      (shape) => shape.hitTest(helperContext, this.startPosition)
+    )
+  }
+
+  public process(event: PointerEvent): void {
+    if (this.shape) this.shape.setTranslate(this.getDelta())
+    drawAllScenes()
+  }
+
+  public finish(event: PointerEvent): void {
+    if (this.shape) this.shape.applyTranslate()
+    drawAllScenes()
+  }
+}
+
+export class DrawRectangleFlow extends Draggable {
+  public rectangle: Shape.Rectangle | null = null
+
+  public start(event: PointerEvent): void {
+    this.rectangle = new Shape.Rectangle(this.startPosition, {
+      ...styleOptions
+    })
+  }
+
+  public process(event: PointerEvent): void {
+    drawAllScenes()
+
+    this.rectangle?.setEnd(this.currentPosition)
+    this.rectangle?.draw(context)
+  }
+
+  public finish(event: PointerEvent): void {
+    shapes.push(this.rectangle!)
+    drawAllScenes()
+  }
+}
+
+export class DrawPathFlow extends Draggable {
+  public path: Shape.Path | null = null
+
+  public start(event: PointerEvent): void {
+    this.path = new Shape.Path(this.startPosition, {
+      ...styleOptions,
+    })
+  }
+
+  public process(event: PointerEvent): void {
+    drawAllScenes()
+
+    this.path!.addPoint(this.currentPosition)
+    this.path!.draw(context)
+  }
+
+  public finish(event: PointerEvent): void {
+    shapes.push(this.path!)
+    drawAllScenes()
+  }
+}
+
+const drawPathFlow = new DrawPathFlow()
+const shapeSelectFlow = new SelectFlow()
+const drawRectangleFlow = new DrawRectangleFlow()
+
 function changeTool(event: Event) {
   if (event.target instanceof HTMLSelectElement) {
     const selected = event.target.value
 
-    cavnas.removeEventListener("pointerdown", downCallbackForRectangle)
-    cavnas.removeEventListener("pointerdown", downCallbackForSelect)
-    cavnas.removeEventListener("pointerdown", downCallbackForPath)
+    drawRectangleFlow.unsubscribe()
+    shapeSelectFlow.unsubscribe()
+    drawPathFlow.unsubscribe()
 
     switch (selected) {
       case "rectangle":
-        cavnas.addEventListener("pointerdown", downCallbackForRectangle)
+        drawRectangleFlow.subscribe()
         break
       case "select":
-        cavnas.addEventListener("pointerdown", downCallbackForSelect)
+        shapeSelectFlow.subscribe()
         break
       case "path":
-        cavnas.addEventListener("pointerdown", downCallbackForPath)
+        drawPathFlow.subscribe()
         break
     }
   }
@@ -168,101 +289,6 @@ fillColorInput.addEventListener("input", changeFillColor)
 strokeColorInput.addEventListener("input", changeStrokeColor)
 needFillInput.addEventListener("input", changeNeedFill)
 strokeWidthInput.addEventListener("input", changeStrokeWidth)
-
-function downCallbackForSelect(event: PointerEvent) {
-  const startPosition = getOffsetPoint(event)
-
-  const shape = shapes.find(shape => shape.hitTest(helperContext, startPosition))
-
-  if (shape !== undefined) {
-    shape.selected = !shape.selected
-  }
-
-  const moveCallback = (event: PointerEvent) => {
-    const currentPosition = getOffsetPoint(event)
-    const delta = Point.subtractPoints(currentPosition, startPosition)
-
-    if (shape) shape.setTranslate(delta)
-
-    drawAllScenes()
-    drawShapes()
-  }
-
-  const upCallback = (_event: PointerEvent) => {
-    if (shape) shape.applyTranslate()
-
-    drawAllScenes()
-    drawShapes()
-
-    cavnas.removeEventListener("pointermove", moveCallback)
-    cavnas.removeEventListener("pointerup", upCallback)
-  }
-
-  cavnas.addEventListener("pointermove", moveCallback)
-  cavnas.addEventListener("pointerup", upCallback)
-}
-
-function downCallbackForRectangle(event: PointerEvent) {
-  const startPosition = getOffsetPoint(event)
-  const rectangle = new Shape.Rectangle(startPosition, {
-    ...styleOptions
-  })
-
-  const moveCallback = (event: PointerEvent) => {
-    const currentPosition = getOffsetPoint(event)
-
-    rectangle.setEnd(currentPosition)
-
-    drawAllScenes()
-    drawShapes()
-
-    rectangle.draw(context)
-  }
-
-  const upCallback = (_event: PointerEvent) => {
-    shapes.push(rectangle)
-
-    drawAllScenes()
-    drawShapes()
-
-    cavnas.removeEventListener("pointermove", moveCallback)
-    cavnas.removeEventListener("pointerup", upCallback)
-  }
-
-  cavnas.addEventListener("pointermove", moveCallback)
-  cavnas.addEventListener("pointerup", upCallback)
-}
-
-function downCallbackForPath(event: PointerEvent) {
-  const mousePosition = getOffsetPoint(event)
-  const path = new Shape.Path(mousePosition, {
-    ...styleOptions,
-  })
-
-  const moveCallback = (event: PointerEvent) => {
-    const mousePosition = getOffsetPoint(event)
-
-    path.addPoint(mousePosition)
-
-    drawAllScenes()
-    drawShapes()
-
-    path.draw(context)
-  }
-
-  const upCallback = (_event: PointerEvent) => {
-    shapes.push(path)
-
-    drawAllScenes()
-    drawShapes()
-
-    cavnas.removeEventListener("pointermove", moveCallback)
-    cavnas.removeEventListener("pointerup", upCallback)
-  }
-
-  cavnas.addEventListener("pointermove", moveCallback)
-  cavnas.addEventListener("pointerup", upCallback)
-}
 
 function drawShapes() {
   shapes.forEach((shape) => {
