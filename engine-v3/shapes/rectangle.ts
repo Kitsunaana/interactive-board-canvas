@@ -2,9 +2,10 @@ import type { Point, RectangleShape } from "../types";
 import { Shape } from "./shape";
 
 export type RectangleOptions = {
-  lineWidth: number
-  stroke: string
-  fill: string
+  strokeColor: string
+  strokeWidth: number
+  fillColor: string
+  fill: boolean
 }
 
 export class Rectangle extends Shape {
@@ -15,8 +16,8 @@ export class Rectangle extends Shape {
   public start: Point
   public end: Point
 
-  public constructor(start: Point, private readonly _options: RectangleOptions) {
-    super()
+  public constructor(start: Point, options: RectangleOptions) {
+    super(options)
 
     this.start = start
     this.end = start
@@ -58,16 +59,45 @@ export class Rectangle extends Shape {
     return this._rectangle
   }
 
-  public draw(context: CanvasRenderingContext2D): void {
+  public drawHitRegion(context: CanvasRenderingContext2D) {
     const rectangle = this.getRectangle()
-
-    context.strokeStyle = this._options.stroke
-    context.lineWidth = this._options.lineWidth
-    context.fillStyle = this._options.fill
 
     context.beginPath()
     context.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
-    context.fill()
+
+    this.applyHitRegionStyles(context)
+  }
+
+  public draw(context: CanvasRenderingContext2D): void {
+    const rectangle = this.getRectangle()
+
+    context.beginPath()
+    context.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
+
+    this.applyStyles(context)
+    if (this.selected)
+      this.drawGizmo(context)
+  }
+
+  public drawGizmo(context: CanvasRenderingContext2D) {
+    const padding = 5
+    const rectangle = this.getRectangle()
+    const rectWithPadding = {
+      x: rectangle.x - padding,
+      y: rectangle.y - padding,
+      width: rectangle.width + padding * 2, 
+      height: rectangle.height + padding * 2, 
+    }
+
+    const { x, y, width, height } = rectWithPadding
+
+    context.beginPath()
+    context.rect(x, y, width, height)
+
+    context.strokeStyle = "black"
+    context.setLineDash([5, 5])
     context.stroke()
+
+    context.setLineDash([])
   }
 }

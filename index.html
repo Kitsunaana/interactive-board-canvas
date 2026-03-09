@@ -9,13 +9,17 @@
 </head>
 
 <body>
-  <canvas id="canvas"></canvas>
+  <div class="container">
+    <canvas id="canvas"></canvas>
+    <canvas id="helperCanvas"></canvas>
+  </div>
 
   <div class="left__panel">
     <select id="shape">
       <option selected id="emoty" value="emoty">Не выбрано</option>
       <option id="path" value="path">Кривая</option>
       <option id="rectangle" value="rectangle">Прямоугольник</option>
+      <option id="select" value="select">Выбрать</option>
     </select>
 
     <div class="style">
@@ -27,6 +31,16 @@
       <div>
         <label for="strokeColor">Цвет обводки</label>
         <input type="color" id="strokeColor" value="#0000ff">
+      </div>
+
+      <div>
+        <label for="fill">Заливка</label>
+        <input checked type="checkbox" id="fill">
+      </div>
+
+      <div>
+        <label for="strokeWidth">Толщина строки</label>
+        <input type="range" id="strokeWidth" value="1" min="1" max="20" step="1">
       </div>
     </div>
   </div>
