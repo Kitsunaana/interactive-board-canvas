@@ -3,7 +3,7 @@ import { Point, type PointData } from "./Point"
 import * as Shape from "./shapes"
 import './style.css'
 
-const SHOW_HELPER_CANVAS = false
+const SHOW_HELPER_CANVAS: boolean = false
 
 if (SHOW_HELPER_CANVAS === false) {
   const helperCavnas = document.getElementById("helperCanvas") as HTMLCanvasElement
@@ -134,6 +134,14 @@ export class SelectFlow extends Draggable {
     this.shape = shapes.find(
       (shape) => shape.hitTest(helperContext, this.startPosition)
     )
+
+    if (this.shape) {
+      this.shape.selected = true
+    } else {
+      shapes.forEach(shape => {
+        shape.selected = false
+      })
+    }
   }
 
   public process(event: PointerEvent): void {
@@ -191,9 +199,30 @@ export class DrawPathFlow extends Draggable {
   }
 }
 
+type PrimitiveShape = Shape.Path | Shape.Rectangle
+
 const drawPathFlow = new DrawPathFlow()
 const shapeSelectFlow = new SelectFlow()
 const drawRectangleFlow = new DrawRectangleFlow()
+
+const removeSelectedShapes = (shapes: PrimitiveShape[], candidates: PrimitiveShape[] | undefined = undefined) => {
+  candidates ||= shapes.filter(shape => shape.selected)
+  if (candidates.length === 0) return
+
+  const first = candidates.pop()
+  const index = shapes.indexOf(first!)
+
+  shapes.splice(index, 1)
+
+  removeSelectedShapes(shapes, candidates)
+}
+
+window.addEventListener("keydown", (event) => {
+  if (event.code === "Delete") {
+    removeSelectedShapes(shapes)
+    drawAllScenes()
+  }
+})
 
 function changeTool(event: Event) {
   if (event.target instanceof HTMLSelectElement) {
