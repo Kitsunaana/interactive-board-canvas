@@ -1,5 +1,5 @@
 export class Vector3 {
-  constructor(private _x: number = 0, private _y: number = 0, private _z: number = 0) {}
+  public constructor(private _x: number = 0, private _y: number = 0, private _z: number = 0) {}
 
   public get x() {
     return this._x
