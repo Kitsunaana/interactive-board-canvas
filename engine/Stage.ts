@@ -14,7 +14,7 @@ export class Stage {
 
   private readonly _layers: Array<Layer> = []
 
-  private _container: HTMLElement = document.body
+  private _container: HTMLDivElement = document.createElement("div")
   private _height: number
   private _width: number
 
@@ -26,6 +26,11 @@ export class Stage {
   public constructor(config: StageConfig) {
     this._height = config.height
     this._width = config.width
+
+    this._container.style.width = `${this.width()}px`
+    this._container.style.height = `${this.height()}px`
+
+    document.body.appendChild(this._container)
 
     window.addEventListener("pointermove", (event) => {
       const cursor = getPointFromEvent(event)

@@ -1,15 +1,12 @@
 import { isNull, isUndefined } from "lodash";
 import { Container } from "./Container";
-import { ObservablePoint, type PointData } from "./maths";
+import * as Primitive from "./maths"
 import { Node, type NodeConfig } from "./Node";
 import { Stage } from "./Stage";
 import Konva from "konva"
 import { Polygon } from "./shapes";
 
 export interface LayerConfig extends NodeConfig {
-  zIndex?: number
-  height?: number
-  width?: number
 }
 
 export class Layer extends Container {
@@ -19,9 +16,6 @@ export class Layer extends Container {
 
   private readonly _canvas: HTMLCanvasElement
   private readonly _context: CanvasRenderingContext2D
-
-  private _height: number = 150
-  private _width: number = 300
 
   public get absolutePositionCursor() {
     if (isNull(this._stage)) throw new Error("Слой должен быть добавлен в Stage")
@@ -33,38 +27,33 @@ export class Layer extends Container {
 
     this._canvas = document.createElement("canvas")
     this._context = this._canvas.getContext("2d") as CanvasRenderingContext2D
-
-    this._canvas.style.position = "absolute"
-    this._canvas.style.zIndex = String(config.zIndex ?? 0)
   }
 
   public stage(): Stage | null
   public stage(parent: Stage): void
   public stage(parent?: Stage) {
     if (isUndefined(parent)) return this._stage
-
     this._stage = parent
+
     this.width(parent.width())
     this.height(parent.height())
-    this._canvas.width = this.width()
-    this._canvas.height = this.height()
   }
 
   public height(): number
   public height(value: number): void
   public height(value?: number) {
-    if (isUndefined(value)) return this._height
-    this._height = value
+    if (isUndefined(value)) return this._canvas.height
+    this._canvas.height = value
   }
 
   public width(): number
   public width(value: number): void
   public width(value?: number) {
-    if (isUndefined(value)) return this._width
-    this._width = value
+    if (isUndefined(value)) return this._canvas.width
+    this._canvas.width = value
   }
 
-  public update(point?: ObservablePoint): void {
+  public update(point?: Primitive.ObservablePoint): void {
     if (!isUndefined(this._canvas) && !isUndefined(point)) {
     }
   }
@@ -92,39 +81,38 @@ export class Layer extends Container {
     context.translate(position.x, position.y)
     context.scale(scale.x, scale.y)
 
-    context.fillRect(0, 0, this.width(), this.height())
-
     this.getChildren().forEach((child) => child.draw(context))
 
     context.restore()
   }
 
-  public getCorners(): Array<PointData> {
-    // const position = this.position()
+  public contains(_point: Primitive.PointData): boolean {
+    return this
+      .getChildren()
+      .some((child) => child.contains(child.getRelativePointerPosition()))
+  }
+
+  public getCorners(): Array<Primitive.PointData> {
+    const position = this.position()
     const height = this.height()
     const width = this.width()
 
-    const position = {
-      x: 0,
-      y: 0,
-    }
-
     return [
-      { x: position.x, y: position.y }, // top-left
-      { x: position.x + width, y: position.y }, // top-right
+      { x: position.x, y: position.y },                  // top-left
+      { x: position.x + width, y: position.y },          // top-right
       { x: position.x + width, y: position.y + height }, // bottom-right
-      { x: position.x - width, y: position.y + height }, // bottom-left
+      { x: position.x, y: position.y + height },         // bottom-left
     ]
   }
 
-  public add(...children: Array<Node>) {
-    const loaded = this.getChildren()
+  public add(...items: Array<Node>) {
+    const children = this.getChildren()
 
-    children.forEach((child) => {
+    items.forEach((child) => {
       const type = child.getType()
 
       if (type === "Shape" || type === "Group") {
-        loaded.push(child)
+        children.push(child)
         child.parent(this)
       }
     })
@@ -132,22 +120,26 @@ export class Layer extends Container {
 }
 
 const stage = new Stage({
-  height: window.innerHeight,
-  width: window.innerWidth,
-  draggable: true
+  draggable: true,
+  height: 500,
+  width: 500,
 })
 
 const layer = new Layer({
-  scaleX: 1.2,
-  scaleY: 1.2,
-  zIndex: 1,
-  x: 100,
-  y: 100,
+  scaleX: 0.7,
+  scaleY: 0.7,
+  x: 0,
+  y: 0,
 })
 
-layer.add(new Polygon({
+const polygon = new Polygon({
   points: [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }],
-}))
+  isDraggable: false
+})
+
+polygon.rotate(0.9)
+
+layer.add(polygon)
 
 layer.add(new Polygon({
   points: [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }],
@@ -163,12 +155,14 @@ stage.add(layer)
 //     draggable: false,
 //     height: 500,
 //     width: 500,
+//     x: 100,
+//     y: 100,
 //   }),
 
 //   layer: new Konva.Layer({
 //     draggable: true,
-//     height: 20,
-//     width: 20,
+//     height: 200,
+//     width: 200,
 //     x: 120,
 //     y: 120,
 //   })
@@ -180,6 +174,14 @@ stage.add(layer)
 //   draggable: false,
 //   radius: 70,
 //   fill: 'red',
+//   stroke: 'black',
+//   strokeWidth: 4,
+// }), new Konva.Circle({
+//   x: 100,
+//   y: 0,
+//   draggable: false,
+//   radius: 70,
+//   fill: 'green',
 //   stroke: 'black',
 //   strokeWidth: 4,
 // }))

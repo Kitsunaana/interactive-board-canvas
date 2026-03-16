@@ -13,11 +13,11 @@ canvas.style.top = "0px"
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
 
-const stage = new Stage({
-  height: window.innerHeight,
-  width: window.innerWidth,
-  draggable: true,
-})
+// const stage = new Stage({
+//   height: window.innerHeight,
+//   width: window.innerWidth,
+//   draggable: true,
+// })
 
 const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
 const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]

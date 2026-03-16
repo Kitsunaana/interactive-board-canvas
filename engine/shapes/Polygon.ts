@@ -63,10 +63,12 @@ export class Polygon extends Node {
   public getClientRect(): Primitive.Rectangle {
     if (this._needUpdate) {
       const scale = this.scale()
+      const position = this.position()
+
       this._math.getBounds(this._bounds)
 
-      this._bounds.x = this._bounds.x * scale.x + this.position().x
-      this._bounds.y = this._bounds.y * scale.y + this.position().y
+      this._bounds.x = this._bounds.x * scale.x + position.x
+      this._bounds.y = this._bounds.y * scale.y + position.y
       this._bounds.width *= scale.x
       this._bounds.height *= scale.y
     }

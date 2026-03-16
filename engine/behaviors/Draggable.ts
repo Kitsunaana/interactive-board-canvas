@@ -3,7 +3,7 @@ import { Node } from "../Node"
 import * as Primitive from "../maths"
 import { Observer } from "../shared/Observer"
 import { createDragEventsFlow } from "../shared/drag-events-flow"
-import { addPoint, subtractPoint } from "../shared/point"
+import { addPoint, getPointFromEvent, subtractPoint } from "../shared/point"
 
 export abstract class Draggable extends Observer {
   private _startDragPosition: Primitive.PointData | null = null
@@ -41,6 +41,14 @@ export abstract class Draggable extends Observer {
     this.notify()
   }
 
+  static test() {
+    window.addEventListener("pointerdown", (event) => {
+      const position = getPointFromEvent(event)
+
+      console.log(position)
+    })
+  }
+
   private _processDrag(node: Node) {
     if (this.isDragging() && !isNull(this._startDragPointer) && !isNull(this._startDragPosition)) {
       const parent = node.parent()
@@ -59,18 +67,27 @@ export abstract class Draggable extends Observer {
   private _startDrag(node: Node) {
     const parent = node.parent()
 
-    this._startDragPointer = parent ? parent.getRelativePointerPosition() : clone(node.absolutePositionCursor)
-    this._startDragPosition = node.position().clone()
+    this._startDragPointer = parent
+      ? parent.getRelativePointerPosition()
+      : clone(node.absolutePositionCursor)
 
-    node
-      .getAllParents()
-      .forEach((parent) => parent.stopDrag())
+    this._startDragPosition = node
+      .position()
+      .clone()
 
-    this.startDrag()
-    this.notify()
+    if (node.isDraggable()) {
+      this.startDrag()
+      this.notify()
+
+      node
+        .getAllParents()
+        .forEach((parent) => parent.stopDrag())
+    }
   }
 
   private _canStartDrag(node: Node) {
     return node.contains(node.getRelativePointerPosition())
   }
 }
+
+Draggable.test()
