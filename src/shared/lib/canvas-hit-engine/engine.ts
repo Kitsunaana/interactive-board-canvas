@@ -23,65 +23,65 @@ const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
 const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
 const points3 = [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }]
 
-const group2 = new Group({
-  isDraggable: true,
-  name: "group2",
-  scaleX: 1.2,
-  scaleY: 1.2,
-  x: 40,
-  y: 40,
-})
+// const group2 = new Group({
+//   isDraggable: true,
+//   name: "group2",
+//   scaleX: 1.2,
+//   scaleY: 1.2,
+//   x: 40,
+//   y: 40,
+// })
 
-const group1 = new Group({
-  isDraggable: true,
-  name: "group1",
-  scaleX: 1.5,
-  scaleY: 1.5,
-  x: 0,
-  y: 0,
-})
+// const group1 = new Group({
+//   isDraggable: true,
+//   name: "group1",
+//   scaleX: 1.5,
+//   scaleY: 1.5,
+//   x: 0,
+//   y: 0,
+// })
 
 window.addEventListener("pointermove", (event) => {
-  group1.absolutePositionCursor.x = event.clientX
-  group1.absolutePositionCursor.y = event.clientY
+  // group1.absolutePositionCursor.x = event.clientX
+  // group1.absolutePositionCursor.y = event.clientY
 
-  group2.absolutePositionCursor.x = event.clientX
-  group2.absolutePositionCursor.y = event.clientY
+  // group2.absolutePositionCursor.x = event.clientX
+  // group2.absolutePositionCursor.y = event.clientY
 })
 
-const shape1 = new Shape.Polygon({
-  isDraggable: true,
-  points: points1,
-  x: 20,
-  y: 20,
-})
+// const shape1 = new Shape.Polygon({
+//   isDraggable: true,
+//   points: points1,
+//   x: 20,
+//   y: 20,
+// })
 
-const shape2 = new Shape.Polygon({
-  isDraggable: true,
-  points: points2,
-  name: "test",
-  x: 0,
-  y: 0,
-})
+// const shape2 = new Shape.Polygon({
+//   isDraggable: true,
+//   points: points2,
+//   name: "test",
+//   x: 0,
+//   y: 0,
+// })
 
-const shape3 = new Shape.Polygon({
-  points: points3,
-  x: 0,
-  y: 0,
-})
+// const shape3 = new Shape.Polygon({
+//   points: points3,
+//   x: 0,
+//   y: 0,
+// })
 
-shape1.rotate(0.5)
-shape2.rotate(0.3)
+// shape1.rotate(0.5)
+// shape2.rotate(0.3)
 
-group1.add(shape1, shape2)
-group2.add(group1, shape3)
+// group1.add(shape1, shape2)
+// group2.add(group1, shape3)
 
 // animate()
 function animate() {
   context.clearRect(0, 0, canvas.width, canvas.height)
 
   context.save()
-  group2.draw(context)
+  // group2.draw(context)
   context.restore()
 
   requestAnimationFrame(animate)

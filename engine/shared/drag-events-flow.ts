@@ -1,33 +1,39 @@
-type CreateDragEventsFlowParams = {
-  start: (event: PointerEvent) => void
-  finish: (event: PointerEvent) => void
-  process: (event: PointerEvent) => void
+export type HandleCallback = (event: PointerEvent) => void
 
-  guard: (event: PointerEvent) => boolean
-}
+export abstract class EventsMoveFlow {
+  public abstract start(event: PointerEvent): void
+  public abstract process(event: PointerEvent): void
+  public abstract commit(event: PointerEvent): void
 
-export const createDragEventsFlow = ({ guard, start, finish, process }: CreateDragEventsFlowParams) => {
-  const subscribe = (event: PointerEvent) => {
-    const move = process
+  private _handleDownCallback: HandleCallback | null = null
+  private _handleMoveCallback: HandleCallback | null = null
+  private _handleUpCallback: HandleCallback | null = null
 
-    const up = (event: PointerEvent) => {
-      finish(event)
+  public subscribe(): void {
+    this._handleDownCallback = (event) => {
+      this.start(event)
 
-      window.removeEventListener("pointermove", move)
-      window.removeEventListener("pointerup", up)
+      window.addEventListener("pointermove", this._handleMoveCallback!)
+      window.addEventListener("pointerup", this._handleUpCallback!)
     }
 
-    if (guard(event)) {
-      start(event)
-
-      window.addEventListener("pointermove", move)
-      window.addEventListener("pointerup", up)
+    this._handleMoveCallback = (event) => {
+      this.process(event)
     }
+
+    this._handleUpCallback = (event) => {
+      this.commit(event)
+
+      window.removeEventListener("pointermove", this._handleMoveCallback!)
+      window.removeEventListener("pointerup", this._handleUpCallback!)
+    }
+
+    window.addEventListener("pointerdown", this._handleDownCallback)
   }
 
-  window.addEventListener("pointerdown", subscribe)
-
-  const unsubscribe = () => window.removeEventListener("pointerdown", subscribe)
-
-  return unsubscribe
+  public unsubscribe(): void {
+    window.removeEventListener("pointerdown", this._handleDownCallback!)
+    window.removeEventListener("pointermove", this._handleMoveCallback!)
+    window.removeEventListener("pointerup", this._handleUpCallback!)
+  }
 }

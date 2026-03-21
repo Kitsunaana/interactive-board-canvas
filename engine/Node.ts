@@ -1,7 +1,7 @@
 import { isNull, isUndefined } from "lodash"
+import { nanoid } from "nanoid"
 import { Draggable } from "./behaviors/Draggable"
 import * as Primitive from "./maths"
-import type { Observable } from "./shared/Observer"
 import { addPoint, multiplePoint } from "./shared/point"
 
 export interface NodeConfig {
@@ -13,11 +13,7 @@ export interface NodeConfig {
   y?: number
 }
 
-type FilledNodeConfig = Omit<Required<NodeConfig>, "name"> & {
-  name: string | undefined
-}
-
-export const fillConfigDefaultValues = (config: NodeConfig): FilledNodeConfig => ({
+export const fillConfigDefaultValues = (config: NodeConfig) => ({
   isDraggable: true,
   name: undefined,
   scaleX: 1,
@@ -28,126 +24,87 @@ export const fillConfigDefaultValues = (config: NodeConfig): FilledNodeConfig =>
   ...config,
 })
 
-export abstract class Node extends Draggable implements Observable {
+export abstract class Node {
+  private readonly _id = nanoid()
+
   public abstract readonly absolutePositionCursor: Primitive.PointData
 
   public abstract contains(point: Primitive.PointData): boolean
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract getClientRect(): Primitive.Rectangle
   public abstract getType(): string
-  public abstract update(point?: Primitive.ObservablePoint): void
 
   protected _name: string | undefined = undefined
-  protected _needUpdate: boolean = true
 
+  public readonly drag = new Draggable(this)
+
+  private _isDraggable: boolean = true
   private _parent: Node | null = null
-  private _isDragable: boolean = true
 
-  private _position = new Primitive.ObservablePoint({
-    _onUpdate: this._onUpdate.bind(this)
-  })
+  private _position = new Primitive.Point()
+  private _scale = new Primitive.Point()
+  private _angle: number = 0
 
-  private _scale = new Primitive.ObservablePoint({
-    _onUpdate: this._onUpdate.bind(this)
-  })
+  public constructor(params: NodeConfig) {
+    const config = fillConfigDefaultValues(params)
 
-  public constructor(config: NodeConfig) {
-    super()
-
-    const filledConfig = fillConfigDefaultValues(config)
-
-    this._isDragable = filledConfig.isDraggable
+    this._isDraggable = config.isDraggable
     this._name = config.name
 
-    if (filledConfig.isDraggable) {
-      this.attach(this)
-      this.init(this)
-    }
+    this._scale.set(config.scaleX, config.scaleY)
+    this._position.set(config.x, config.y)
 
-    this.scale({
-      x: filledConfig.scaleX,
-      y: filledConfig.scaleY,
-    })
-
-    this.position({
-      x: filledConfig.x,
-      y: filledConfig.y,
-    })
-  }
-
-  public isDraggable(): boolean
-  public isDraggable(enable: boolean): void
-  public isDraggable(enable?: boolean) {
-    if (isUndefined(enable))
-      return this._isDragable
-
-    this._isDragable = enable
-
-    if (enable) {
-      this.attach(this)
-      this.init(this)
-    } else {
-      this.detach(this)
+    if (config.isDraggable) {
+      this.drag.subscribe()
     }
   }
 
-
-  public position(): Primitive.ObservablePoint
-  public position(point: Primitive.PointData): void
-  public position(point?: Primitive.PointData) {
-    if (isUndefined(point))
-      return this._position
-
-    this._position.x = point.x
-    this._position.y = point.y
+  public get id(): string {
+    return this._id
   }
 
-  public scale(): Primitive.ObservablePoint
-  public scale(point: Primitive.PointData): void
-  public scale(point?: Primitive.PointData) {
-    if (isUndefined(point))
-      return this._scale
-
-    this._scale.x = point.x
-    this._scale.y = point.y
+  public get angle(): number {
+    return this._angle
   }
 
-  public parent(): Node
-  public parent(node: Node): void
-  public parent(node?: Node) {
-    if (isUndefined(node))
-      return this._parent
-
-    this._parent = node
-  }
-
-  public _onUpdate(point?: Primitive.ObservablePoint) {
-    this._needUpdate = true
-    this._notifyParent()
-
-    this.update(point)
+  public rotate(angle: number): void {
+    this._angle = angle
   }
 
   public getName() {
     return this._name
   }
 
-  public startDrag(): void {
-    super.startDrag()
-    this._notifyParent()
+  public isDraggable(): boolean
+  public isDraggable(enable: boolean): void
+  public isDraggable(enable?: boolean): boolean | void {
+    if (isUndefined(enable)) return this._isDraggable
+
+    this._isDraggable = enable
+
+    if (enable) this.drag.subscribe()
+    else this.drag.unsubscribe()
   }
 
-  public stopDrag(): void {
-    super.stopDrag()
-    this._notifyParent()
+  public position(): Primitive.Point
+  public position(point: Primitive.PointData): void
+  public position(point?: Primitive.PointData): Primitive.Point | void {
+    if (isUndefined(point)) return this._position
+    this._position.set(point.x, point.y)
   }
 
-  private _notifyParent(): void {
-    this
-      .getAllParents()
-      .forEach((parent) => {
-        parent._needUpdate = true
-      })
+  public scale(): Primitive.Point
+  public scale(point: Primitive.PointData): void
+  public scale(point?: Primitive.PointData): Primitive.Point | void {
+    if (isUndefined(point)) return this._scale
+    this._scale.set(point.x, point.y)
+  }
+
+  public parent(): Node | null
+  public parent(node: Node): void
+  public parent(node?: Node): Node | null | void {
+    if (isUndefined(node)) return this._parent
+    this._parent = node
   }
 
   public getAllParents<T extends Node>(list: Array<T> = []): Array<T> {
@@ -158,7 +115,7 @@ export abstract class Node extends Draggable implements Observable {
       : this.getAllParents.call(parent, list.concat(parent)) as Array<T>
   }
 
-  public getRelativePointerPosition() {
+  public getRelativePointerPosition(): Primitive.PointData {
     const absolutePosition = this.getAbsolutePosition()
     const absoluteScale = this.getAbsoluteScale()
 

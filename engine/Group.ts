@@ -1,11 +1,10 @@
 import * as Primitive from "./maths";
 import { Node, type NodeConfig } from "./Node";
-import type { Observable } from "./shared/Observer";
 
 interface GroupConfig extends NodeConfig {
 }
 
-export class Group extends Node implements Observable {
+export class Group extends Node {
   private readonly _type = "Group" as const
 
   private _children: Array<Node> = []
@@ -13,13 +12,13 @@ export class Group extends Node implements Observable {
   private readonly _localBounds: Primitive.Rectangle = new Primitive.Rectangle()
   private readonly _clientRect: Primitive.Rectangle = new Primitive.Rectangle()
 
-  public readonly absolutePositionCursor: Primitive.PointData = {
+  private readonly _absolutePositionCursor: Primitive.PointData = {
     x: 0,
     y: 0,
   }
 
-  public update(): void {
-    this._needUpdate = true
+  public get absolutePositionCursor() {
+    return this.parent()?.absolutePositionCursor ?? this._absolutePositionCursor
   }
 
   public getType() {
@@ -33,25 +32,21 @@ export class Group extends Node implements Observable {
   }
 
   public getClientRect(): Primitive.Rectangle {
-    if (this._needUpdate) {
-      this._needUpdate = false
+    const corners = this._children.flatMap((child) => (
+      child
+        .getClientRect()
+        .getCorner()
+    ))
 
-      const corners = this._children.flatMap((child) => (
-        child
-          .getClientRect()
-          .getCorner()
-      ))
+    new Primitive.Polygon(corners).getBounds(this._localBounds)
 
-      new Primitive.Polygon(corners).getBounds(this._localBounds)
+    const position = this.position()
+    const scale = this.scale()
 
-      const position = this.position()
-      const scale = this.scale()
-
-      this._clientRect.x = this._localBounds.x * scale.x + position.x
-      this._clientRect.y = this._localBounds.y * scale.y + position.y
-      this._clientRect.width = this._localBounds.width * scale.x
-      this._clientRect.height = this._localBounds.height * scale.y
-    }
+    this._clientRect.x = this._localBounds.x * scale.x + position.x
+    this._clientRect.y = this._localBounds.y * scale.y + position.y
+    this._clientRect.width = this._localBounds.width * scale.x
+    this._clientRect.height = this._localBounds.height * scale.y
 
     return this._clientRect
   }
@@ -69,7 +64,7 @@ export class Group extends Node implements Observable {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
-    this.__debugDrawBounds(context)
+    // this.__debugDrawBounds(context)
 
     context.save()
 

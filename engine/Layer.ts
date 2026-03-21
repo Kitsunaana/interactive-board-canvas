@@ -1,10 +1,12 @@
-import { isNull, isUndefined } from "lodash";
+import {clone, isNull, isUndefined} from "lodash";
 import { Container } from "./Container";
 import * as Primitive from "./maths"
 import { Node, type NodeConfig } from "./Node";
 import { Stage } from "./Stage";
 import Konva from "konva"
 import { Polygon } from "./shapes";
+import {type ResizeHandler, Transformer} from "./behaviors/Transformer"
+import { getPointFromEvent } from "./shared/point";
 
 export interface LayerConfig extends NodeConfig {
 }
@@ -51,11 +53,6 @@ export class Layer extends Container {
   public width(value?: number) {
     if (isUndefined(value)) return this._canvas.width
     this._canvas.width = value
-  }
-
-  public update(point?: Primitive.ObservablePoint): void {
-    if (!isUndefined(this._canvas) && !isUndefined(point)) {
-    }
   }
 
   public getCanvas() {
@@ -120,32 +117,60 @@ export class Layer extends Container {
 }
 
 const stage = new Stage({
-  draggable: true,
-  height: 500,
-  width: 500,
+  height: window.innerHeight,
+  width: window.innerWidth,
+  draggable: false,
 })
 
 const layer = new Layer({
-  scaleX: 0.7,
-  scaleY: 0.7,
+  isDraggable: false,
+  scaleX: 1,
+  scaleY: 1,
   x: 0,
   y: 0,
 })
 
-const polygon = new Polygon({
-  points: [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }],
-  isDraggable: false
+const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
+const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
+const points = clone(points1).concat(clone(points2))
+
+const polygon1 = new Polygon({
+  isDraggable: true,
+  points: points1,
 })
 
-polygon.rotate(0.9)
+const polygon2 = new Polygon({
+  points: points2.map(p => ({ ...p })),
+  x: 0,
+  y: 0,
+})
 
-layer.add(polygon)
+polygon1.rotate(Math.PI / 4)
+polygon2.rotate(-Math.PI / 6)
 
-layer.add(new Polygon({
-  points: [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }],
-  x: 100,
-  y: 100,
-}))
+const transform = new Transformer({
+  isDraggable: false,
+})
+
+transform.add(polygon1, polygon2)
+layer.add(transform)
+
+const math = new Primitive.Polygon(points)
+math.getBounds(transform.initialOBB)
+
+const side: ResizeHandler = "e"
+
+transform.setInitialPoints()
+transform.setHandlePosition(side)
+transform.setPivotPosition(side)
+transform.setWorldPivot()
+
+window.addEventListener("pointermove", (event) => {
+  const point = getPointFromEvent(event)
+
+  transform.setTransformScale(point)
+  transform.applyTransform()
+})
 
 stage.add(layer)
 

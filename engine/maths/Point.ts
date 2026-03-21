@@ -39,4 +39,43 @@ export class Point implements PointLike {
 
     return this
   }
+
+  static rotate(point: PointData, angle: number, out?: PointData) {
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
+
+    out ||= new Point()
+
+    out.x = point.x * cos - point.y * sin
+    out.y = point.x * sin + point.y * cos
+
+    return out
+  }
+
+  static substract(pointA: PointData, pointB: PointData, out?: PointData) {
+    out ||= new Point()
+
+    out.x = pointA.x - pointB.x
+    out.y = pointA.y - pointB.y
+
+    return out
+  }
+
+  static multiple(pointA: PointData, pointB: PointData, out?: PointData) {
+    out ||= new Point()
+
+    out.x = pointA.x * pointB.x
+    out.y = pointA.y * pointB.y
+
+    return out
+  }
+
+  static add(pointA: PointData, pointB: PointData, out?: PointData) {
+    out ||= new Point()
+
+    out.x = pointA.x + pointB.x
+    out.y = pointA.y + pointB.y
+
+    return out
+  }
 }

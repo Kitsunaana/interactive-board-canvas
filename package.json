@@ -34,6 +34,7 @@
     "react-rxjs": "^2.0.8",
     "rxjs": "^7.8.2",
     "tailwind-merge": "^3.4.0",
-    "tailwindcss": "^4.1.17"
+    "tailwindcss": "^4.1.17",
+    "ts-mixer": "^6.0.4"
   }
 }

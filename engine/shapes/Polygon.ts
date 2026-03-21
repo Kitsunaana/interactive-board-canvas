@@ -1,4 +1,3 @@
-import { isNull } from "lodash"
 import { Node, type NodeConfig } from "../Node"
 import * as Primitive from "../maths"
 
@@ -7,38 +6,25 @@ export interface PolygonConfig extends NodeConfig {
 }
 
 export class Polygon extends Node {
-  public _absolutePositionCursor: Primitive.PointData = {
-    x: 0,
-    y: 0,
-  }
-
   private readonly _type = "Shape" as const
 
-  public readonly boundsSkippedRotate: Primitive.Rectangle
+  public readonly initialCenter: Primitive.Point = new Primitive.Point()
+  public readonly math: Primitive.Polygon
 
-  private readonly _math: Primitive.Polygon
   private readonly _matrix: Primitive.Matrix = new Primitive.Matrix()
   private readonly _bounds: Primitive.Rectangle = new Primitive.Rectangle()
 
-  public _onUpdate(point?: Primitive.ObservablePoint): void {
-    
-  }
-
-  public update() {
-    this._needUpdate = true
-  }
-
   public get absolutePositionCursor() {
-    return isNull(this.parent())
-      ? this._absolutePositionCursor
-      : this.parent().absolutePositionCursor
+    return this.parent()!.absolutePositionCursor
   }
 
-  constructor(config: PolygonConfig) {
+  public constructor(config: PolygonConfig) {
     super(config)
 
-    this._math = new Primitive.Polygon(config.points)
-    this.boundsSkippedRotate = this._math.getBounds()
+    this.math = new Primitive.Polygon(config.points)
+    
+    const initialBounds = this.math.getBounds()
+    this.initialCenter.set(initialBounds.centerX, initialBounds.centerY)
   }
 
   public getType() {
@@ -46,84 +32,42 @@ export class Polygon extends Node {
   }
 
   public rotate(angle: number): void {
-    const bounds = this.boundsSkippedRotate
+    super.rotate(angle)
 
     this._matrix
       .clear()
-      .setPivot(bounds.centerX, bounds.centerY)
+      .setPivot(this.initialCenter.x, this.initialCenter.y)
       .rotate(angle)
 
-    this._math.applyMatrix(this._matrix)
+    this.math.applyMatrix(this._matrix)
   }
 
   public contains(point: Primitive.PointData): boolean {
-    return this._math.contains(point.x, point.y)
+    return this.math.contains(point.x, point.y)
   }
 
   public getClientRect(): Primitive.Rectangle {
-    if (this._needUpdate) {
-      const scale = this.scale()
-      const position = this.position()
+    const scale = this.scale()
+    const position = this.position()
 
-      this._math.getBounds(this._bounds)
+    this.math.getBounds(this._bounds)
 
-      this._bounds.x = this._bounds.x * scale.x + position.x
-      this._bounds.y = this._bounds.y * scale.y + position.y
-      this._bounds.width *= scale.x
-      this._bounds.height *= scale.y
-    }
+    this._bounds.x = this._bounds.x * scale.x + position.x
+    this._bounds.y = this._bounds.y * scale.y + position.y
+    this._bounds.width *= scale.x
+    this._bounds.height *= scale.y
 
     return this._bounds
   }
 
-  public __debugDrawShape(context: CanvasRenderingContext2D) {
-    context.save()
-    context.lineWidth = 3
-    context.strokeStyle = "#e87123"
-    context.beginPath()
-
-    this._math.points.forEach((point) => context.lineTo(point.x + this.position().x, point.y + this.position().y))
-
-    context.closePath()
-    context.stroke()
-    context.restore()
-  }
-
-  public __debugDrawBounds(context: CanvasRenderingContext2D) {
-    const bounds = this.getClientRect()
-
-    context.save()
-    context.strokeStyle = "red"
-    context.beginPath()
-    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-    context.closePath()
-    context.restore()
-  }
-
-  public __drawCenterBounds(context: CanvasRenderingContext2D) {
-    const bounds = this.boundsSkippedRotate
-
-    context.save()
-    context.strokeStyle = "red"
-    context.beginPath()
-    context.arc(bounds.centerX, bounds.centerY, 5, 0, Math.PI * 2)
-    context.closePath()
-    context.stroke()
-    context.restore()
-  }
-
   public draw(context: CanvasRenderingContext2D): void {
-    this.__debugDrawBounds(context)
-    this.__drawCenterBounds(context)
-    this.__debugDrawShape(context)
-
     context.save()
     context.translate(this.position().x, this.position().y)
     context.scale(this.scale().x, this.scale().y)
 
     context.fillStyle = "darkorange"
     context.beginPath()
-    this._math.points.forEach((point) => context.lineTo(point.x, point.y))
+    this.math.points.forEach((point) => context.lineTo(point.x, point.y))
     context.closePath()
     context.stroke()
     context.fill()

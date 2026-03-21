@@ -1,15 +1,18 @@
 import { clone, isNull } from "lodash"
 import { Node } from "../Node"
 import * as Primitive from "../maths"
-import { Observer } from "../shared/Observer"
-import { createDragEventsFlow } from "../shared/drag-events-flow"
-import { addPoint, getPointFromEvent, subtractPoint } from "../shared/point"
+import { EventsMoveFlow } from "../shared/drag-events-flow"
+import { addPoint, subtractPoint } from "../shared/point"
 
-export abstract class Draggable extends Observer {
-  private _startDragPosition: Primitive.PointData | null = null
-  private _startDragPointer: Primitive.PointData | null = null
+export class Draggable extends EventsMoveFlow {
+  private _startPosition: Primitive.PointData | null = null
+  private _startCursor: Primitive.PointData | null = null
 
   private _isDragging: boolean = false
+
+  public constructor(private readonly node: Node) {
+    super()
+  }
 
   public isDragging() {
     return this._isDragging
@@ -23,71 +26,46 @@ export abstract class Draggable extends Observer {
     this._isDragging = false
   }
 
-  public init(node: Node) {
-    createDragEventsFlow({
-      process: this._processDrag.bind(this, node),
-      guard: this._canStartDrag.bind(this, node),
-      start: this._startDrag.bind(this, node),
-
-      finish: this._finishDrag.bind(this),
-    })
-  }
-
-  private _finishDrag() {
-    this._startDragPointer = null
-    this._startDragPosition = null
+  public commit(_event: PointerEvent) {
+    this._startCursor = null
+    this._startPosition = null
 
     this.stopDrag()
-    this.notify()
   }
 
-  static test() {
-    window.addEventListener("pointerdown", (event) => {
-      const position = getPointFromEvent(event)
+  public process(_event: PointerEvent) {
+    if (this.isDragging() && !isNull(this._startCursor) && !isNull(this._startPosition)) {
+      const delta = subtractPoint(this._startCursor, this._getCurrentPointer())
+      const next = addPoint(this._startPosition, delta)
 
-      console.log(position)
-    })
-  }
-
-  private _processDrag(node: Node) {
-    if (this.isDragging() && !isNull(this._startDragPointer) && !isNull(this._startDragPosition)) {
-      const parent = node.parent()
-
-      const currentPointer = parent ? parent.getRelativePointerPosition() : node.absolutePositionCursor
-      const delta = subtractPoint(this._startDragPointer, currentPointer)
-      const newPosition = addPoint(this._startDragPosition, delta)
-
-      const position = node.position()
-
-      position.x = newPosition.x
-      position.y = newPosition.y
+      this.node.position(next)
     }
   }
 
-  private _startDrag(node: Node) {
-    const parent = node.parent()
+  public start(_event: PointerEvent) {
+    const node = this.node
 
-    this._startDragPointer = parent
-      ? parent.getRelativePointerPosition()
-      : clone(node.absolutePositionCursor)
-
-    this._startDragPosition = node
-      .position()
-      .clone()
-
-    if (node.isDraggable()) {
-      this.startDrag()
-      this.notify()
+    if (this.canStart(_event) && node.isDraggable()) {
+      this._startCursor = this._getCurrentPointer()
+      this._startPosition = node.position().clone()
 
       node
         .getAllParents()
-        .forEach((parent) => parent.stopDrag())
+        .forEach((parent) => parent.drag.stopDrag())
+
+      this.startDrag()
     }
   }
 
-  private _canStartDrag(node: Node) {
-    return node.contains(node.getRelativePointerPosition())
+  public canStart(_event: PointerEvent) {
+    return this.node.contains(this.node.getRelativePointerPosition())
+  }
+
+  private _getCurrentPointer() {
+    const parent = this.node.parent()
+
+    return parent
+      ? parent.getRelativePointerPosition()
+      : clone(this.node.absolutePositionCursor)
   }
 }
-
-Draggable.test()

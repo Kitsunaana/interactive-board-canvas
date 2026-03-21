@@ -142,4 +142,13 @@ export class Rectangle {
 
     return this
   }
+
+  public getAABB() {
+    return {
+      minX: this.x,
+      minY: this.y,
+      maxX: this.x + this.width,
+      maxY: this.y + this.height,
+    }
+  }
 }
