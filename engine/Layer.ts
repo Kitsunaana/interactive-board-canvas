@@ -1,11 +1,11 @@
-import {clone, isNull, isUndefined} from "lodash";
+import { clone, isNull, isUndefined } from "lodash";
 import { Container } from "./Container";
 import * as Primitive from "./maths"
 import { Node, type NodeConfig } from "./Node";
 import { Stage } from "./Stage";
 import Konva from "konva"
 import { Polygon } from "./shapes";
-import {type ResizeHandler, Transformer} from "./behaviors/Transformer"
+import { type ResizeHandler, Transformer } from "./behaviors/Transformer"
 import { getPointFromEvent } from "./shared/point";
 
 export interface LayerConfig extends NodeConfig {
@@ -35,7 +35,7 @@ export class Layer extends Container {
   public stage(parent: Stage): void
   public stage(parent?: Stage) {
     if (isUndefined(parent)) return this._stage
-    this._stage = parent
+    else this._stage = parent
 
     this.width(parent.width())
     this.height(parent.height())
@@ -45,14 +45,14 @@ export class Layer extends Container {
   public height(value: number): void
   public height(value?: number) {
     if (isUndefined(value)) return this._canvas.height
-    this._canvas.height = value
+    else this._canvas.height = value
   }
 
   public width(): number
   public width(value: number): void
   public width(value?: number) {
     if (isUndefined(value)) return this._canvas.width
-    this._canvas.width = value
+    else this._canvas.width = value
   }
 
   public getCanvas() {
@@ -68,9 +68,9 @@ export class Layer extends Container {
   }
 
   public draw(): void {
-    const scale = this.scale()
+    const scale = this.getScale()
     const context = this.getContext()
-    const position = this.position()
+    const position = this.getPosition()
 
     context.clearRect(0, 0, this.width(), this.height())
 
@@ -90,7 +90,7 @@ export class Layer extends Container {
   }
 
   public getCorners(): Array<Primitive.PointData> {
-    const position = this.position()
+    const position = this.getPosition()
     const height = this.height()
     const width = this.width()
 
@@ -110,7 +110,7 @@ export class Layer extends Container {
 
       if (type === "Shape" || type === "Group") {
         children.push(child)
-        child.parent(this)
+        child.setParent(this)
       }
     })
   }
@@ -122,10 +122,12 @@ const stage = new Stage({
   draggable: false,
 })
 
+const layerScale = 1.0
+
 const layer = new Layer({
   isDraggable: false,
-  scaleX: 1,
-  scaleY: 1,
+  scaleX: layerScale,
+  scaleY: layerScale,
   x: 0,
   y: 0,
 })
@@ -134,42 +136,56 @@ const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
 const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
 const points = clone(points1).concat(clone(points2))
 
+let scale = 1.0
+
 const polygon1 = new Polygon({
   isDraggable: true,
   points: points1,
+  scaleX: scale,
+  scaleY: scale,
 })
 
-const polygon2 = new Polygon({
-  points: points2.map(p => ({ ...p })),
-  x: 0,
-  y: 0,
-})
+// const polygon2 = new Polygon({
+//   points: points2,
+//   scaleX: 1.0,
+//   scaleY: 1.0,
+//   x: 0,
+//   y: 0,
+// })
 
-polygon1.rotate(Math.PI / 4)
-polygon2.rotate(-Math.PI / 6)
+polygon1.scale({ x: 1.5, y: 1.5 })
+polygon1.rotate(0.2)
+polygon1.scale({ x: 1.5, y: 1.5 })
+polygon1.rotate(0.2)
+// polygon1.scale({ x: 1.5, y: 1.5 })
+// polygon1.applyScale()
+
+// polygon1.rotate(Math.PI / 4)
+// polygon2.rotate(-Math.PI / 6)
 
 const transform = new Transformer({
   isDraggable: false,
 })
 
-transform.add(polygon1, polygon2)
-layer.add(transform)
+// transform.add(polygon1)
+layer.add(polygon1)
+// layer.add(polygon1, polygon2)
 
-const math = new Primitive.Polygon(points)
-math.getBounds(transform.initialOBB)
+// const math = new Primitive.Polygon(points)
+// math.getBounds(transform.initialOBB)
 
 const side: ResizeHandler = "e"
 
-transform.setInitialPoints()
+transform.setInitialState()
 transform.setHandlePosition(side)
 transform.setPivotPosition(side)
 transform.setWorldPivot()
 
 window.addEventListener("pointermove", (event) => {
-  const point = getPointFromEvent(event)
-
-  transform.setTransformScale(point)
+  transform.setTransformScale(getPointFromEvent(event))
   transform.applyTransform()
+
+  // console.log(JSON.stringify(polygon1.math.points, null, 2))
 })
 
 stage.add(layer)

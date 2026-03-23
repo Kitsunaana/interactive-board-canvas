@@ -17,7 +17,7 @@ export class Point implements PointLike {
     return new Point(this.x, this.y)
   }
 
-  public copyFrom(point: Point): this {
+  public copyFrom(point: PointData): this {
     this.set(point.x, point.y)
 
     return this
@@ -52,11 +52,20 @@ export class Point implements PointLike {
     return out
   }
 
-  static substract(pointA: PointData, pointB: PointData, out?: PointData) {
+  static subtract(pointA: PointData, pointB: PointData, out?: PointData) {
     out ||= new Point()
 
     out.x = pointA.x - pointB.x
     out.y = pointA.y - pointB.y
+
+    return out
+  }
+
+  static divide(pointA: PointData, pointB: PointData, out?: PointData) {
+    out ||= new Point()
+
+    out.x = pointA.x / pointB.x
+    out.y = pointA.y / pointB.y
 
     return out
   }

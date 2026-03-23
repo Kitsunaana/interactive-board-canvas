@@ -1,4 +1,4 @@
-import { isNull, isUndefined } from "lodash"
+import { isNull } from "lodash"
 import { nanoid } from "nanoid"
 import { Draggable } from "./behaviors/Draggable"
 import * as Primitive from "./maths"
@@ -63,52 +63,55 @@ export abstract class Node {
     return this._id
   }
 
-  public get angle(): number {
-    return this._angle
-  }
-
-  public rotate(angle: number): void {
-    this._angle = angle
-  }
-
   public getName() {
     return this._name
   }
 
-  public isDraggable(): boolean
-  public isDraggable(enable: boolean): void
-  public isDraggable(enable?: boolean): boolean | void {
-    if (isUndefined(enable)) return this._isDraggable
+  public setAngle(angle: number) {
+    this._angle = angle
+  }
 
+  public getAngle() {
+    return this._angle
+  }
+
+  public getIsDraggable() {
+    return this._isDraggable
+  }
+
+  public setIsDraggable(enable: boolean) {
     this._isDraggable = enable
 
     if (enable) this.drag.subscribe()
     else this.drag.unsubscribe()
   }
 
-  public position(): Primitive.Point
-  public position(point: Primitive.PointData): void
-  public position(point?: Primitive.PointData): Primitive.Point | void {
-    if (isUndefined(point)) return this._position
+  public setPosition(point: Primitive.PointData) {
     this._position.set(point.x, point.y)
   }
 
-  public scale(): Primitive.Point
-  public scale(point: Primitive.PointData): void
-  public scale(point?: Primitive.PointData): Primitive.Point | void {
-    if (isUndefined(point)) return this._scale
+  public getPosition() {
+    return this._position
+  }
+
+  public setScale(point: Primitive.PointData) {
     this._scale.set(point.x, point.y)
   }
 
-  public parent(): Node | null
-  public parent(node: Node): void
-  public parent(node?: Node): Node | null | void {
-    if (isUndefined(node)) return this._parent
+  public getScale() {
+    return this._scale
+  }
+
+  public setParent(node: Node) {
     this._parent = node
   }
 
+  public getParent() {
+    return this._parent
+  }
+
   public getAllParents<T extends Node>(list: Array<T> = []): Array<T> {
-    const parent = this.parent() as unknown as T
+    const parent = this.getParent() as unknown as T
 
     return isNull(parent)
       ? list

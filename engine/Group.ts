@@ -18,7 +18,7 @@ export class Group extends Node {
   }
 
   public get absolutePositionCursor() {
-    return this.parent()?.absolutePositionCursor ?? this._absolutePositionCursor
+    return this.getParent()?.absolutePositionCursor ?? this._absolutePositionCursor
   }
 
   public getType() {
@@ -40,22 +40,23 @@ export class Group extends Node {
 
     new Primitive.Polygon(corners).getBounds(this._localBounds)
 
-    const position = this.position()
-    const scale = this.scale()
+    const position = this.getPosition()
+    // const scale = this.scale()
+    const scale = this.getAbsoluteScale()
+    
+    // this._clientRect.x = this._localBounds.x * scale.x + position.x
+    // this._clientRect.y = this._localBounds.y * scale.y + position.y
+    // this._clientRect.width = this._localBounds.width * scale.x
+    // this._clientRect.height = this._localBounds.height * scale.y
 
-    this._clientRect.x = this._localBounds.x * scale.x + position.x
-    this._clientRect.y = this._localBounds.y * scale.y + position.y
-    this._clientRect.width = this._localBounds.width * scale.x
-    this._clientRect.height = this._localBounds.height * scale.y
-
-    return this._clientRect
+    return this._localBounds
   }
 
   public add(...children: Array<Node>) {
     children.forEach((child) => {
       this._children.push(child)
 
-      child.parent(this)
+      child.setParent(this)
     })
   }
 
@@ -66,10 +67,13 @@ export class Group extends Node {
   public draw(context: CanvasRenderingContext2D): void {
     // this.__debugDrawBounds(context)
 
+    const position = this.getPosition()
+    const scale = this.getScale()
+
     context.save()
 
-    context.translate(this.position().x, this.position().y)
-    context.scale(this.scale().x, this.scale().y)
+    context.translate(position.x, position.y)
+    // context.scale(scale.x, scale.y)
 
     this._children.forEach((child) => child.draw(context))
 
