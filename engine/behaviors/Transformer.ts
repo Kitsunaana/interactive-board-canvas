@@ -2,6 +2,8 @@ import { Mixin } from "ts-mixer"
 import { Group } from "../Group"
 import * as Primitive from "../maths"
 import { Polygon } from "../shapes/Polygon"
+import { clone } from "lodash"
+
 
 const { Point } = Primitive
 
@@ -9,6 +11,7 @@ export type ResizeHandler = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w"
 
 export class Transformer extends Mixin(Group) {
   private readonly _pointsShape: Record<string, Primitive.PointData[]> = {}
+  private readonly _originsShape: Record<string, { originScale: Primitive.PointData, originRotate: Primitive.PointData }> = {}
 
   public initialOBB = new Primitive.Rectangle()
 
@@ -16,12 +19,10 @@ export class Transformer extends Mixin(Group) {
   private readonly _transformScale = new Point(1, 1)
   private readonly _pivotPosition = new Point()
   private readonly _worldPivot = new Point()
+  private readonly _obbWorldCenter = new Point()
 
   public get center(): Primitive.PointData {
-    return {
-      x: this.initialOBB.centerX,
-      y: this.initialOBB.centerY,
-    }
+    return this._obbWorldCenter
   }
 
   public get angle() {
@@ -30,33 +31,58 @@ export class Transformer extends Mixin(Group) {
 
     const isMultiple = children.length > 1
 
-    return isMultiple ? 0 : children[0].getAngle()
+    return isMultiple ? Math.PI / 4 : children[0].getAngle()
   }
 
   public setInitialState(): void {
-    this.initialOBB = this.getClientRect()
+    const angle = this.angle
+    const allPoints: Primitive.PointData[] = []
 
     this.getChildren().forEach((shape) => {
       if (shape instanceof Polygon) {
         this._pointsShape[shape.id] = shape.math.points.map((point) => ({
           ...point,
         }))
+
+        this._originsShape[shape.id] = {
+          originScale: clone(shape.originScale),
+          originRotate: clone(shape.originRotate),
+        }
+
+        allPoints.push(...shape.math.points.map(point => ({ ...point })))
       }
     })
+
+    Primitive.Polygon.rotate(allPoints, -angle, new Primitive.Point())
+
+    const bounds = Primitive.Polygon.prototype.getBounds.call({ points: allPoints })
+
+    this.initialOBB.copyFrom(bounds)
+
+    const localCenter = {
+      x: bounds.centerX,
+      y: bounds.centerY,
+    }
+
+    this._obbWorldCenter.copyFrom(Point.rotate(localCenter, angle))
   }
 
   public draw(context: CanvasRenderingContext2D): void {
     super.draw(context)
 
     const obb = this.initialOBB
+    const angle = this.angle
 
     context.save()
+    context.translate(this._obbWorldCenter.x, this._obbWorldCenter.y)
+    context.rotate(angle)
     context.beginPath()
-    context.strokeRect(obb.x, obb.y, obb.width, obb.height)
+    context.strokeRect(-obb.width / 2, -obb.height / 2, obb.width, obb.height)
     context.beginPath()
+    context.restore()
+
     context.arc(this._worldPivot.x, this._worldPivot.y, 5, 0, Math.PI * 2)
     context.fill()
-    context.restore()
   }
 
   public setWorldPivot(): void {
@@ -169,26 +195,63 @@ export class Transformer extends Mixin(Group) {
     sy = Math.sign(sy) * Math.max(0.01, Math.abs(sy))
 
     this._transformScale.set(sx, sy)
+
+    console.log(this._transformScale)
   }
 
   public applyTransform(): void {
+    const isSingle = this.getChildren().length === 1
+
     this.getChildren().forEach((child) => {
       if (!(child instanceof Polygon)) return;
 
-      const initialLocal = this._pointsShape[child.id];
+      const initialPoints = this._pointsShape[child.id];
+      const initialOrigins = this._originsShape[child.id];
+      const childAngle = child.getAngle()
 
-      child.math.points = initialLocal.map((localPt) => {
-        const rotatedLocal = Point.rotate(localPt, this.angle);
-        const worldPt = Point.add(child.originScale, rotatedLocal);
+      if (isSingle) {
+        const initOriginScale = initialOrigins.originScale
+        const initOriginRotate = initialOrigins.originRotate
 
-        const vecFromPivot = Point.subtract(worldPt, this._worldPivot);
-        const scaledVec = Point.multiple(vecFromPivot, this._transformScale);
+        const unrotatedPoints = initialPoints.map(p => ({ ...p }))
+        Primitive.Polygon.rotate(unrotatedPoints, -childAngle, initOriginRotate)
 
-        const newWorldPt = Point.add(this._worldPivot, scaledVec);
-        const toOrigin = Point.subtract(newWorldPt, child.originScale);
+        const unrotatedOriginScale = Primitive.rotatePointAroundOrigin(initOriginScale, initOriginRotate, -childAngle)
+        const newOriginRotate = Primitive.scalePointAroundOrigin(initOriginRotate, unrotatedOriginScale, this._transformScale)
 
-        return Point.rotate(toOrigin, -this.angle);
-      });
+        Primitive.Polygon.scale(unrotatedPoints, this._transformScale, unrotatedOriginScale)
+        Primitive.Polygon.rotate(unrotatedPoints, childAngle, newOriginRotate)
+
+        const newOriginScale = Primitive.rotatePointAroundOrigin(unrotatedOriginScale, newOriginRotate, childAngle)
+
+        child.math.points = unrotatedPoints
+
+        child.originScale.copyFrom(newOriginScale)
+        child.originRotate.copyFrom(newOriginRotate)
+      } else {
+        const groupAngle = this.angle
+
+        child.math.points = initialPoints.map((point) => {
+          const vecFromPivot = Point.subtract(point, this._worldPivot)
+          const localVec = Point.rotate(vecFromPivot, -groupAngle)
+          const scaledVec = Point.multiple(localVec, this._transformScale)
+          const worldVec = Point.rotate(scaledVec, groupAngle)
+
+          return Point.add(this._worldPivot, worldVec)
+        })
+
+        const scaleOriginInLocal = (origin: Primitive.PointData) => {
+          const vec = Point.subtract(origin, this._worldPivot)
+          const local = Point.rotate(vec, -groupAngle)
+          const scaled = Point.multiple(local, this._transformScale)
+          const world = Point.rotate(scaled, groupAngle)
+
+          return Point.add(this._worldPivot, world)
+        }
+
+        child.originScale.copyFrom(scaleOriginInLocal(initialOrigins.originScale))
+        child.originRotate.copyFrom(scaleOriginInLocal(initialOrigins.originRotate))
+      }
     });
   }
 }

@@ -145,43 +145,47 @@ const polygon1 = new Polygon({
   scaleY: scale,
 })
 
-// const polygon2 = new Polygon({
-//   points: points2,
-//   scaleX: 1.0,
-//   scaleY: 1.0,
-//   x: 0,
-//   y: 0,
-// })
+const polygon2 = new Polygon({
+  points: points2,
+  scaleX: 1.0,
+  scaleY: 1.0,
+  x: 0,
+  y: 0,
+})
 
 // polygon1.rotate(0.2)
-// polygon1.setOriginScale("50% 0%")
-polygon1.setOriginRotate("0% 150%")
-polygon1.rotate(0.2)
+// polygon1.setOriginScale("0% 0%")
+// polygon1.rotate(0.2)
 
+// polygon1.scale({ x: 1.2, y: 1 })
+// polygon1.rotate(0.2)
 // polygon1.scale({ x: 1.5, y: 1.5 })
-// polygon1.rotate(0.2)
-// polygon1.scale({ x: 1.2, y: 1 })
-// polygon1.rotate(0.2)
-// polygon1.scale({ x: 1.2, y: 1 })
+// polygon1.setOriginRotate("50% 50%")
+polygon1.rotate(Math.PI / 4)
 
-console.log(
-  polygon1.getScale()
-)
+// polygon1.setOriginRotate("0% 0%")
+// polygon1.setOriginScale("0% 0%")
+
+// polygon1.rotate(Math.PI)
+// polygon1.scale({ x: 1.2, y: 1 })
 
 // polygon1.scale({ x: 1.5, y: 1.5 })
 // polygon1.rotate(0.2)
 // polygon1.scale({ x: 1.5, y: 1.5 })
 // polygon1.applyScale()
 
-// polygon1.rotate(Math.PI / 4)
+polygon2.rotate(Math.PI / 4)
+// polygon2.setOriginRotate("0% 0%")
+// polygon2.setOriginScale("0% 0%")
+
 // polygon2.rotate(-Math.PI / 6)
 
 const transform = new Transformer({
   isDraggable: false,
 })
 
-// transform.add(polygon1)
-layer.add(polygon1)
+transform.add(polygon1, polygon2)
+layer.add(transform)
 // layer.add(polygon1, polygon2)
 
 // const math = new Primitive.Polygon(points)

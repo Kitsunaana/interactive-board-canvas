@@ -82,9 +82,9 @@ export class Polygon extends Node {
       Primitive.Polygon.rotate(this.math.points, -angle, this.originRotate)
 
       const tempOriginScale = Primitive.rotatePointAroundOrigin(this.originScale, this.originRotate, -angle)
-      Primitive.Polygon.scale(this.math.points, scale, tempOriginScale)
-
       const nextOriginRotate = Primitive.scalePointAroundOrigin(this.originRotate, tempOriginScale, scale)
+      
+      Primitive.Polygon.scale(this.math.points, scale, tempOriginScale)
       Primitive.Polygon.rotate(this.math.points, angle, nextOriginRotate)
 
       const nextOriginScale = Primitive.rotatePointAroundOrigin(tempOriginScale, nextOriginRotate, angle)
