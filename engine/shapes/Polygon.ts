@@ -1,21 +1,53 @@
+import { isUndefined } from "lodash";
 import { Node, type NodeConfig } from "../Node";
 import * as Primitive from "../maths";
 import { Point } from "../maths";
 
+
 export interface PolygonConfig extends NodeConfig {
   points: Primitive.PointData[],
+  name?: string | undefined
 }
 
 export class Polygon extends Node {
-  private readonly _type = "Shape" as const
+  protected readonly _type = "Shape" as const
 
-  
   public readonly originScale: Primitive.Point = new Primitive.Point()
   public readonly originRotate: Primitive.Point = new Primitive.Point()
-  public readonly corners: Array<Primitive.PointData>
   public readonly math: Primitive.Polygon
 
   private readonly _bounds: Primitive.Rectangle = new Primitive.Rectangle()
+
+  private static _fillConfigDefaultValues(config: PolygonConfig) {
+    const { x, y, scaleX, scaleY, ...other } = config
+    
+    return {
+      isDraggable: false,
+      position: new Point(x ?? 0, y ?? 0),
+      scale: new Point(scaleX ?? 1, scaleY ?? 1),
+      ...other,
+    }
+  }
+
+  private static _getAbsoluteOrigin(ptr: Primitive.PointData, bounds: Primitive.Rectangle) {
+    return {
+      x: bounds.x + bounds.width * ptr.x,
+      y: bounds.y + bounds.height * ptr.y,
+    }
+  }
+
+  private static _parseTransformOriginString(value: string) {
+    const [first, second] = value.replaceAll("%", "").split(" ")
+    if (isUndefined(second)) return { x: 0, y: 0 }
+
+    const x = Number(first) / 100
+    const y = Number(second) / 100
+
+    return {
+      x,
+      y,
+    }
+  }
 
   public get absolutePositionCursor() {
     return this.getParent()!.absolutePositionCursor
@@ -24,55 +56,57 @@ export class Polygon extends Node {
   public constructor(config: PolygonConfig) {
     super(config)
 
-    const bounds = Primitive.Polygon.prototype.getBounds.call(config)
-
-    this.originScale.set(bounds.x, bounds.y)
-    this.originRotate.set(bounds.centerX, bounds.centerY)
-
+    const filledConfing = Polygon._fillConfigDefaultValues(config)
     this.math = new Primitive.Polygon(config.points)
 
-    const scale: Primitive.PointData = {
-      x: config.scaleX ?? 1,
-      y: config.scaleY ?? 1,
+    this.setOriginScale("50% 0%")
+    this.setOriginRotate("50% 50%")
+
+    this.scale(filledConfing.scale)
+  }
+
+  public setOriginRotate(origin: string): void {
+    this.originRotate.copyFrom(this._getOriginPointFromString(origin))
+  }
+
+  public setOriginScale(origin: string): void {
+    this.originScale.copyFrom(this._getOriginPointFromString(origin))
+  }
+
+  public scale(scale: Primitive.PointData) {
+    this.setScale(Primitive.Point.add(scale, this.getScale()))
+
+    const angle = this.getAngle()
+
+    if (angle !== 0) {
+      Primitive.Polygon.rotate(this.math.points, -angle, this.originRotate)
+
+      const tempOriginScale = Primitive.rotatePointAroundOrigin(this.originScale, this.originRotate, -angle)
+      Primitive.Polygon.scale(this.math.points, scale, tempOriginScale)
+
+      const nextOriginRotate = Primitive.scalePointAroundOrigin(this.originRotate, tempOriginScale, scale)
+      Primitive.Polygon.rotate(this.math.points, angle, nextOriginRotate)
+
+      const nextOriginScale = Primitive.rotatePointAroundOrigin(tempOriginScale, nextOriginRotate, angle)
+
+      this.originScale.copyFrom(nextOriginScale)
+      this.originRotate.copyFrom(nextOriginRotate)
+    } else {
+      Primitive.Polygon.scale(this.math.points, scale, this.originScale)
+
+      const nextOriginScale = Primitive.scalePointAroundOrigin(this.originRotate, this.originScale, scale)
+
+      this.originRotate.copyFrom(nextOriginScale)
     }
-
-    this.corners = bounds.getCorner()
-    this.scale(scale)
-  }
-
-  public getType() {
-    return this._type
-  }
-
-  public getAbsoluteOrigin(pct: Primitive.PointData, bounds: Primitive.Rectangle) {
-    return {
-      x: bounds.x + bounds.width * pct.x,
-      y: bounds.y + bounds.height * pct.y,
-    }
-  }
-
-  public scale(point: Primitive.PointData) {
-    this.setScale(point)
-
-    Primitive.Polygon.scale(this.math.points, point, this.originScale)
-    Primitive.Polygon.scale(this.corners, point, this.originScale)
-
-    const offset = Point.subtract(this.originRotate, this.originScale)
-    const transformed = Point.multiple(offset, point) 
-    const next = Point.add(this.originScale, transformed)
-
-    this.originRotate.copyFrom(next)
   }
 
   public rotate(angle: number): void {
-    this.setAngle(angle)
+    const prevAngle = this.getAngle()
+    this.setAngle(angle + prevAngle)
 
     Primitive.Polygon.rotate(this.math.points, angle, this.originRotate)
-    Primitive.Polygon.rotate(this.corners, angle, this.originRotate)
 
-    const offset = Point.subtract(this.originScale, this.originRotate)
-    const transformed = Point.rotate(offset, angle)
-    const next = Point.add(transformed, this.originRotate)
+    const next = Primitive.rotatePointAroundOrigin(this.originScale, this.originRotate, angle)
 
     this.originScale.copyFrom(next)
   }
@@ -82,57 +116,27 @@ export class Polygon extends Node {
   }
 
   public getClientRect(): Primitive.Rectangle {
-    const scale = this.getScale()
-    const position = this.getPosition()
-
     this.math.getBounds(this._bounds)
-
-    this._bounds.x = this._bounds.x * scale.x + position.x
-    this._bounds.y = this._bounds.y * scale.y + position.y
-    this._bounds.width *= scale.x
-    this._bounds.height *= scale.y
-
+    Point.add(this._bounds, this.getPosition(), this._bounds)
     return this._bounds
   }
 
-  public drawScaleOrigin(context: CanvasRenderingContext2D): void {
-    const position = this.originScale
-
+  public drawOriginPoint(
+    context: CanvasRenderingContext2D,
+    point: Primitive.PointData,
+    text: string,
+    color: string
+  ): void {
     context.save()
     context.font = "14px Arial"
     context.textAlign = "center"
     context.textBaseline = "bottom"
-    context.fillText("scale", position.x, position.y - 5)
-    context.fillStyle = "red"
+    context.fillText(text, point.x, point.y - 5)
+    context.fillStyle = color
     context.beginPath()
-    context.arc(position.x, position.y, 5, 0, Math.PI * 2)
+    context.arc(point.x, point.y, 5, 0, Math.PI * 2)
     context.closePath()
     context.fill()
-    context.restore()
-  }
-
-  public drawRotateOrigin(context: CanvasRenderingContext2D): void {
-    const position = this.originRotate
-
-    context.save()
-    context.font = "14px Arial"
-    context.textAlign = "center"
-    context.textBaseline = "bottom"
-    context.fillText("rotate", position.x, position.y - 5)
-    context.fillStyle = "blue"
-    context.beginPath()
-    context.arc(position.x, position.y, 5, 0, Math.PI * 2)
-    context.closePath()
-    context.fill()
-    context.restore()
-  }
-
-  public drawCorners(context: CanvasRenderingContext2D) {
-    context.save()
-    context.beginPath()
-    this.corners.forEach((point) => context.lineTo(point.x, point.y))
-    context.closePath()
-    context.stroke()
     context.restore()
   }
 
@@ -151,8 +155,21 @@ export class Polygon extends Node {
 
     context.restore()
 
-    this.drawCorners(context)
-    this.drawScaleOrigin(context)
-    this.drawRotateOrigin(context)
+    this.drawOriginPoint(context, this.originScale, "scale", "red")
+    this.drawOriginPoint(context, this.originRotate, "rotate", "blue")
+  }
+
+  private _getOriginPointFromString(origin: string) {
+    const points = this.math.points.map(point => ({ ...point }))
+    const angle = this.getAngle()
+
+    Primitive.Polygon.rotate(points, -angle, this.originRotate)
+
+    const bounds = Primitive.Polygon.prototype.getBounds.call({ points })
+
+    const unrotatedOriginPoint = Polygon._getAbsoluteOrigin(Polygon._parseTransformOriginString(origin), bounds)
+    const nextOriginPoint = Primitive.rotatePointAroundOrigin(unrotatedOriginPoint, this.originRotate, angle)
+
+    return nextOriginPoint
   }
 }

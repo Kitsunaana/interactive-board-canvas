@@ -28,15 +28,19 @@ export abstract class Node {
   private readonly _id = nanoid()
 
   public abstract readonly absolutePositionCursor: Primitive.PointData
+  
+  protected readonly abstract _type: string
+  protected _name: string | undefined = undefined
+
+  public readonly drag = new Draggable(this)
 
   public abstract contains(point: Primitive.PointData): boolean
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract getClientRect(): Primitive.Rectangle
-  public abstract getType(): string
 
-  protected _name: string | undefined = undefined
-
-  public readonly drag = new Draggable(this)
+  public getType(): string {
+    return this._type
+  }
 
   private _isDraggable: boolean = true
   private _parent: Node | null = null

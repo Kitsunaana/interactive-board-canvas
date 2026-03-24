@@ -12,7 +12,7 @@ export interface LayerConfig extends NodeConfig {
 }
 
 export class Layer extends Container {
-  private readonly _type = "Layer" as const
+  protected readonly _type = "Layer"
 
   private _stage: Stage | null = null
 
@@ -153,10 +153,23 @@ const polygon1 = new Polygon({
 //   y: 0,
 // })
 
-polygon1.scale({ x: 1.5, y: 1.5 })
+// polygon1.rotate(0.2)
+// polygon1.setOriginScale("50% 0%")
+polygon1.setOriginRotate("0% 150%")
 polygon1.rotate(0.2)
-polygon1.scale({ x: 1.5, y: 1.5 })
-polygon1.rotate(0.2)
+
+// polygon1.scale({ x: 1.5, y: 1.5 })
+// polygon1.rotate(0.2)
+// polygon1.scale({ x: 1.2, y: 1 })
+// polygon1.rotate(0.2)
+// polygon1.scale({ x: 1.2, y: 1 })
+
+console.log(
+  polygon1.getScale()
+)
+
+// polygon1.scale({ x: 1.5, y: 1.5 })
+// polygon1.rotate(0.2)
 // polygon1.scale({ x: 1.5, y: 1.5 })
 // polygon1.applyScale()
 

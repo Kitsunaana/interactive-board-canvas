@@ -5,7 +5,7 @@ interface GroupConfig extends NodeConfig {
 }
 
 export class Group extends Node {
-  private readonly _type = "Group" as const
+  protected readonly _type = "Group"
 
   private _children: Array<Node> = []
 

@@ -88,3 +88,17 @@ export class Point implements PointLike {
     return out
   }
 }
+
+export function rotatePointAroundOrigin(point: PointData, pivot: PointData, angle: number) {
+  const offset = Point.subtract(point, pivot)
+  const unrotated = Point.rotate(offset, angle)
+
+  return Point.add(unrotated, pivot)
+}
+
+export function scalePointAroundOrigin(point: PointData, pivot: PointData, scale: PointData) {
+  const offset = Point.subtract(point, pivot)
+  const transformed = Point.multiple(offset, scale)
+
+  return Point.add(pivot, transformed)
+}
