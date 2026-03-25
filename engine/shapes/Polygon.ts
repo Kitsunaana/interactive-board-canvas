@@ -3,7 +3,6 @@ import { Node, type NodeConfig } from "../Node";
 import * as Primitive from "../maths";
 import { Point } from "../maths";
 
-
 export interface PolygonConfig extends NodeConfig {
   points: Primitive.PointData[],
   name?: string | undefined
@@ -14,13 +13,12 @@ export class Polygon extends Node {
 
   public readonly originScale: Primitive.Point = new Primitive.Point()
   public readonly originRotate: Primitive.Point = new Primitive.Point()
-  public readonly math: Primitive.Polygon
 
   private readonly _bounds: Primitive.Rectangle = new Primitive.Rectangle()
 
   private static _fillConfigDefaultValues(config: PolygonConfig) {
     const { x, y, scaleX, scaleY, ...other } = config
-    
+
     return {
       isDraggable: false,
       position: new Point(x ?? 0, y ?? 0),
@@ -57,7 +55,7 @@ export class Polygon extends Node {
     super(config)
 
     const filledConfing = Polygon._fillConfigDefaultValues(config)
-    this.math = new Primitive.Polygon(config.points)
+    this.points = config.points
 
     this.setOriginScale("50% 0%")
     this.setOriginRotate("50% 50%")
@@ -79,44 +77,40 @@ export class Polygon extends Node {
     const angle = this.getAngle()
 
     if (angle !== 0) {
-      Primitive.Polygon.rotate(this.math.points, -angle, this.originRotate)
-
       const tempOriginScale = Primitive.rotatePointAroundOrigin(this.originScale, this.originRotate, -angle)
-      const nextOriginRotate = Primitive.scalePointAroundOrigin(this.originRotate, tempOriginScale, scale)
-      
-      Primitive.Polygon.scale(this.math.points, scale, tempOriginScale)
-      Primitive.Polygon.rotate(this.math.points, angle, nextOriginRotate)
 
+      const nextOriginRotate = Primitive.scalePointAroundOrigin(this.originRotate, tempOriginScale, scale)
       const nextOriginScale = Primitive.rotatePointAroundOrigin(tempOriginScale, nextOriginRotate, angle)
+
+      this.points.forEach((point) => {
+        Point.rotate(Point.subtract(point, this.originRotate), -angle, point)
+        Point.add(point, this.originRotate, point)
+
+        Point.multiple(Point.subtract(point, tempOriginScale), scale, point)
+        Point.add(point, tempOriginScale, point)
+
+        Point.rotate(Point.subtract(point, nextOriginRotate), angle, point)
+        Point.add(point, nextOriginRotate, point)
+      })
 
       this.originScale.copyFrom(nextOriginScale)
       this.originRotate.copyFrom(nextOriginRotate)
     } else {
-      Primitive.Polygon.scale(this.math.points, scale, this.originScale)
-
+      Primitive.Polygon.scale(this.points, scale, this.originScale)
       const nextOriginScale = Primitive.scalePointAroundOrigin(this.originRotate, this.originScale, scale)
-
       this.originRotate.copyFrom(nextOriginScale)
     }
   }
 
   public rotate(angle: number): void {
-    const prevAngle = this.getAngle()
-    this.setAngle(angle + prevAngle)
-
-    Primitive.Polygon.rotate(this.math.points, angle, this.originRotate)
-
+    this.setAngle(angle + this.getAngle())
+    Primitive.Polygon.rotate(this.points, angle, this.originRotate)
     const next = Primitive.rotatePointAroundOrigin(this.originScale, this.originRotate, angle)
-
     this.originScale.copyFrom(next)
   }
 
-  public contains(point: Primitive.PointData): boolean {
-    return this.math.contains(point.x, point.y)
-  }
-
   public getClientRect(): Primitive.Rectangle {
-    this.math.getBounds(this._bounds)
+    this.getBounds(this._bounds)
     Point.add(this._bounds, this.getPosition(), this._bounds)
     return this._bounds
   }
@@ -148,7 +142,7 @@ export class Polygon extends Node {
 
     context.fillStyle = "darkorange"
     context.beginPath()
-    this.math.points.forEach((point) => context.lineTo(point.x, point.y))
+    this.points.forEach((point) => context.lineTo(point.x, point.y))
     context.closePath()
     context.stroke()
     context.fill()
@@ -160,7 +154,8 @@ export class Polygon extends Node {
   }
 
   private _getOriginPointFromString(origin: string) {
-    const points = this.math.points.map(point => ({ ...point }))
+    const points = this.points.map((point) => ({ ...point }))
+
     const angle = this.getAngle()
 
     Primitive.Polygon.rotate(points, -angle, this.originRotate)

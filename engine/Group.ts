@@ -25,10 +25,10 @@ export class Group extends Node {
     return this._type
   }
 
-  public contains(point: Primitive.PointData): boolean {
+  public contains(x: number, y: number): boolean {
     this.getClientRect()
 
-    return this._localBounds.contains(point.x, point.y)
+    return this._localBounds.contains(x, y)
   }
 
   public getClientRect(): Primitive.Rectangle {

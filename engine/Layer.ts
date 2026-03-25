@@ -1,4 +1,4 @@
-import { clone, isNull, isUndefined } from "lodash";
+import { chain, clone, isNull, isUndefined } from "lodash";
 import { Container } from "./Container";
 import * as Primitive from "./maths"
 import { Node, type NodeConfig } from "./Node";
@@ -83,10 +83,14 @@ export class Layer extends Container {
     context.restore()
   }
 
-  public contains(_point: Primitive.PointData): boolean {
+  public contains(x: number, y: number): boolean {
     return this
       .getChildren()
-      .some((child) => child.contains(child.getRelativePointerPosition()))
+      .some((child) => {
+        const pointer = child.getRelativePointerPosition()
+
+        child.contains(pointer.x, pointer.y)
+      })
   }
 
   public getCorners(): Array<Primitive.PointData> {
@@ -141,7 +145,7 @@ let scale = 1.0
 const polygon1 = new Polygon({
   isDraggable: true,
   points: points1,
-  scaleX: scale,
+  scaleX: scale, 
   scaleY: scale,
 })
 

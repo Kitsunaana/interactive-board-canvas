@@ -24,7 +24,7 @@ export const fillConfigDefaultValues = (config: NodeConfig) => ({
   ...config,
 })
 
-export abstract class Node {
+export abstract class Node extends Primitive.Polygon {
   private readonly _id = nanoid()
 
   public abstract readonly absolutePositionCursor: Primitive.PointData
@@ -34,7 +34,6 @@ export abstract class Node {
 
   public readonly drag = new Draggable(this)
 
-  public abstract contains(point: Primitive.PointData): boolean
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract getClientRect(): Primitive.Rectangle
 
@@ -50,6 +49,8 @@ export abstract class Node {
   private _angle: number = 0
 
   public constructor(params: NodeConfig) {
+    super([])
+
     const config = fillConfigDefaultValues(params)
 
     this._isDraggable = config.isDraggable

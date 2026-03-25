@@ -12,10 +12,10 @@ export abstract class Container extends Node {
   private readonly _localBounds: Primitive.Rectangle = new Primitive.Rectangle()
   private readonly _clientRect: Primitive.Rectangle = new Primitive.Rectangle()
 
-  public contains(point: Primitive.PointData): boolean {
+  public contains(x: number, y: number): boolean {
     this.getClientRect()
 
-    return this._localBounds.contains(point.x, point.y)
+    return this._localBounds.contains(x, y)
   }
 
   public getCorners() {
@@ -31,8 +31,8 @@ export abstract class Container extends Node {
 
     new Primitive.Polygon(corners).getBounds(this._localBounds)
 
-    const position = this.position()
-    const scale = this.scale()
+    const position = this.getPosition()
+    const scale = this.getScale()
 
     this._clientRect.x = this._localBounds.x * scale.x + position.x
     this._clientRect.y = this._localBounds.y * scale.y + position.y

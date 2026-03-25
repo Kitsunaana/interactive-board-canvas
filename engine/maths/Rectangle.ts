@@ -3,7 +3,14 @@ import type { Matrix } from "./Matrix"
 import type { PointData } from "./Point"
 
 export class Rectangle {
-  constructor(public x: number = 0, public y: number = 0, public width: number = 0, public height: number = 0) { }
+  public constructor(public x: number = 0, public y: number = 0, public width: number = 0, public height: number = 0) { }
+
+  public get center(): PointData {
+    return {
+      x: this.centerX,
+      y: this.centerY,
+    }
+  }
 
   public get left(): number {
     return this.x

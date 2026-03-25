@@ -4,7 +4,6 @@ import * as Primitive from "../maths"
 import { Polygon } from "../shapes/Polygon"
 import { clone } from "lodash"
 
-
 const { Point } = Primitive
 
 export type ResizeHandler = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w"
@@ -40,7 +39,7 @@ export class Transformer extends Mixin(Group) {
 
     this.getChildren().forEach((shape) => {
       if (shape instanceof Polygon) {
-        this._pointsShape[shape.id] = shape.math.points.map((point) => ({
+        this._pointsShape[shape.id] = shape.points.map((point) => ({
           ...point,
         }))
 
@@ -49,7 +48,7 @@ export class Transformer extends Mixin(Group) {
           originRotate: clone(shape.originRotate),
         }
 
-        allPoints.push(...shape.math.points.map(point => ({ ...point })))
+        allPoints.push(...shape.points.map(point => ({ ...point })))
       }
     })
 
@@ -58,13 +57,7 @@ export class Transformer extends Mixin(Group) {
     const bounds = Primitive.Polygon.prototype.getBounds.call({ points: allPoints })
 
     this.initialOBB.copyFrom(bounds)
-
-    const localCenter = {
-      x: bounds.centerX,
-      y: bounds.centerY,
-    }
-
-    this._obbWorldCenter.copyFrom(Point.rotate(localCenter, angle))
+    this._obbWorldCenter.copyFrom(Point.rotate(bounds.center, angle))
   }
 
   public draw(context: CanvasRenderingContext2D): void {
@@ -195,8 +188,6 @@ export class Transformer extends Mixin(Group) {
     sy = Math.sign(sy) * Math.max(0.01, Math.abs(sy))
 
     this._transformScale.set(sx, sy)
-
-    console.log(this._transformScale)
   }
 
   public applyTransform(): void {
@@ -213,32 +204,28 @@ export class Transformer extends Mixin(Group) {
         const initOriginScale = initialOrigins.originScale
         const initOriginRotate = initialOrigins.originRotate
 
-        const unrotatedPoints = initialPoints.map(p => ({ ...p }))
-        Primitive.Polygon.rotate(unrotatedPoints, -childAngle, initOriginRotate)
-
         const unrotatedOriginScale = Primitive.rotatePointAroundOrigin(initOriginScale, initOriginRotate, -childAngle)
+
         const newOriginRotate = Primitive.scalePointAroundOrigin(initOriginRotate, unrotatedOriginScale, this._transformScale)
-
-        Primitive.Polygon.scale(unrotatedPoints, this._transformScale, unrotatedOriginScale)
-        Primitive.Polygon.rotate(unrotatedPoints, childAngle, newOriginRotate)
-
         const newOriginScale = Primitive.rotatePointAroundOrigin(unrotatedOriginScale, newOriginRotate, childAngle)
 
-        child.math.points = unrotatedPoints
+        child.points = initialPoints.map((point) => {
+          Point.rotate(Point.subtract(point, initOriginRotate), -childAngle, point)
+          Point.add(point, initOriginRotate, point)
+
+          Point.multiple(Point.subtract(point, this._transformScale), unrotatedOriginScale, point)
+          Point.add(point, this._transformScale, point)
+
+          Point.rotate(Point.subtract(point, newOriginRotate), childAngle, point)
+          Point.add(point, newOriginRotate, point)
+
+          return point
+        })
 
         child.originScale.copyFrom(newOriginScale)
         child.originRotate.copyFrom(newOriginRotate)
       } else {
         const groupAngle = this.angle
-
-        child.math.points = initialPoints.map((point) => {
-          const vecFromPivot = Point.subtract(point, this._worldPivot)
-          const localVec = Point.rotate(vecFromPivot, -groupAngle)
-          const scaledVec = Point.multiple(localVec, this._transformScale)
-          const worldVec = Point.rotate(scaledVec, groupAngle)
-
-          return Point.add(this._worldPivot, worldVec)
-        })
 
         const scaleOriginInLocal = (origin: Primitive.PointData) => {
           const vec = Point.subtract(origin, this._worldPivot)
@@ -249,9 +236,11 @@ export class Transformer extends Mixin(Group) {
           return Point.add(this._worldPivot, world)
         }
 
+        child.points = initialPoints.map(scaleOriginInLocal)
+
         child.originScale.copyFrom(scaleOriginInLocal(initialOrigins.originScale))
         child.originRotate.copyFrom(scaleOriginInLocal(initialOrigins.originRotate))
       }
-    });
+    })
   }
 }
