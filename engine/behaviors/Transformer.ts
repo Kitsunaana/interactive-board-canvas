@@ -2,23 +2,26 @@ import { Mixin } from "ts-mixer"
 import { Group } from "../Group"
 import * as Primitive from "../maths"
 import { Polygon } from "../shapes/Polygon"
-import { clone } from "lodash"
 
 const { Point } = Primitive
 
 export type ResizeHandler = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w"
 
 export class Transformer extends Mixin(Group) {
-  private readonly _pointsShape: Record<string, Primitive.PointData[]> = {}
-  private readonly _originsShape: Record<string, { originScale: Primitive.PointData, originRotate: Primitive.PointData }> = {}
+  private readonly _originsShape: Record<string, {
+    originRotate: Primitive.PointData
+    originScale: Primitive.PointData
+    points: Array<Primitive.PointData>
+  }> = {}
 
-  public initialOBB = new Primitive.Rectangle()
+  public readonly initialOBB = new Primitive.Rectangle()
 
   private readonly _handlePosition = new Point()
   private readonly _transformScale = new Point(1, 1)
   private readonly _pivotPosition = new Point()
   private readonly _worldPivot = new Point()
   private readonly _obbWorldCenter = new Point()
+  private readonly _padding = 7
 
   public get center(): Primitive.PointData {
     return this._obbWorldCenter
@@ -30,52 +33,70 @@ export class Transformer extends Mixin(Group) {
 
     const isMultiple = children.length > 1
 
-    return isMultiple ? Math.PI / 4 : children[0].getAngle()
+    if (isMultiple === false && children[0] instanceof Polygon) {
+      return children[0].transformer.angle
+    }
+
+    return isMultiple ? 0.5 : 0
   }
 
   public setInitialState(): void {
     const angle = this.angle
-    const allPoints: Primitive.PointData[] = []
 
     this.getChildren().forEach((shape) => {
       if (shape instanceof Polygon) {
-        this._pointsShape[shape.id] = shape.points.map((point) => ({
-          ...point,
-        }))
-
         this._originsShape[shape.id] = {
-          originScale: clone(shape.originScale),
-          originRotate: clone(shape.originRotate),
+          originRotate: shape.transformer.originRotate.clone(),
+          originScale: shape.transformer.originScale.clone(),
+          points: shape.getPoints(),
         }
-
-        allPoints.push(...shape.points.map(point => ({ ...point })))
       }
     })
 
-    Primitive.Polygon.rotate(allPoints, -angle, new Primitive.Point())
+    const points = this.getPoints()
+    Primitive.Polygon.rotate(points, -angle, new Primitive.Point())
 
-    const bounds = Primitive.Polygon.prototype.getBounds.call({ points: allPoints })
+    const bounds = Primitive.Polygon.prototype.getBounds.call({ points: points })
 
     this.initialOBB.copyFrom(bounds)
-    this._obbWorldCenter.copyFrom(Point.rotate(bounds.center, angle))
+    this._obbWorldCenter.copyFrom(Point.rotate(this.initialOBB.center, angle))
   }
 
   public draw(context: CanvasRenderingContext2D): void {
     super.draw(context)
 
-    const obb = this.initialOBB
-    const angle = this.angle
+    const points = this.getPoints()
+    const clientRect = this.getClientRect()
+
+    Polygon.rotate(points, -this.angle, clientRect.center)
+    const corners = this.getBounds.call({ points }).padding(7).getCorner()
+
+    Polygon.rotate(corners, this.angle, clientRect.center)
 
     context.save()
-    context.translate(this._obbWorldCenter.x, this._obbWorldCenter.y)
-    context.rotate(angle)
-    context.beginPath()
-    context.strokeRect(-obb.width / 2, -obb.height / 2, obb.width, obb.height)
-    context.beginPath()
+    corners.forEach((corner) => {
+      context.beginPath()
+      context.arc(corner.x, corner.y, 5, 0, Math.PI * 2, false)
+      context.closePath()
+      context.stroke()
+      context.fill()
+    })
     context.restore()
 
+    context.save()
+    context.beginPath()
+    context.moveTo(corners[0].x, corners[0].y)
+    corners.forEach((corner) => context.lineTo(corner.x, corner.y))
+    context.closePath()
+    context.stroke()
+    context.restore()
+
+    context.save()
+    context.beginPath()
     context.arc(this._worldPivot.x, this._worldPivot.y, 5, 0, Math.PI * 2)
+    context.closePath()
     context.fill()
+    context.restore()
   }
 
   public setWorldPivot(): void {
@@ -176,71 +197,76 @@ export class Transformer extends Mixin(Group) {
   }
 
   public setTransformScale(currentPointer: Primitive.PointData): void {
+    const PADDING = this._padding
+    const DEAD_ZONE = 2 * PADDING
+
     const delta = Point.subtract(currentPointer, this._worldPivot)
     const localPointer = Point.rotate(delta, -this.angle)
 
+    const paddingOffset = {
+      x: Math.sign(this._handlePosition.x) * PADDING,
+      y: Math.sign(this._handlePosition.y) * PADDING,
+    }
+
+    const adjustedPointer = {
+      x: localPointer.x - paddingOffset.x,
+      y: localPointer.y - paddingOffset.y,
+    }
+
     const denom = Point.subtract(this._handlePosition, this._pivotPosition)
 
-    let sx = denom.x !== 0 ? localPointer.x / denom.x : 1
-    let sy = denom.y !== 0 ? localPointer.y / denom.y : 1
+    let sx = 1
+    let sy = 1
 
-    sx = Math.sign(sx) * Math.max(0.01, Math.abs(sx))
-    sy = Math.sign(sy) * Math.max(0.01, Math.abs(sy))
+    if (denom.x !== 0) {
+      const raw = adjustedPointer.x / denom.x
+
+      if (raw > 0) sx = Math.max(0.01, raw)
+      else if (Math.abs(adjustedPointer.x) <= DEAD_ZONE) sx = 0.01
+      else {
+        const flipPointer = adjustedPointer.x + Math.sign(denom.x) * DEAD_ZONE
+        sx = flipPointer / denom.x
+        sx = Math.sign(sx) * Math.max(0.01, Math.abs(sx))
+      }
+    }
+
+    if (denom.y !== 0) {
+      const raw = adjustedPointer.y / denom.y
+
+      if (raw > 0) sy = Math.max(0.01, raw)
+      else if (Math.abs(adjustedPointer.y) <= DEAD_ZONE) sy = 0.01
+      else {
+        const flipPointer = adjustedPointer.y + Math.sign(denom.y) * DEAD_ZONE
+        sy = flipPointer / denom.y
+        sy = Math.sign(sy) * Math.max(0.01, Math.abs(sy))
+      }
+    }
 
     this._transformScale.set(sx, sy)
   }
 
   public applyTransform(): void {
-    const isSingle = this.getChildren().length === 1
+    const isMultiple = this.getChildren().length > 1
 
-    this.getChildren().forEach((child) => {
-      if (!(child instanceof Polygon)) return;
+    this
+      .getChildren()
+      .forEach((child) => {
+        if (!(child instanceof Polygon)) return;
 
-      const initialPoints = this._pointsShape[child.id];
-      const initialOrigins = this._originsShape[child.id];
-      const childAngle = child.getAngle()
+        const initialState = this._originsShape[child.id];
+        const copied = initialState.points.map((point) => ({ ...point }))
 
-      if (isSingle) {
-        const initOriginScale = initialOrigins.originScale
-        const initOriginRotate = initialOrigins.originRotate
-
-        const unrotatedOriginScale = Primitive.rotatePointAroundOrigin(initOriginScale, initOriginRotate, -childAngle)
-
-        const newOriginRotate = Primitive.scalePointAroundOrigin(initOriginRotate, unrotatedOriginScale, this._transformScale)
-        const newOriginScale = Primitive.rotatePointAroundOrigin(unrotatedOriginScale, newOriginRotate, childAngle)
-
-        child.points = initialPoints.map((point) => {
-          Point.rotate(Point.subtract(point, initOriginRotate), -childAngle, point)
-          Point.add(point, initOriginRotate, point)
-
-          Point.multiple(Point.subtract(point, this._transformScale), unrotatedOriginScale, point)
-          Point.add(point, this._transformScale, point)
-
-          Point.rotate(Point.subtract(point, newOriginRotate), childAngle, point)
-          Point.add(point, newOriginRotate, point)
-
-          return point
-        })
-
-        child.originScale.copyFrom(newOriginScale)
-        child.originRotate.copyFrom(newOriginRotate)
-      } else {
-        const groupAngle = this.angle
-
-        const scaleOriginInLocal = (origin: Primitive.PointData) => {
-          const vec = Point.subtract(origin, this._worldPivot)
-          const local = Point.rotate(vec, -groupAngle)
-          const scaled = Point.multiple(local, this._transformScale)
-          const world = Point.rotate(scaled, groupAngle)
-
-          return Point.add(this._worldPivot, world)
+        if (isMultiple) {
+          child.transformer.originScale.copyFrom(this._worldPivot)
+          child.transformer.angle = this.angle
         }
 
-        child.points = initialPoints.map(scaleOriginInLocal)
+        child.transformer.applyToPoints(copied)
+        child.transformer.scalePoints(this._transformScale)
+        child.transformer.updateOriginRotate(initialState.originRotate, this._transformScale)
 
-        child.originScale.copyFrom(scaleOriginInLocal(initialOrigins.originScale))
-        child.originRotate.copyFrom(scaleOriginInLocal(initialOrigins.originRotate))
-      }
-    })
+
+        child.points = copied
+      })
   }
 }

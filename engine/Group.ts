@@ -10,7 +10,6 @@ export class Group extends Node {
   private _children: Array<Node> = []
 
   private readonly _localBounds: Primitive.Rectangle = new Primitive.Rectangle()
-  private readonly _clientRect: Primitive.Rectangle = new Primitive.Rectangle()
 
   private readonly _absolutePositionCursor: Primitive.PointData = {
     x: 0,
@@ -29,6 +28,12 @@ export class Group extends Node {
     this.getClientRect()
 
     return this._localBounds.contains(x, y)
+  }
+
+  public getPoints(): Array<Primitive.PointData> {
+    return this.getChildren().flatMap((child) => {
+      return child.getPoints()
+    })
   }
 
   public getClientRect(): Primitive.Rectangle {
@@ -56,24 +61,11 @@ export class Group extends Node {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
-    // this.__debugDrawBounds(context)
-
     const position = this.getPosition()
-    const scale = this.getScale()
 
     context.save()
-
     context.translate(position.x, position.y)
-    // context.scale(scale.x, scale.y)
-
     this._children.forEach((child) => child.draw(context))
-
     context.restore()
-  }
-
-  private __debugDrawBounds(context: CanvasRenderingContext2D) {
-    const bounds = this.getClientRect()
-
-    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
   }
 }

@@ -1,12 +1,12 @@
-import { chain, clone, isNull, isUndefined } from "lodash";
+import { isNull, isUndefined } from "lodash";
+import { type ResizeHandler, Transformer } from "./behaviors/Transformer";
 import { Container } from "./Container";
-import * as Primitive from "./maths"
+import { Group } from "./Group";
+import * as Primitive from "./maths";
 import { Node, type NodeConfig } from "./Node";
-import { Stage } from "./Stage";
-import Konva from "konva"
 import { Polygon } from "./shapes";
-import { type ResizeHandler, Transformer } from "./behaviors/Transformer"
 import { getPointFromEvent } from "./shared/point";
+import { Stage } from "./Stage";
 
 export interface LayerConfig extends NodeConfig {
 }
@@ -83,7 +83,7 @@ export class Layer extends Container {
     context.restore()
   }
 
-  public contains(x: number, y: number): boolean {
+  public contains(_x: number, _y: number): boolean {
     return this
       .getChildren()
       .some((child) => {
@@ -138,76 +138,66 @@ const layer = new Layer({
 
 const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
 const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
-const points = clone(points1).concat(clone(points2))
-
-let scale = 1.0
 
 const polygon1 = new Polygon({
   isDraggable: true,
   points: points1,
-  scaleX: scale, 
-  scaleY: scale,
-})
-
-const polygon2 = new Polygon({
-  points: points2,
   scaleX: 1.0,
   scaleY: 1.0,
-  x: 0,
-  y: 0,
 })
 
-// polygon1.rotate(0.2)
-// polygon1.setOriginScale("0% 0%")
-// polygon1.rotate(0.2)
+// const polygon2 = new Polygon({
+//   points: points2,
+//   scaleX: 1.0,
+//   scaleY: 1.0,
+//   x: 0,
+//   y: 0,
+// })
 
-// polygon1.scale({ x: 1.2, y: 1 })
-// polygon1.rotate(0.2)
-// polygon1.scale({ x: 1.5, y: 1.5 })
-// polygon1.setOriginRotate("50% 50%")
-polygon1.rotate(Math.PI / 4)
+polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
+polygon1.setOriginScale({ x: 0.0, y: 1.0 }, "scale")
 
-// polygon1.setOriginRotate("0% 0%")
-// polygon1.setOriginScale("0% 0%")
+polygon1.rotate(0.2)
+polygon1.setOriginScale({ x: 1.0, y: 1.0 }, "scale")
+polygon1.rotate(0.9)
+polygon1.scale({ x: 1.2, y: 1.9 })
+polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
 
-// polygon1.rotate(Math.PI)
-// polygon1.scale({ x: 1.2, y: 1 })
+const group = new Group({})
 
-// polygon1.scale({ x: 1.5, y: 1.5 })
-// polygon1.rotate(0.2)
-// polygon1.scale({ x: 1.5, y: 1.5 })
-// polygon1.applyScale()
-
-polygon2.rotate(Math.PI / 4)
-// polygon2.setOriginRotate("0% 0%")
-// polygon2.setOriginScale("0% 0%")
-
-// polygon2.rotate(-Math.PI / 6)
+group.add(polygon1) // polygon2
 
 const transform = new Transformer({
   isDraggable: false,
 })
 
-transform.add(polygon1, polygon2)
-layer.add(transform)
-// layer.add(polygon1, polygon2)
-
-// const math = new Primitive.Polygon(points)
-// math.getBounds(transform.initialOBB)
+// transform.add(polygon1, polygon2)
+layer.add(group)
 
 const side: ResizeHandler = "e"
 
-transform.setInitialState()
-transform.setHandlePosition(side)
-transform.setPivotPosition(side)
-transform.setWorldPivot()
+const downCallback = (event: PointerEvent) => {
+  transform.setInitialState()
+  transform.setHandlePosition(side)
+  transform.setPivotPosition(side)
+  transform.setWorldPivot()
 
-window.addEventListener("pointermove", (event) => {
-  transform.setTransformScale(getPointFromEvent(event))
-  transform.applyTransform()
+  const upCallback = () => {
 
-  // console.log(JSON.stringify(polygon1.math.points, null, 2))
-})
+    window.removeEventListener("pointerup", upCallback)
+    window.removeEventListener("pointermove", moveCallback)
+  }
+
+  const moveCallback = (event: PointerEvent) => {
+    transform.setTransformScale(getPointFromEvent(event))
+    transform.applyTransform()
+  }
+
+  window.addEventListener("pointerup", upCallback)
+  window.addEventListener("pointermove", moveCallback)
+}
+
+window.addEventListener("pointerdown", downCallback)
 
 stage.add(layer)
 

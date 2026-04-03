@@ -11,11 +11,6 @@ export interface TransformableObject {
 export class Matrix {
   public array: Float32Array | null = null
 
-  public pivot: PointData = {
-    x: 0,
-    y: 0,
-  }
-
   /**
    * 
    * @param a - x scale
@@ -63,13 +58,6 @@ export class Matrix {
     this.ty = ty
   }
 
-  public setPivot(x: number, y: number): this {
-    this.pivot.x = x
-    this.pivot.y = y
-
-    return this
-  }
-
   public apply<P extends PointData = Point>(position: PointData, newPosition?: P): P {
     newPosition = (newPosition || new Point()) as P
 
@@ -101,8 +89,6 @@ export class Matrix {
   }
 
   public rotate(angle: number): this {
-    const pivot = this.pivot
-
     const cos = Math.cos(angle)
     const sin = Math.sin(angle)
 
@@ -119,13 +105,6 @@ export class Matrix {
     this.d = (c1 * sin) + (d1 * cos)
     this.tx = (tx * cos) - (ty * sin)
     this.ty = (tx * sin) + (ty * cos)
-
-    if (pivot) {
-      const px = pivot.x
-      const py = pivot.y
-      this.tx += (1 - cos) * px + sin * py
-      this.ty += (1 - cos) * py - sin * px
-    }
 
     return this
   }

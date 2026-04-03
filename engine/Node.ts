@@ -36,6 +36,7 @@ export abstract class Node extends Primitive.Polygon {
 
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract getClientRect(): Primitive.Rectangle
+  public abstract getPoints(): Array<Primitive.PointData>
 
   public getType(): string {
     return this._type

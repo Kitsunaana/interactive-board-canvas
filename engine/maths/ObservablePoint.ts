@@ -1,7 +1,7 @@
 import type { PointData, PointLike } from "./Point"
 
 export interface Observer<T> {
-  _onUpdate: (point?: T) => void
+  _onUpdate: (point: T) => void
 }
 
 export class ObservablePoint {
