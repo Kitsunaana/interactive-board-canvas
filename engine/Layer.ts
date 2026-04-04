@@ -67,6 +67,10 @@ export class Layer extends Container {
     return this._type
   }
 
+  public getPoints(): Array<Primitive.PointData> {
+    return []
+  }
+
   public draw(): void {
     const scale = this.getScale()
     const context = this.getContext()
@@ -136,15 +140,15 @@ const layer = new Layer({
   y: 0,
 })
 
-const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
-const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
+// const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
+// const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
 
-const polygon1 = new Polygon({
-  isDraggable: true,
-  points: points1,
-  scaleX: 1.0,
-  scaleY: 1.0,
-})
+// const polygon1 = new Polygon({
+//   isDraggable: true,
+//   points: points1,
+//   scaleX: 1.0,
+//   scaleY: 1.0,
+// })
 
 // const polygon2 = new Polygon({
 //   points: points2,
@@ -154,18 +158,74 @@ const polygon1 = new Polygon({
 //   y: 0,
 // })
 
-polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
-polygon1.setOriginScale({ x: 0.0, y: 1.0 }, "scale")
+const points1 = [
+  { x: 45, y: 90 },
+  { x: 45, y: 75 },
+  { x: 60, y: 60 },
+  { x: 75, y: 45 },
+  { x: 90, y: 45 },
+  { x: 105, y: 45 },
+  { x: 120, y: 45 },
+  { x: 135, y: 60 },
+  { x: 150, y: 75 },
+  { x: 150, y: 90 },
+  { x: 150, y: 105 },
+  { x: 150, y: 120 },
+  { x: 135, y: 135 },
+  { x: 120, y: 150 },
+  { x: 105, y: 150 },
+  { x: 90, y: 150 },
+  { x: 75, y: 150 },
+  { x: 60, y: 135 },
+  { x: 45, y: 120 },
+  { x: 45, y: 105 },
+]
 
-polygon1.rotate(0.2)
-polygon1.setOriginScale({ x: 1.0, y: 1.0 }, "scale")
-polygon1.rotate(0.9)
-polygon1.scale({ x: 1.2, y: 1.9 })
-polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
+const points2 = [
+  { x: 60, y: 120 },
+  { x: 60, y: 75 },
+  { x: 90, y: 75 },
+  { x: 90, y: 90 },
+  { x: 135, y: 90 },
+  { x: 135, y: 105 },
+  { x: 90, y: 105 },
+  { x: 90, y: 120 }
+]
+
+const polygon1 = new Polygon({
+  isDraggable: true,
+  points: points1,
+  scaleX: 1.0,
+  scaleY: 1.0,
+})
+
+const polygon2 = new Polygon({
+  isDraggable: true,
+  points: points2,
+  fillColor: "orange",
+  fill: true,
+  stroke: false,
+  scaleX: 1.0,
+  scaleY: 1.0,
+})
+
+// polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
+// polygon1.setOriginScale({ x: 0.0, y: 1.0 }, "scale")
+
+// polygon1.rotate(0.2)
+// polygon1.setOriginScale({ x: 0.0, y: 1.0 }, "scale")
+// polygon1.rotate(0.9)
+// polygon1.scale({ x: 1.9, y: 1.9 })
+// polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
 
 const group = new Group({})
 
-group.add(polygon1) // polygon2
+group.add(polygon2, polygon1)
+
+group.setOriginScale({ x: 0.0, y: 0.0 }, "rotate")
+group.rotate(0.4)
+group.scale({ x: 1, y: 1.9 })
+group.rotate(-0.4)
 
 const transform = new Transformer({
   isDraggable: false,
