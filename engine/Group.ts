@@ -1,8 +1,8 @@
 import { Mixin } from "ts-mixer";
+import { Transformable, drawOriginPoint } from "./behaviors/Transformable";
 import * as Primitive from "./maths";
 import { Node, type NodeConfig } from "./Node";
-import { Polygon } from "./shapes";
-import { Transformable, drawOriginPoint } from "./behaviors/Transformable"
+import { Shape } from "./shapes/Shape";
 
 interface GroupConfig extends NodeConfig {
 }
@@ -10,21 +10,20 @@ interface GroupConfig extends NodeConfig {
 export class Group extends Mixin(Node, Transformable) {
   protected readonly _type = "Group"
 
-  private _children: Array<Node> = []
+  private _children: Array<Shape | Group> = []
 
   private readonly _localBounds: Primitive.Rectangle = new Primitive.Rectangle()
 
-  private readonly _absolutePositionCursor: Primitive.PointData = {
-    x: 0,
-    y: 0,
+  public get absolutePositionCursor(): Primitive.PointData {
+    return this.getParent()!.absolutePositionCursor
   }
 
-  public get absolutePositionCursor() {
-    return this.getParent()?.absolutePositionCursor ?? this._absolutePositionCursor
-  }
-
-  public getType() {
+  public getType(): string {
     return this._type
+  }
+
+  public getChildren(): Array<Shape | Group> {
+    return this._children
   }
 
   public contains(x: number, y: number): boolean {
@@ -51,49 +50,34 @@ export class Group extends Mixin(Node, Transformable) {
     return this._localBounds
   }
 
-  public add(...children: Array<Node>) {
+  public add(...children: Array<Group | Shape>): void {
     children.forEach((child) => {
       this._children.push(child)
 
       this.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
-      this.setOriginScale({ x: 0.5, y: 0.5 }, "scale")
+      this.setOriginScale({ x: 0.0, y: 0.5 }, "scale")
 
       child.setParent(this)
     })
   }
 
-  public getChildren() {
-    return this._children
-  }
-
-  public rotate(angle: number) {
-    this.setAngle(this.getAngle() + angle)
-
+  public rotatePolygon(angle: number): void {
     this.getChildren().forEach((child) => {
-      if (child instanceof Polygon) {
-        const prevOriginRotate = child.origins.rotate.clone()
-
-        child.origins.rotate.copyFrom(this.origins.rotate)
-        child.rotate(angle)
-        child.origins.rotate.copyFrom(prevOriginRotate)
-      }
+      child.originRotate.push()
+      child.originRotate.copyFrom(this.originRotate)
+      child.rotatePolygon(angle)
+      child.originRotate.pop()
     })
 
     this.updateOriginScalePosition(angle)
   }
 
-  public scale(value: Primitive.PointData) {
-    this.setScale(Primitive.Point.multiple(value, this.getScale()))
-
+  public scalePolygon(value: Primitive.PointData): void {
     this.getChildren().forEach((child) => {
-      if (child instanceof Polygon) {
-        console.log(child)
-        const prevOriginScale = child.origins.scale.clone()
-
-        child.origins.scale.copyFrom(this.origins.scale)
-        child.scale(value)
-        child.origins.scale.copyFrom(prevOriginScale)
-      }
+      child.originScale.push()
+      child.originScale.copyFrom(this.originScale)
+      child.scalePolygon(value)
+      child.originScale.pop()
     })
 
     this.updateOriginRotatePosition(value)
@@ -107,7 +91,7 @@ export class Group extends Mixin(Node, Transformable) {
     this._children.forEach((child) => child.draw(context))
     context.restore()
 
-    drawOriginPoint(context, this.origins.rotate, "rotate")
-    drawOriginPoint(context, this.origins.scale, "scale")
+    drawOriginPoint(context, this.originRotate, "rotate")
+    drawOriginPoint(context, this.originScale, "scale")
   }
 }

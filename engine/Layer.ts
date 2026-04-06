@@ -1,12 +1,8 @@
-import { isNull, isUndefined } from "lodash";
-import { type ResizeHandler, Transformer } from "./behaviors/Transformer";
+import { isNull } from "lodash";
 import { Container } from "./Container";
-import { Group } from "./Group";
 import * as Primitive from "./maths";
 import { Node, type NodeConfig } from "./Node";
-import { Polygon } from "./shapes";
-import { getPointFromEvent } from "./shared/point";
-import { Stage } from "./Stage";
+import { type Sizes, Stage } from "./Stage";
 
 export interface LayerConfig extends NodeConfig {
 }
@@ -31,28 +27,25 @@ export class Layer extends Container {
     this._context = this._canvas.getContext("2d") as CanvasRenderingContext2D
   }
 
-  public stage(): Stage | null
-  public stage(parent: Stage): void
-  public stage(parent?: Stage) {
-    if (isUndefined(parent)) return this._stage
-    else this._stage = parent
-
-    this.width(parent.width())
-    this.height(parent.height())
+  public getStage(): Stage | null {
+    return this._stage
+  }
+  
+  public setStage(parent: Stage) {
+    this._stage = parent
+    this.setSizes(parent.sizes)
   }
 
-  public height(): number
-  public height(value: number): void
-  public height(value?: number) {
-    if (isUndefined(value)) return this._canvas.height
-    else this._canvas.height = value
+  public setSizes(sizes: Sizes) {
+    this._canvas.width = sizes.width
+    this._canvas.height = sizes.height
   }
 
-  public width(): number
-  public width(value: number): void
-  public width(value?: number) {
-    if (isUndefined(value)) return this._canvas.width
-    else this._canvas.width = value
+  public getSizes(): Sizes {
+    return {
+      width: this._canvas.width,
+      height: this._canvas.height,
+    }
   }
 
   public getCanvas() {
@@ -71,15 +64,21 @@ export class Layer extends Container {
     return []
   }
 
+  public rotate() {
+
+  }
+
   public draw(): void {
+    const sizes = this.getSizes()
     const scale = this.getScale()
     const context = this.getContext()
     const position = this.getPosition()
 
-    context.clearRect(0, 0, this.width(), this.height())
+    context.clearRect(0, 0, sizes.width, sizes.height)
 
     context.save()
     context.translate(position.x, position.y)
+    context.rotate(0.0)
     context.scale(scale.x, scale.y)
 
     this.getChildren().forEach((child) => child.draw(context))
@@ -87,20 +86,15 @@ export class Layer extends Container {
     context.restore()
   }
 
-  public contains(_x: number, _y: number): boolean {
+  public contains(x: number, y: number): boolean {
     return this
       .getChildren()
-      .some((child) => {
-        const pointer = child.getRelativePointerPosition()
-
-        child.contains(pointer.x, pointer.y)
-      })
+      .some((child) => child.contains(x, y))
   }
 
   public getCorners(): Array<Primitive.PointData> {
     const position = this.getPosition()
-    const height = this.height()
-    const width = this.width()
+    const {width, height} = this.getSizes()
 
     return [
       { x: position.x, y: position.y },                  // top-left
@@ -124,180 +118,3 @@ export class Layer extends Container {
   }
 }
 
-const stage = new Stage({
-  height: window.innerHeight,
-  width: window.innerWidth,
-  draggable: false,
-})
-
-const layerScale = 1.0
-
-const layer = new Layer({
-  isDraggable: false,
-  scaleX: layerScale,
-  scaleY: layerScale,
-  x: 0,
-  y: 0,
-})
-
-// const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
-// const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
-
-// const polygon1 = new Polygon({
-//   isDraggable: true,
-//   points: points1,
-//   scaleX: 1.0,
-//   scaleY: 1.0,
-// })
-
-// const polygon2 = new Polygon({
-//   points: points2,
-//   scaleX: 1.0,
-//   scaleY: 1.0,
-//   x: 0,
-//   y: 0,
-// })
-
-const points1 = [
-  { x: 45, y: 90 },
-  { x: 45, y: 75 },
-  { x: 60, y: 60 },
-  { x: 75, y: 45 },
-  { x: 90, y: 45 },
-  { x: 105, y: 45 },
-  { x: 120, y: 45 },
-  { x: 135, y: 60 },
-  { x: 150, y: 75 },
-  { x: 150, y: 90 },
-  { x: 150, y: 105 },
-  { x: 150, y: 120 },
-  { x: 135, y: 135 },
-  { x: 120, y: 150 },
-  { x: 105, y: 150 },
-  { x: 90, y: 150 },
-  { x: 75, y: 150 },
-  { x: 60, y: 135 },
-  { x: 45, y: 120 },
-  { x: 45, y: 105 },
-]
-
-const points2 = [
-  { x: 60, y: 120 },
-  { x: 60, y: 75 },
-  { x: 90, y: 75 },
-  { x: 90, y: 90 },
-  { x: 135, y: 90 },
-  { x: 135, y: 105 },
-  { x: 90, y: 105 },
-  { x: 90, y: 120 }
-]
-
-const polygon1 = new Polygon({
-  isDraggable: true,
-  points: points1,
-  scaleX: 1.0,
-  scaleY: 1.0,
-})
-
-const polygon2 = new Polygon({
-  isDraggable: true,
-  points: points2,
-  fillColor: "orange",
-  fill: true,
-  stroke: false,
-  scaleX: 1.0,
-  scaleY: 1.0,
-})
-
-// polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
-// polygon1.setOriginScale({ x: 0.0, y: 1.0 }, "scale")
-
-// polygon1.rotate(0.2)
-// polygon1.setOriginScale({ x: 0.0, y: 1.0 }, "scale")
-// polygon1.rotate(0.9)
-// polygon1.scale({ x: 1.9, y: 1.9 })
-// polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
-
-const group = new Group({})
-
-group.add(polygon2, polygon1)
-
-group.setOriginScale({ x: 0.0, y: 0.0 }, "rotate")
-group.rotate(0.4)
-group.scale({ x: 1, y: 1.9 })
-group.rotate(-0.4)
-
-const transform = new Transformer({
-  isDraggable: false,
-})
-
-// transform.add(polygon1, polygon2)
-layer.add(group)
-
-const side: ResizeHandler = "e"
-
-const downCallback = (event: PointerEvent) => {
-  transform.setInitialState()
-  transform.setHandlePosition(side)
-  transform.setPivotPosition(side)
-  transform.setWorldPivot()
-
-  const upCallback = () => {
-
-    window.removeEventListener("pointerup", upCallback)
-    window.removeEventListener("pointermove", moveCallback)
-  }
-
-  const moveCallback = (event: PointerEvent) => {
-    transform.setTransformScale(getPointFromEvent(event))
-    transform.applyTransform()
-  }
-
-  window.addEventListener("pointerup", upCallback)
-  window.addEventListener("pointermove", moveCallback)
-}
-
-window.addEventListener("pointerdown", downCallback)
-
-stage.add(layer)
-
-// const konva = {
-//   stage: new Konva.Stage({
-//     container: "app",
-//     draggable: false,
-//     height: 500,
-//     width: 500,
-//     x: 100,
-//     y: 100,
-//   }),
-
-//   layer: new Konva.Layer({
-//     draggable: true,
-//     height: 200,
-//     width: 200,
-//     x: 120,
-//     y: 120,
-//   })
-// }
-
-// konva.layer.add(new Konva.Circle({
-//   x: 0,
-//   y: 0,
-//   draggable: false,
-//   radius: 70,
-//   fill: 'red',
-//   stroke: 'black',
-//   strokeWidth: 4,
-// }), new Konva.Circle({
-//   x: 100,
-//   y: 0,
-//   draggable: false,
-//   radius: 70,
-//   fill: 'green',
-//   stroke: 'black',
-//   strokeWidth: 4,
-// }))
-
-// konva.stage.add(konva.layer)
-
-// konva.stage.content.classList.add("bg-red-200")
