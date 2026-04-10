@@ -8,11 +8,13 @@ interface GroupConfig extends NodeConfig {
 }
 
 export class Group extends Mixin(Node, Transformable) {
-  protected readonly _type = "Group"
+  public _needShowOriginPoints = true
+
+  protected readonly _type = "Group" as const
 
   private _children: Array<Shape | Group> = []
 
-  private readonly _localBounds: Primitive.Rectangle = new Primitive.Rectangle()
+  private readonly _localBounds = new Primitive.Rectangle()
 
   public get absolutePositionCursor(): Primitive.PointData {
     return this.getParent()!.absolutePositionCursor
@@ -54,8 +56,8 @@ export class Group extends Mixin(Node, Transformable) {
     children.forEach((child) => {
       this._children.push(child)
 
-      this.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
-      this.setOriginScale({ x: 0.0, y: 0.5 }, "scale")
+      this.recalculateOriginPoint("rotate")
+      this.recalculateOriginPoint("scale")
 
       child.setParent(this)
     })
@@ -63,24 +65,38 @@ export class Group extends Mixin(Node, Transformable) {
 
   public rotatePolygon(angle: number): void {
     this.getChildren().forEach((child) => {
-      child.originRotate.push()
-      child.originRotate.copyFrom(this.originRotate)
+      child.absOriginRotate.push()
+      child.absOriginRotate.copyFrom(this.absOriginRotate)
       child.rotatePolygon(angle)
-      child.originRotate.pop()
+      child.absOriginRotate.pop()
+      child.recalculateOriginPoint("rotate")
+    })
+
+    this.getAllParents().forEach((parent) => {
+      parent.recalculateOriginPoint("rotate")
+      parent.recalculateOriginPoint("scale")
     })
 
     this.updateOriginScalePosition(angle)
+    this.accumulateRotate(angle)
   }
 
   public scalePolygon(value: Primitive.PointData): void {
     this.getChildren().forEach((child) => {
-      child.originScale.push()
-      child.originScale.copyFrom(this.originScale)
+      child.absOriginScale.push()
+      child.absOriginScale.copyFrom(this.absOriginScale)
       child.scalePolygon(value)
-      child.originScale.pop()
+      child.absOriginScale.pop()
+      child.recalculateOriginPoint("scale")
+    })
+
+    this.getAllParents().forEach((parent) => {
+      parent.recalculateOriginPoint("rotate")
+      parent.recalculateOriginPoint("scale")
     })
 
     this.updateOriginRotatePosition(value)
+    this.accumulateScale(value)
   }
 
   public draw(context: CanvasRenderingContext2D): void {
@@ -91,7 +107,9 @@ export class Group extends Mixin(Node, Transformable) {
     this._children.forEach((child) => child.draw(context))
     context.restore()
 
-    drawOriginPoint(context, this.originRotate, "rotate")
-    drawOriginPoint(context, this.originScale, "scale")
+    if (this._needShowOriginPoints) {
+      drawOriginPoint(context, this.absOriginRotate, "rotate")
+      drawOriginPoint(context, this.absOriginScale, "scale")
+    }
   }
 }

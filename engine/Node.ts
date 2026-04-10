@@ -3,6 +3,8 @@ import { nanoid } from "nanoid"
 import { Draggable } from "./behaviors/Draggable"
 import * as Primitive from "./maths"
 import { addPoint, multiplePoint } from "./shared/point"
+import { Mixin } from "ts-mixer"
+import { Transformable } from "./behaviors/Transformable"
 
 export interface NodeConfig {
   isDraggable?: boolean
@@ -24,7 +26,7 @@ export const fillConfigDefaultValues = (config: NodeConfig) => ({
   ...config,
 })
 
-export abstract class Node extends Primitive.Polygon {
+export abstract class Node extends Mixin(Primitive.Polygon, Transformable) {
   private readonly _id = nanoid()
 
   public abstract readonly absolutePositionCursor: Primitive.PointData

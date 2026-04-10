@@ -15,7 +15,7 @@ export function drawOriginPoint(context: CanvasRenderingContext2D, point: PointD
 
 type OriginVariant = "rotate" | "scale"
 
-class Origin extends Point {
+class OriginPoint extends Point {
   private _saved: PointData | null = null
 
   public push(): void {
@@ -33,30 +33,35 @@ class Origin extends Point {
 }
 
 export abstract class Transformable {
-  public readonly origins: Record<OriginVariant, Origin> = {
-    rotate: new Origin(),
-    scale: new Origin(),
-  }
-
   public abstract getPoints(): Array<PointData>
   public abstract points: Array<PointData>
+
+  public readonly absoluteOrigins: Record<OriginVariant, OriginPoint> = {
+    rotate: new OriginPoint(),
+    scale: new OriginPoint(),
+  }
+
+  public readonly relativeOrigins: Record<OriginVariant, OriginPoint> = {
+    rotate: new OriginPoint(),
+    scale: new OriginPoint(),
+  }
 
   public scale = new Point(1, 1)
   public angle = 0
 
-  public get originScale() {
-    return this.origins.scale
+  public get absOriginScale(): OriginPoint {
+    return this.absoluteOrigins.scale
   }
 
-  public get originRotate() {
-    return this.origins.rotate
+  public get absOriginRotate(): OriginPoint {
+    return this.absoluteOrigins.rotate
   }
 
   public rotatePolygon(angle: number): void {
-    this.angle += angle
+    this.accumulateRotate(angle)
 
     this.points.forEach((point) => {
-      const next = rotatePointAroundOrigin(point, this.originRotate, angle)
+      const next = rotatePointAroundOrigin(point, this.absOriginRotate, angle)
 
       point.x = next.x
       point.y = next.y
@@ -66,12 +71,14 @@ export abstract class Transformable {
   }
 
   public scalePolygon(value: PointData): void {
-    this.scale.copyFrom(Point.multiple(this.scale, value))
+    this.accumulateScale(value)
+
+    const angle = this.angle
 
     this.points.forEach((point) => {
-      const unrotated = rotatePointAroundOrigin(point, this.originScale, -this.angle)
-      const scaled = scalePointAroundOrigin(unrotated, this.originScale, value)
-      const rotated = rotatePointAroundOrigin(scaled, this.originScale, this.angle)
+      const unrotated = rotatePointAroundOrigin(point, this.absOriginScale, -angle)
+      const scaled = scalePointAroundOrigin(unrotated, this.absOriginScale, value)
+      const rotated = rotatePointAroundOrigin(scaled, this.absOriginScale, angle)
 
       point.x = rotated.x
       point.y = rotated.y
@@ -80,10 +87,16 @@ export abstract class Transformable {
     this.updateOriginRotatePosition(value)
   }
 
-  public setOriginScale(point: PointData, type: OriginVariant): void {
-    const points = this.getPoints()
+  public setOriginPoint(type: OriginVariant, point: PointData) {
+    this.relativeOrigins[type].copyFrom(point)
+    this.recalculateOriginPoint(type)
+  }
 
-    Polygon.rotate(points, -this.angle, this.origins.rotate)
+  public recalculateOriginPoint(type: OriginVariant): void {
+    const points = this.getPoints()
+    const point = this.relativeOrigins[type]
+
+    Polygon.rotate(points, -this.angle, this.absoluteOrigins.rotate)
     const bounds = Polygon.prototype.getBounds.call({ points })
 
     const base = {
@@ -91,21 +104,29 @@ export abstract class Transformable {
       y: bounds.y + bounds.height * point.y,
     }
 
-    const next = rotatePointAroundOrigin(base, this.origins.rotate, this.angle)
+    const next = rotatePointAroundOrigin(base, this.absoluteOrigins.rotate, this.angle)
 
-    this.origins[type].copyFrom(next)
+    this.absoluteOrigins[type].copyFrom(next)
   }
 
   public updateOriginScalePosition(angle: number): void {
-    const nextOriginScale = rotatePointAroundOrigin(this.origins.scale, this.origins.rotate, angle)
-    this.origins.scale.copyFrom(nextOriginScale)
+    const nextOriginScale = rotatePointAroundOrigin(this.absoluteOrigins.scale, this.absoluteOrigins.rotate, angle)
+    this.absoluteOrigins.scale.copyFrom(nextOriginScale)
   }
 
   public updateOriginRotatePosition(value: PointData): void {
-    const unrotated = rotatePointAroundOrigin(this.origins.rotate, this.origins.scale, -this.angle)
-    const scaled = scalePointAroundOrigin(unrotated, this.origins.scale, value)
-    const nextOriginRotate = rotatePointAroundOrigin(scaled, this.origins.scale, this.angle)
+    const unrotated = rotatePointAroundOrigin(this.absoluteOrigins.rotate, this.absoluteOrigins.scale, -this.angle)
+    const scaled = scalePointAroundOrigin(unrotated, this.absoluteOrigins.scale, value)
+    const nextOriginRotate = rotatePointAroundOrigin(scaled, this.absoluteOrigins.scale, this.angle)
 
-    this.origins.rotate.copyFrom(nextOriginRotate)
+    this.absoluteOrigins.rotate.copyFrom(nextOriginRotate)
+  }
+
+  public accumulateRotate(angle: number): void {
+    this.angle += angle
+  }
+
+  public accumulateScale(scale: PointData): void {
+    this.scale.copyFrom(Point.multiple(scale, this.scale))
   }
 }

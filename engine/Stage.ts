@@ -1,3 +1,4 @@
+import { Container } from "./Container"
 import type { Layer } from "./Layer"
 import { Point, type PointData } from "./maths"
 import { getPointFromEvent } from "./shared/point"
@@ -13,8 +14,7 @@ export type Sizes = {
   height: number
 }
 
-export class Stage {
-  private readonly _type = "Stage" as const
+export class Stage extends Container {
   private readonly _layers: Array<Layer> = []
   
   public readonly absolutePositionCursor = new Point()
@@ -25,7 +25,11 @@ export class Stage {
 
   public content: HTMLDivElement = document.createElement("div")
 
+  protected _type: string = "Stage"
+
   public constructor(config: StageConfig) {
+    super({})
+
     this.sizes.width = config.width
     this.sizes.height = config.height
 
@@ -41,8 +45,16 @@ export class Stage {
     this.render()
   }
 
+  public getPoints(): Array<PointData> {
+    return []
+  }
+
   public getType() {
     return this._type
+  }
+
+  public draw(context: CanvasRenderingContext2D): void {
+    
   }
 
   public render() {
@@ -54,6 +66,7 @@ export class Stage {
     layers.forEach((layer) => {
       this.content.appendChild(layer.getCanvas())
       this._layers.push(layer)
+      
       layer.setStage(this)
     })
   }

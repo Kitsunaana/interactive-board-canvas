@@ -1,9 +1,8 @@
-import { Transformable, drawOriginPoint } from "../behaviors/Transformable"
-import { Mixin } from "ts-mixer";
+import { } from "lodash";
+import { Group } from "../Group";
 import { Node, type NodeConfig } from "../Node";
 import * as Primitive from "../maths";
-import { Point } from "../maths";
-import { } from "lodash";
+import { Point, type PointData } from "../maths";
 
 export interface PolygonConfig extends NodeConfig {
   points: Primitive.PointData[],
@@ -27,7 +26,7 @@ function fillConfigDefaultValues(config: PolygonConfig) {
   }
 }
 
-export class Shape extends Mixin(Node, Transformable) {
+export class Shape extends Node {
   protected readonly _type = "Shape"
 
   private readonly _bounds = new Primitive.Rectangle()
@@ -46,11 +45,15 @@ export class Shape extends Mixin(Node, Transformable) {
 
     this.points = filledConfing.points
 
-    this.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
-    this.setOriginScale({ x: 0.5, y: 0.5 }, "scale")
+    this.recalculateOriginPoint("rotate")
+    this.recalculateOriginPoint("scale")
   }
 
-  public getPoints(): Array<Primitive.PointData> {
+  public getParent(): Group | null {
+    return super.getParent() as Group | null
+  }
+
+  public getPoints(): Array<PointData> {
     return this.points.map((point) => ({ ...point }))
   }
 
@@ -60,10 +63,35 @@ export class Shape extends Mixin(Node, Transformable) {
     return this._bounds
   }
 
+  public readonly _listenersMap: Map<string, Array<(event: any) => void>> = new Map()
+
+  public on(eventName: string, callback: (event: any) => void) {
+    const listeners = this._listenersMap.get(eventName)
+
+    if (listeners) listeners.push(callback)
+    else this._listenersMap.set(eventName, [callback])
+  }
+
+  public translate(value: Primitive.PointData) {
+    this.points.forEach((point) => {
+      const next = Point.add(point, value)
+
+      point.x = next.x
+      point.y = next.y
+    })
+
+    const parent = this.getParent()
+
+    if (parent) {
+      parent.recalculateOriginPoint("scale")
+      parent.recalculateOriginPoint("rotate")
+    }
+  }
+
   public draw(context: CanvasRenderingContext2D): void {
     context.save()
 
-    this._drawPolygonWithTension(context)
+    this._drawPolygon(context)
     this._applyStyles(context)
 
     context.restore()
@@ -83,7 +111,7 @@ export class Shape extends Mixin(Node, Transformable) {
     }
   }
 
-  private _drawPolygonWithTension(context: CanvasRenderingContext2D): void {
+  private _drawPolygon(context: CanvasRenderingContext2D): void {
     const length = this.points.length
 
     context.beginPath()

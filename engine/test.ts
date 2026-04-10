@@ -32,6 +32,14 @@ const polygon01 = new Polygon({
   scaleY: 1.0,
 })
 
+const polygon011 = new Polygon({
+  isDraggable: true,
+  points: points01.map(p => ({ ...p })),
+  scaleX: 1.0,
+  scaleY: 1.0,
+})
+
+
 // const polygon2 = new Polygon({
 //   points: points2,
 //   scaleX: 1.0,
@@ -85,11 +93,13 @@ const polygon2 = new Polygon({
   isDraggable: true,
   points: points2,
   fillColor: "orange",
-  fill: true,
   stroke: false,
+  fill: true,
   scaleX: 1.0,
   scaleY: 1.0,
 })
+
+// polygon01.translate({ x, y: 0 })
 
 // polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
 // polygon1.setOriginScale({ x: 0.0, y: 1.0 }, "scale")
@@ -101,22 +111,63 @@ const polygon2 = new Polygon({
 // polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
 
 const group = new Group({})
+const groupFigures = new Group()
 
-group.add(polygon2, polygon1, polygon01)
+groupFigures.add(polygon2, polygon1)
+group.add(groupFigures, polygon01)
 
-group.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
-group.rotatePolygon(0.4)
-// group.scale({ x: 1.9, y: 1.9 })
-// group.rotate(-0.4)
+layer.add(group)
+stage.add(layer)
+
+group._needShowOriginPoints = true
+groupFigures._needShowOriginPoints = true
+
+groupFigures.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
+group.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
+
+// groupFigures.rotatePolygon(0.5)
+// group.setOriginPoint({ x: 0.5, y: 0.5 }, "rotate")
+// group.rotatePolygon(0.4)
+// group.setOriginPoint({ x: 0.0, y: 0.5 }, "scale")
+// group.scalePolygon({ x: 1.9, y: 1.9 })
+// groupFigures.rotatePolygon(0.5)
+// group.rotatePolygon(-0.4)
 
 const transform = new Transformer({
   isDraggable: false,
 })
 
 // transform.add(polygon1, polygon2)
-layer.add(group)
+
+console.log(layer.getParent())
 
 const side: ResizeHandler = "e"
+
+polygon1.on("pointerdown", () => {
+  console.log("polygon1")
+})
+
+polygon2.on("pointerdown", (event) => {
+  event.bubbles = false
+  console.log("polygon2")
+})
+
+window.addEventListener("pointerdown", (event) => {
+  const nodes = group.getChildren()
+
+  const eventToNode: Record<string, any> = {
+    bubbles: true,
+    evt: event,
+  }
+
+  const candidate = nodes.find((node) => {
+    return node.contains(event.clientX, event.clientY)
+  })
+
+  if (candidate) {
+
+  }
+})
 
 const downCallback = (event: PointerEvent) => {
   transform.setInitialState()
@@ -141,53 +192,67 @@ const downCallback = (event: PointerEvent) => {
 
 window.addEventListener("pointerdown", downCallback)
 
-stage.add(layer)
-
 import Konva from 'konva'
+import { Shape } from "./shapes/Shape";
+import { nanoid } from "nanoid";
+import { bind } from "lodash";
 
 const konvaRenderTest = () => {
-  const konva = {
-    stage: new Konva.Stage({
-      container: "app",
-      draggable: false,
-      height: 500,
-      width: 500,
-      x: 0,
-      y: 0,
-    }),
+  const stage = new Konva.Stage({
+    container: "app",
+    draggable: false,
+    height: 500,
+    width: 500,
+    x: 0,
+    y: 0,
+  })
 
-    layer: new Konva.Layer({
-      draggable: true,
-      height: 200,
-      width: 200,
-      x: 0,
-      y: 0,
-    })
-  }
+  const layer = new Konva.Layer({
+    draggable: false,
+    height: 200,
+    width: 200,
+    x: 0,
+    y: 0,
+  })
 
-  konva.layer.add(
-    new Konva.Rect({
-      x: 150,
-      y: 200,
-      width: 100,
-      height: 100,
-      fill: "blue"
-    }), new Konva.Rect({
-      x: 300,
-      y: 200,
-      width: 100,
-      height: 100,
-      fill: "blue"
-    })
-  )
+  const first = new Konva.Rect({
+    x: 150,
+    y: 200,
+    width: 100,
+    height: 100,
+    fill: "blue"
+  })
 
-  konva.stage.add(konva.layer)
-  konva.stage.scale({ x: 1, y: 1 })
+  const second = new Konva.Rect({
+    x: 190,
+    y: 180,
+    width: 100,
+    height: 100,
+    fill: "red"
+  })
+
+  const group = new Konva.Group({
+    draggable: true
+  })
+
+  second.on("mousedown", (event) => {
+    console.log(event)
+  })
+
+  first.on("mousedown", (event) => {
+    console.log(event)
+  })
+
+  group.add(first, second)
+  layer.add(group)
+
+  stage.add(layer)
+  stage.scale({ x: 1, y: 1 })
 
   // konva.layer.rotate(19)
   // konva.layer.scale({ x: 2, y: 1.4 })
 
-  konva.stage.content.classList.add("bg-red-200")
+  stage.content.classList.add("bg-red-200")
 }
 
 // konvaRenderTest()

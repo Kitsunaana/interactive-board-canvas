@@ -3,11 +3,13 @@ import { Container } from "./Container";
 import * as Primitive from "./maths";
 import { Node, type NodeConfig } from "./Node";
 import { type Sizes, Stage } from "./Stage";
+import { Mixin } from "ts-mixer";
+import { Transformable } from "./behaviors/Transformable";
 
 export interface LayerConfig extends NodeConfig {
 }
 
-export class Layer extends Container {
+export class Layer extends Mixin(Container, Transformable) {
   protected readonly _type = "Layer"
 
   private _stage: Stage | null = null
@@ -46,6 +48,10 @@ export class Layer extends Container {
       width: this._canvas.width,
       height: this._canvas.height,
     }
+  }
+
+  public getParent(): Node | null {
+    return this._stage
   }
 
   public getCanvas() {
