@@ -30,7 +30,7 @@ export abstract class Node extends Mixin(Primitive.Polygon, Transformable) {
   private readonly _id = nanoid()
 
   public abstract readonly absolutePositionCursor: Primitive.PointData
-  
+
   protected readonly abstract _type: string
   protected _name: string | undefined = undefined
 
@@ -159,6 +159,25 @@ export abstract class Node extends Mixin(Primitive.Polygon, Transformable) {
     return {
       x: this._position.x,
       y: this._position.y,
+    }
+  }
+
+  private readonly _listenersMap: Map<string, Array<(event: any) => void>> = new Map()
+
+  public on(eventName: string, callback: (event: any) => void): void {
+    const listeners = this._listenersMap.get(eventName)
+
+    if (listeners) listeners.push(callback)
+    else this._listenersMap.set(eventName, [callback])
+  }
+
+  public fire(eventName: string, event: any): void {
+    const listeners = this._listenersMap.get(eventName)
+
+    if (listeners) {
+      listeners.forEach((listener) => {
+        listener(event)
+      })
     }
   }
 }

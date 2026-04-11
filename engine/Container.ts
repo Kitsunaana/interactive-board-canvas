@@ -1,16 +1,17 @@
+import { isUndefined } from "lodash";
 import * as Primitive from "./maths";
 import { Node } from "./Node";
 
-export abstract class Container extends Node {
+export abstract class Container<Child extends Node> extends Node {
   public abstract absolutePositionCursor: Primitive.PointData
 
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract getType(): string
 
-  private _children: Array<Node> = []
+  protected _children: Array<Child> = []
 
-  private readonly _localBounds: Primitive.Rectangle = new Primitive.Rectangle()
-  private readonly _clientRect: Primitive.Rectangle = new Primitive.Rectangle()
+  protected readonly _localBounds: Primitive.Rectangle = new Primitive.Rectangle()
+  protected readonly _clientRect: Primitive.Rectangle = new Primitive.Rectangle()
 
   public contains(x: number, y: number): boolean {
     this.getClientRect()
@@ -44,5 +45,23 @@ export abstract class Container extends Node {
 
   public getChildren() {
     return this._children
+  }
+
+  public getAllChildren() {
+    const result: Child[] = [];
+    const stack = [...this.getChildren()];
+
+    while (stack.length) {
+      const node = stack.pop()
+      if (isUndefined(node)) break
+
+      result.push(node)
+
+      if (node instanceof Container && node.getChildren().length) {
+        stack.push(...node.getChildren())
+      }
+    }
+
+    return result
   }
 }

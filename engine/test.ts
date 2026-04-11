@@ -111,7 +111,7 @@ const polygon2 = new Polygon({
 // polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
 
 const group = new Group({})
-const groupFigures = new Group()
+const groupFigures = new Group({})
 
 groupFigures.add(polygon2, polygon1)
 group.add(groupFigures, polygon01)
@@ -139,33 +139,50 @@ const transform = new Transformer({
 
 // transform.add(polygon1, polygon2)
 
-console.log(layer.getParent())
-
 const side: ResizeHandler = "e"
 
-polygon1.on("pointerdown", () => {
+polygon1.on("pointerdown", (event) => {
   console.log("polygon1")
 })
 
 polygon2.on("pointerdown", (event) => {
-  event.bubbles = false
-  console.log("polygon2")
+  console.log("polygon2", event)
+  event.cancelBubbles = true
+})
+
+groupFigures.on("pointerdown", () => {
+  console.log("group figures")
 })
 
 window.addEventListener("pointerdown", (event) => {
-  const nodes = group.getChildren()
+  const nodes = layer.getAllChildren()
 
-  const eventToNode: Record<string, any> = {
-    bubbles: true,
-    evt: event,
+  let candidate: Shape | Group | null = null
+
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    if (nodes[i].contains(event.clientX, event.clientY)) {
+      candidate = nodes[i]
+      break
+    }
   }
 
-  const candidate = nodes.find((node) => {
-    return node.contains(event.clientX, event.clientY)
-  })
-
   if (candidate) {
+    const eventToNode: Record<string, any> = {
+      cancelBubbles: false,
+      currentTarget: candidate,
+      target: candidate,
+      evt: event,
+    }
 
+    candidate.fire("pointerdown", eventToNode)
+
+    candidate.getAllParents().forEach((parent) => {
+      eventToNode.currentTarget = parent
+
+      if (eventToNode.cancelBubbles === false) {
+        parent.fire("pointerdown", eventToNode)
+      }
+    })
   }
 })
 
@@ -235,12 +252,18 @@ const konvaRenderTest = () => {
     draggable: true
   })
 
-  second.on("mousedown", (event) => {
-    console.log(event)
+  first.on("mouseleave", (event) => {
+    console.log("first")
+    event.cancelBubble = true
   })
 
-  first.on("mousedown", (event) => {
-    console.log(event)
+  second.on("mouseleave", (event) => {
+    console.log("second")
+    // event.cancelBubble = true
+  })
+
+  group.on("mouseleave", () => {
+    console.log("group")
   })
 
   group.add(first, second)
@@ -249,11 +272,8 @@ const konvaRenderTest = () => {
   stage.add(layer)
   stage.scale({ x: 1, y: 1 })
 
-  // konva.layer.rotate(19)
-  // konva.layer.scale({ x: 2, y: 1.4 })
-
   stage.content.classList.add("bg-red-200")
 }
 
-// konvaRenderTest()
+konvaRenderTest()
 

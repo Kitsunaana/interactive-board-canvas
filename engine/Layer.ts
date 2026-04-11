@@ -1,15 +1,15 @@
 import { isNull } from "lodash";
 import { Container } from "./Container";
+import { Group } from "./Group";
 import * as Primitive from "./maths";
 import { Node, type NodeConfig } from "./Node";
+import { Shape } from "./shapes/Shape";
 import { type Sizes, Stage } from "./Stage";
-import { Mixin } from "ts-mixer";
-import { Transformable } from "./behaviors/Transformable";
 
 export interface LayerConfig extends NodeConfig {
 }
 
-export class Layer extends Mixin(Container, Transformable) {
+export class Layer extends Container<Group | Shape> {
   protected readonly _type = "Layer"
 
   private _stage: Stage | null = null
@@ -110,7 +110,7 @@ export class Layer extends Mixin(Container, Transformable) {
     ]
   }
 
-  public add(...items: Array<Node>) {
+  public add(...items: Array<Group | Shape>) {
     const children = this.getChildren()
 
     items.forEach((child) => {

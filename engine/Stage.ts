@@ -14,7 +14,7 @@ export type Sizes = {
   height: number
 }
 
-export class Stage extends Container {
+export class Stage extends Container<Layer> {
   private readonly _layers: Array<Layer> = []
   
   public readonly absolutePositionCursor = new Point()

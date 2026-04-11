@@ -63,15 +63,6 @@ export class Shape extends Node {
     return this._bounds
   }
 
-  public readonly _listenersMap: Map<string, Array<(event: any) => void>> = new Map()
-
-  public on(eventName: string, callback: (event: any) => void) {
-    const listeners = this._listenersMap.get(eventName)
-
-    if (listeners) listeners.push(callback)
-    else this._listenersMap.set(eventName, [callback])
-  }
-
   public translate(value: Primitive.PointData) {
     this.points.forEach((point) => {
       const next = Point.add(point, value)

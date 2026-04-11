@@ -3,18 +3,15 @@ import { Transformable, drawOriginPoint } from "./behaviors/Transformable";
 import * as Primitive from "./maths";
 import { Node, type NodeConfig } from "./Node";
 import { Shape } from "./shapes/Shape";
+import { Container } from "./Container";
 
 interface GroupConfig extends NodeConfig {
 }
 
-export class Group extends Mixin(Node, Transformable) {
+export class Group extends Container<Group | Shape> {
   public _needShowOriginPoints = true
 
   protected readonly _type = "Group" as const
-
-  private _children: Array<Shape | Group> = []
-
-  private readonly _localBounds = new Primitive.Rectangle()
 
   public get absolutePositionCursor(): Primitive.PointData {
     return this.getParent()!.absolutePositionCursor
@@ -25,7 +22,7 @@ export class Group extends Mixin(Node, Transformable) {
   }
 
   public getChildren(): Array<Shape | Group> {
-    return this._children
+    return super.getChildren()
   }
 
   public contains(x: number, y: number): boolean {
