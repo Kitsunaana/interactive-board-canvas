@@ -1,7 +1,7 @@
 import { isNil } from "lodash"
 import { GLRenderer } from "./gl"
 
-export class Shader {
+export abstract class Shader {
   private _program!: WebGLProgram
   private _attributes: Record<string, number> = {}
   private _uniforms: Record<string, WebGLUniformLocation> = {}
@@ -10,18 +10,7 @@ export class Shader {
     return this._name
   }
 
-  public constructor(
-    private readonly _renderer: GLRenderer, private readonly _name: string,
-    vertexSource: string, fragmentSource: string
-  ) {
-    const vertexShader = this.loadShader(vertexSource, _renderer.gl.VERTEX_SHADER)
-    const fragmentShader = this.loadShader(fragmentSource, _renderer.gl.FRAGMENT_SHADER)
-
-    this.createProgram(vertexShader, fragmentShader)
-
-    this.detectAttributes()
-    this.detectUniforms()
-  }
+  public constructor(private readonly _renderer: GLRenderer, private readonly _name: string) {}
 
   public use(): void {
     this._renderer.gl.useProgram(this._program)
@@ -43,6 +32,16 @@ export class Shader {
       throw new Error(`Unable to find uniform named '${name}'`)
 
     return location
+  }
+
+  protected load(vertexSource: string, fragmentSource: string): void {
+    const vertexShader = this.loadShader(vertexSource, this._renderer.gl.VERTEX_SHADER)
+    const fragmentShader = this.loadShader(fragmentSource, this._renderer.gl.FRAGMENT_SHADER)
+
+    this.createProgram(vertexShader, fragmentShader)
+
+    this.detectAttributes()
+    this.detectUniforms()
   }
 
   private loadShader(source: string, shaderType: number): WebGLShader {

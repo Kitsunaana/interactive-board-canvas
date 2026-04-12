@@ -5,21 +5,24 @@ import { Vector3 } from "../math/vector3";
 import { Texture } from "./texture";
 import { TextureManager } from "./texture-manager";
 import { Shader } from "../gl/shader";
+import { Matrix4x4 } from "../math/matrix4x4";
+import { Material } from "./material";
+import { MaterialManager } from "./material-manager";
 
 export class Sprite {
   private _buffer: GlBuffer | null = null
-  private _texture: Texture
-  
+  private _material: Material | undefined
+
   public position = new Vector3()
 
   public constructor(
     private _renderer: GLRenderer,
     private _name: string,
-    private _textureName: string,
+    private _materialName: string,
     private _width: number = 100,
     private _height: number = 100
   ) {
-    this._texture = TextureManager.getTexture(this._renderer.gl!, this._textureName)
+    this._material = MaterialManager.getMaterial(this._materialName)
   }
 
   public get name(): string {
@@ -36,12 +39,13 @@ export class Sprite {
 
   public destroy(): void {
     this.buffer.destroy()
-    TextureManager.releaseTexture(this._textureName)
+    MaterialManager.releaseMaterial(this._materialName)
+    this._material = undefined
   }
 
   public load(): void {
     this._buffer = new GlBuffer(this._renderer, 5)
-    
+
     this._buffer.addAttributeLocation(new AttributeInfo(0, 0, 3))
     this._buffer.addAttributeLocation(new AttributeInfo(1, 3, 2))
 
@@ -67,10 +71,20 @@ export class Sprite {
   public draw(shader: Shader): void {
     const gl = this._renderer.gl
 
-    this._texture.activateAndBind(0)
+    const modelLocation = shader.getUniformLocation("u_model")
+    gl.uniformMatrix4fv(modelLocation, false, new Float32Array(Matrix4x4.translation(this.position).data))
 
-    const diffuseLocation = shader.getUniformLocation("u_diffuse")
-    gl.uniform1i(diffuseLocation, 0)
+    if (this._material !== undefined) {
+      const colorLocation = shader.getUniformLocation("u_tint")
+      gl.uniform4fv(colorLocation, this._material.tint.toFloat32Array())
+
+      if (this._material.diffuseTexture !== undefined) {
+        this._material.diffuseTexture?.activateAndBind(0)
+
+        const diffuseLocation = shader.getUniformLocation("u_diffuse")
+        gl.uniform1i(diffuseLocation, 0)
+      }
+    }
 
     this.buffer.bind()
     this.buffer.draw()
