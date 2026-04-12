@@ -1,5 +1,5 @@
 import { Message, MessagePriority } from "./message"
-import { MessageHandler } from "./message-handler"
+import type { MessageHandler } from "./message-handler"
 import { MessageSubscriptionNode } from "./message-subscription-node"
 
 export class MessageBus {
@@ -11,13 +11,11 @@ export class MessageBus {
   private constructor() {}
 
   public static addSubscription(code: string, handler: MessageHandler): void {
-    const subscriptions = MessageBus._subscriptions[code]
-
-    if (subscriptions === undefined) {
+    if (MessageBus._subscriptions[code] === undefined) {
       MessageBus._subscriptions[code] = []
     }
 
-    const foundHandlerIndex = subscriptions.indexOf(handler)
+    const foundHandlerIndex = MessageBus._subscriptions[code].indexOf(handler)
     const handlerExist = foundHandlerIndex !== -1
 
     if (handlerExist) {
@@ -25,7 +23,7 @@ export class MessageBus {
       return
     }
 
-    subscriptions.push(handler)
+    MessageBus._subscriptions[code].push(handler)
   }
 
   public static removeSubscription(code: string, handler: MessageHandler): void {

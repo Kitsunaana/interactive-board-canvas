@@ -1,5 +1,5 @@
 export class GLRenderer {
-  public gl: WebGLRenderingContext
+  public gl: WebGL2RenderingContext
 
   public canvas: HTMLCanvasElement
 
@@ -23,7 +23,7 @@ export class GLRenderer {
     }
   }
 
-  private _getContext(canvas: HTMLCanvasElement): WebGLRenderingContext {
+  private _getContext(canvas: HTMLCanvasElement): WebGL2RenderingContext {
     const context = this.canvas.getContext("webgl2")
 
     if (context === null) throw new Error("Unable to initialize WebGl")

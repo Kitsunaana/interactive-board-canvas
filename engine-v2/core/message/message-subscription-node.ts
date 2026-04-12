@@ -1,5 +1,5 @@
 import { Message } from "./message";
-import { MessageHandler } from "./message-handler";
+import type { MessageHandler } from "./message-handler";
 
 export class MessageSubscriptionNode {
   public constructor(

@@ -1,5 +1,5 @@
 import { MessageBus } from "./message-bus";
-import { MessageHandler } from "./message-handler";
+import type { MessageHandler } from "./message-handler";
 
 export enum MessagePriority {
   NORMAL,

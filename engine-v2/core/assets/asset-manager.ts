@@ -1,12 +1,12 @@
 import { Message } from "../message/message";
-import { Asset, AssetLoader } from "./asset.interface";
-import { ImageAssetLoader } from "./image-asset-loader";
+import type { AssetLoader } from "./asset.interface";
+import { ImageAsset, ImageAssetLoader } from "./image-asset-loader";
 
 export const MESSAGE_ASSET_LOADER_ASSET_LOADED = "MESSAGE_ASSET_LOADER_ASSET_LOADED::"
 
 export class AssetManager {
-  private static _loaders: AssetLoader[]
-  private static _loadedAssets: Record<string, Asset> = {}
+  private static _loaders: AssetLoader[] = []
+  private static _loadedAssets: Record<string, ImageAsset> = {}
 
   private constructor() {}
 
@@ -18,14 +18,14 @@ export class AssetManager {
     AssetManager._loaders.push(loader)
   }
 
-  public static onAssetLoaded(asset: Asset): void {
+  public static onAssetLoaded(asset: ImageAsset): void {
     AssetManager._loadedAssets[asset.name] = asset
     const code = `${MESSAGE_ASSET_LOADER_ASSET_LOADED}${asset.name}`
     
     Message.send(code, this, asset)
   }
 
-  public static loadAsset(assetName: string): void {
+  public static loadAsset(assetName: string): undefined {
     const extenstion = assetName.split(".").pop()?.toLowerCase()
     if (extenstion === undefined) return
 
@@ -45,7 +45,7 @@ export class AssetManager {
     return AssetManager._loadedAssets[assetName] !== undefined
   }
 
-  public static getAsset(assetName: string): Asset | void {
+  public static getAsset(assetName: string): ImageAsset | undefined {
     const loadedAsset = AssetManager._loadedAssets[assetName] 
 
     return loadedAsset

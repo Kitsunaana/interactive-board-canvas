@@ -1,5 +1,5 @@
 import { AssetManager } from "./asset-manager";
-import { Asset, AssetLoader } from "./asset.interface";
+import type { Asset, AssetLoader } from "./asset.interface";
 
 export class ImageAsset implements Asset {
   constructor(

@@ -1,6 +1,6 @@
 import { Message } from "../message/message"
 import { AssetManager, MESSAGE_ASSET_LOADER_ASSET_LOADED } from "../assets/asset-manager"
-import { MessageHandler } from "../message/message-handler"
+import type { MessageHandler } from "../message/message-handler"
 import { ImageAsset } from "../assets/image-asset-loader"
 
 const LEVEL: number = 0
@@ -26,8 +26,8 @@ export class Texture implements MessageHandler {
     _gl.texImage2D(_gl.TEXTURE_2D, LEVEL, _gl.RGBA, 1, 1, BORDER, _gl.RGBA, _gl.UNSIGNED_BYTE, TEMP_IMAGE_DATA)
 
     const asset = AssetManager.getAsset(this.name)
-    if (asset === undefined) {
-
+    if (asset !== undefined) {
+      this._loadTextureFromAsset(asset)
     }
   }
 
@@ -47,17 +47,56 @@ export class Texture implements MessageHandler {
     return this._height
   }
 
+  public destroy(): void {
+    this._gl.deleteTexture(this._handle)
+  }
+
+  public activateAndBind(textureUnit: number = 0): void {
+    this._gl.activeTexture(this._gl.TEXTURE0 + textureUnit)
+
+    this.bind()
+  }
+
   public bind(): void {
     this._gl.bindTexture(this._gl.TEXTURE_2D, this._handle)
   }
 
-  public onMessage(message: Message): void {
+  public unbind(): void {
+    this._gl.bindTexture(this._gl.TEXTURE_2D, null)
+  }
 
+  public onMessage(message: Message): void {
+    if (message.code === MESSAGE_ASSET_LOADER_ASSET_LOADED + this.name) {
+      this._loadTextureFromAsset(message.context)
+    }
   }
 
   private _loadTextureFromAsset(asset: ImageAsset): void {
     this._width = asset.width
     this._height = asset.height
 
+    this.bind()
+
+    const gl = this._gl
+
+    gl.texImage2D(gl.TEXTURE_2D, LEVEL, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, asset.data)
+
+    if (this._isPowerOf2()) {
+      gl.generateMipmap(gl.TEXTURE_2D)
+    } else {
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    }
+
+    this._isLoaded = true
+  }
+
+  private _isPowerOf2(): boolean {
+    return (this._isValuePowerOf2(this.width) && this._isValuePowerOf2(this.height))
+  }
+
+  private _isValuePowerOf2(value: number): boolean {
+    return (value & (value - 1)) === 0
   }
 }

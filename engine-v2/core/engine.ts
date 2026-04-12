@@ -1,8 +1,10 @@
+import { AssetManager } from "./assets/asset-manager.ts"
 import { GLRenderer } from "./gl/gl"
 import { AttributeInfo, GlBuffer } from "./gl/glBuffer.ts"
 import { Shader } from "./gl/shader"
 import { Sprite } from "./graphics/sprite.ts"
 import { Matrix4x4 } from "./math/matrix4x4.ts"
+import { MessageBus } from "./message/message-bus.ts"
 import { vertexShaderSource, fragmentShaderSource } from "./shaders/shader.ts"
 
 export type ResizeEvent = {
@@ -40,9 +42,11 @@ export class Application {
     this._shader.use()
 
     const canvas = this._renderer.canvas
+    AssetManager.init()
 
     this._projection = Matrix4x4.orthographic(0, canvas.width, 0, canvas.height, -100, 100)
-    this._sprite = new Sprite(this._renderer, "test")
+    this._sprite = new Sprite(this._renderer, "test", "./engine-v2/assets/textures/crate.jpg")
+
     this._sprite.load()
 
     this._sprite.position.x = 200
@@ -81,12 +85,14 @@ export class Application {
   }
 
   private _loop(elapsed: number): void {
+    MessageBus.update(elapsed)
+
     const gl = this._renderer.gl
 
     gl.clear(gl.COLOR_BUFFER_BIT)
 
-    const colorPosition = this._shader.getUniformLocation("u_color")
-    gl.uniform4f(colorPosition, 1, 0, 0, 1)
+    const colorPosition = this._shader.getUniformLocation("u_tint")
+    gl.uniform4f(colorPosition, 1, 1, 1, 1)
 
     const projectionPosition = this._shader.getUniformLocation("u_projection")
     gl.uniformMatrix4fv(projectionPosition, false, new Float32Array(this._projection.data))
@@ -96,7 +102,7 @@ export class Application {
       Matrix4x4.translation(this._sprite.position).data
     ))
 
-    this._sprite.draw()
+    this._sprite.draw(this._shader)
 
     requestAnimationFrame(this._loop.bind(this))
   }
