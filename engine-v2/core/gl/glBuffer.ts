@@ -15,13 +15,12 @@ export class GlBuffer {
   private _attributes: Array<AttributeInfo> = []
 
   public constructor(
-    private readonly _renderer: GLRenderer,
     private readonly _elementSize: number,
     private readonly _dataType: number = 5126,
     private readonly _targetBufferType: number = 34962,
     private readonly _mode: number = 4
   ) {
-    const gl = this._renderer.gl
+    const gl = GLRenderer.gl
 
     switch (this._dataType) {
       case gl.INT:
@@ -46,11 +45,11 @@ export class GlBuffer {
   }
 
   public destroy(): void {
-    this._renderer.gl.deleteBuffer(this._buffer)
+    GLRenderer.gl.deleteBuffer(this._buffer)
   }
 
   public bind(normalized: boolean = false): void {
-    const gl = this._renderer.gl
+    const gl = GLRenderer.gl
 
     gl.bindBuffer(this._targetBufferType, this._buffer)
 
@@ -71,7 +70,7 @@ export class GlBuffer {
   }
 
   public unbind(): void {
-    const gl = this._renderer.gl
+    const gl = GLRenderer.gl
 
     for (let attribute of this._attributes) {
       gl.disableVertexAttribArray(attribute.location)
@@ -86,7 +85,7 @@ export class GlBuffer {
   }
 
   public pushBackData(data: Array<number>): void {
-    const gl = this._renderer.gl
+    const gl = GLRenderer.gl
 
     this._data.push(...data)
 
@@ -131,7 +130,7 @@ export class GlBuffer {
   }
 
   public draw(): void {
-    const gl = this._renderer.gl
+    const gl = GLRenderer.gl
 
     if (this._targetBufferType === gl.ARRAY_BUFFER) {
       gl.drawArrays(this._mode, 0, this._data.length / this._elementSize)

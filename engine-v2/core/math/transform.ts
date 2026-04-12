@@ -14,7 +14,7 @@ export class Transform {
 
   public getTransformationMatrix(): Matrix4x4 {
     const translation = Matrix4x4.translation(this.position)
-    const rotation = Matrix4x4.rotationZ(this.rotation.z)
+    const rotation = Matrix4x4.rotationXYZ(this.rotation.x, this.rotation.y, this.rotation.z)
     const scale = Matrix4x4.scale(this.scale)
 
     // T * R * S

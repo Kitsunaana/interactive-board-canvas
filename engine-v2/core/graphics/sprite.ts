@@ -1,9 +1,6 @@
 import { isNil } from "lodash";
 import { GLRenderer } from "../gl/gl";
 import { AttributeInfo, GlBuffer } from "../gl/glBuffer";
-import { Vector3 } from "../math/vector3";
-import { Texture } from "./texture";
-import { TextureManager } from "./texture-manager";
 import { Shader } from "../gl/shader";
 import { Matrix4x4 } from "../math/matrix4x4";
 import { Material } from "./material";
@@ -13,10 +10,7 @@ export class Sprite {
   private _buffer: GlBuffer | null = null
   private _material: Material | undefined
 
-  public position = new Vector3()
-
   public constructor(
-    private _renderer: GLRenderer,
     private _name: string,
     private _materialName: string,
     private _width: number = 100,
@@ -30,10 +24,7 @@ export class Sprite {
   }
 
   private get buffer(): GlBuffer {
-    if (isNil(this._buffer)) {
-      throw new Error("Sprite need load")
-    }
-
+    if (isNil(this._buffer)) throw new Error("Sprite need load")
     return this._buffer
   }
 
@@ -44,7 +35,7 @@ export class Sprite {
   }
 
   public load(): void {
-    this._buffer = new GlBuffer(this._renderer, 5)
+    this._buffer = new GlBuffer(5)
 
     this._buffer.addAttributeLocation(new AttributeInfo(0, 0, 3))
     this._buffer.addAttributeLocation(new AttributeInfo(1, 3, 2))
@@ -68,11 +59,11 @@ export class Sprite {
 
   }
 
-  public draw(shader: Shader): void {
-    const gl = this._renderer.gl
+  public draw(shader: Shader, model: Matrix4x4): void {
+    const gl = GLRenderer.gl
 
     const modelLocation = shader.getUniformLocation("u_model")
-    gl.uniformMatrix4fv(modelLocation, false, new Float32Array(Matrix4x4.translation(this.position).data))
+    gl.uniformMatrix4fv(modelLocation, false, model.toFloat32Array())
 
     if (this._material !== undefined) {
       const colorLocation = shader.getUniformLocation("u_tint")

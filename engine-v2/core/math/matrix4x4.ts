@@ -20,6 +20,13 @@ export class Matrix4x4 {
     return new Float32Array(this.data)
   }
 
+
+  public copyFrom(matrix: Matrix4x4) {
+    for (let i = 0; i < 16; i++) {
+      this._data[i] = matrix._data[i]
+    }
+  }
+
   public static identity(): Matrix4x4 {
     return new Matrix4x4()
   }
@@ -31,9 +38,9 @@ export class Matrix4x4 {
     const bt = 1.0 / (bottom - top)
     const nf = 1.0 / (nearClip - farClip)
 
-    matrix._data[0] = -2 * lr
-    matrix._data[5] = -2 * bt
-    matrix._data[10] = 2 * nf
+    matrix._data[0] = -2.0 * lr
+    matrix._data[5] = -2.0 * bt
+    matrix._data[10] = 2.0 * nf
     matrix._data[12] = (left + right) * lr
     matrix._data[13] = (top + bottom) * bt
     matrix._data[14] = (farClip + nearClip) * nf
@@ -51,6 +58,34 @@ export class Matrix4x4 {
     return matrix
   }
 
+  public static rotationX(angleInRadians: number): Matrix4x4 {
+    const matrix = new Matrix4x4()
+
+    const cos = Math.cos(angleInRadians)
+    const sin = Math.sin(angleInRadians)
+
+    matrix._data[5] = cos
+    matrix._data[6] = sin
+    matrix._data[9] = -sin
+    matrix._data[10] = cos
+
+    return matrix
+  }
+
+  public static rotationY(angleInRadians: number): Matrix4x4 {
+    const matrix = new Matrix4x4()
+
+    const cos = Math.cos(angleInRadians)
+    const sin = Math.sin(angleInRadians)
+
+    matrix._data[0] = cos
+    matrix._data[2] = -sin
+    matrix._data[8] = sin
+    matrix._data[10] = cos
+
+    return matrix
+  }
+
   public static rotationZ(angleInRadians: number): Matrix4x4 {
     const matrix = new Matrix4x4()
 
@@ -59,10 +94,18 @@ export class Matrix4x4 {
 
     matrix._data[0] = cos
     matrix._data[1] = sin
-    matrix._data[5] = -sin
-    matrix._data[6] = cos
+    matrix._data[4] = -sin
+    matrix._data[5] = cos
 
     return matrix
+  }
+
+  public static rotationXYZ(xRadians: number, yRadians: number, zRadians: number): Matrix4x4 {
+    const rx = Matrix4x4.rotationX(xRadians)
+    const ry = Matrix4x4.rotationY(yRadians)
+    const rz = Matrix4x4.rotationZ(zRadians)
+
+    return Matrix4x4.multiply(Matrix4x4.multiply(rz, ry), rx)
   }
 
   public static scale(scale: Vector3): Matrix4x4 {

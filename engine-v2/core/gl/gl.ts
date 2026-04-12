@@ -3,9 +3,15 @@ export class GLRenderer {
 
   public canvas: HTMLCanvasElement
 
+  public static gl: WebGL2RenderingContext
+  public static canvas: HTMLCanvasElement
+
   public constructor(elementId?: string) {
     this.canvas = this._getCanvas(elementId)
     this.gl = this._getContext(this.canvas)
+
+    GLRenderer.canvas = this.canvas
+    GLRenderer.gl = this.gl
   }
 
   private _getCanvas(elementId?: string): HTMLCanvasElement {

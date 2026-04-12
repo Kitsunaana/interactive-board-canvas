@@ -8,6 +8,7 @@ import { Material } from "./graphics/material.ts"
 import { Sprite } from "./graphics/sprite.ts"
 import { Matrix4x4 } from "./math/matrix4x4.ts"
 import { MessageBus } from "./message/message-bus.ts"
+import { ZoneManager } from "./world/zone-manager.ts"
 
 export type ResizeEvent = {
   target: {
@@ -25,7 +26,6 @@ export type ApplicationOptions = {
 }
 
 export class Application {
-  private _sprite!: Sprite
   private _renderer: GLRenderer
   private _projection!: Matrix4x4
   private _basicShader!: BasicShader
@@ -55,13 +55,10 @@ export class Application {
       )
     )
 
+    const zoneId = ZoneManager.createTestZone()
+    ZoneManager.changeZone(zoneId)
+
     this._projection = Matrix4x4.orthographic(0, canvas.width, 0, canvas.height, -100, 100)
-    this._sprite = new Sprite(this._renderer, "test", "crate")
-
-    this._sprite.load()
-
-    this._sprite.position.x = 200
-    this._sprite.position.y = 200
 
     this._loop(0)
   }
@@ -97,15 +94,16 @@ export class Application {
 
   private _loop(elapsed: number): void {
     MessageBus.update(elapsed)
+    ZoneManager.update(elapsed)
 
     const gl = this._renderer.gl
-
+    
     gl.clear(gl.COLOR_BUFFER_BIT)
-
+    
     const projectionPosition = this._basicShader.getUniformLocation("u_projection")
     gl.uniformMatrix4fv(projectionPosition, false, new Float32Array(this._projection.data))
-
-    this._sprite.draw(this._basicShader)
+    
+    ZoneManager.render(this._basicShader)
 
     requestAnimationFrame(this._loop.bind(this))
   }
