@@ -1,17 +1,17 @@
 import { Texture } from "./texture";
 import { Color } from "./color"
 import { TextureManager } from "./texture-manager";
+import { GLRenderer } from "../gl/gl";
 
 export class Material {
   private _diffuseTexture: Texture | undefined
 
   public constructor(
-    private _gl: WebGL2RenderingContext,
     private _name: string,
     private _diffuseTextureName: string,
     private _tint: Color
   ) {
-    this._diffuseTexture = TextureManager.getTexture(this._gl, this._diffuseTextureName)
+    this._diffuseTexture = TextureManager.getTexture(GLRenderer.gl, this._diffuseTextureName)
   }
 
   public get name(): string {
@@ -36,7 +36,7 @@ export class Material {
     }
 
     this._diffuseTextureName = value
-    this._diffuseTexture = TextureManager.getTexture(this._gl, this._diffuseTextureName)
+    this._diffuseTexture = TextureManager.getTexture(GLRenderer.gl, this._diffuseTextureName)
   }
 
   public destory(): void {

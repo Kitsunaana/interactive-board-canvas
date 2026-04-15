@@ -1,0 +1,27 @@
+{
+  "id": 0,
+  "name": "TestZone",
+  "description": "Asd",
+  "objects": [
+    {
+      "name": "parentObject",
+      "transform": {
+        "position": {
+          "x": 300,
+          "y": 300
+        }
+      },
+      "children": [
+        {
+          "name": "testObject",
+          "transform": {
+            "position": {
+              "x": 120,
+              "y": 120
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

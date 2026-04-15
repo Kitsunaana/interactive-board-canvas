@@ -46,17 +46,10 @@ export class Application {
     const canvas = this._renderer.canvas
     AssetManager.init()
 
-    MaterialManager.registerMaterial(
-      new Material(
-        this._renderer.gl,
-        "crate",
-        "./engine-v2/assets/textures/crate.jpg",
-        new Color(255, 128, 0, 255)
-      )
-    )
+    const material = new Material("crate", "./engine-v2/assets/textures/crate.jpg", new Color(255, 128, 0, 255)) 
+    MaterialManager.registerMaterial(material)
 
-    const zoneId = ZoneManager.createTestZone()
-    ZoneManager.changeZone(zoneId)
+    ZoneManager.initialize()
 
     this._projection = Matrix4x4.orthographic(0, canvas.width, 0, canvas.height, -100, 100)
 
@@ -97,12 +90,12 @@ export class Application {
     ZoneManager.update(elapsed)
 
     const gl = this._renderer.gl
-    
+
     gl.clear(gl.COLOR_BUFFER_BIT)
-    
+
     const projectionPosition = this._basicShader.getUniformLocation("u_projection")
     gl.uniformMatrix4fv(projectionPosition, false, new Float32Array(this._projection.data))
-    
+
     ZoneManager.render(this._basicShader)
 
     requestAnimationFrame(this._loop.bind(this))

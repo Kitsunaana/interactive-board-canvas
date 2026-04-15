@@ -1,5 +1,7 @@
+import z from "zod"
 import { Shader } from "../gl/shader"
-import {Scene} from "./scene"
+import { Scene } from "./scene"
+import { SimObject } from "./sim-object"
 
 export enum ZoneState {
   UNINITIALIZED,
@@ -10,6 +12,7 @@ export enum ZoneState {
 export class Zone {
   private _scene: Scene
   private _state: ZoneState = ZoneState.UNINITIALIZED
+  private _globalId: number = -1
 
   public constructor(
     private readonly _id: number,
@@ -33,6 +36,20 @@ export class Zone {
 
   public get scene(): Scene {
     return this._scene
+  }
+
+  public initialize(zoneData: any): void {
+    const schema = z.object({
+      objects: z.array(z.object())
+    })
+
+    const { success, data } = schema.safeParse(zoneData)
+    
+    if (success) {
+      data.objects.forEach((object) => {
+        this._scene.addObject(this._loadSimObject(object, null))
+      })
+    }
   }
 
   public load(): void {
@@ -65,5 +82,22 @@ export class Zone {
 
   public onDeactivated(): void {
 
+  }
+
+  private _loadSimObject(dataSection: any, parent: SimObject | null): SimObject {
+    const name: string = dataSection.name
+
+    this._globalId++
+
+    const simObject = new SimObject(this._globalId, name, this._scene)
+
+    if (Array.isArray(dataSection.children)) {
+      dataSection.children.forEach((object: any) => {
+        const child = this._loadSimObject(object, simObject)
+        simObject.addChild(child)
+      })
+    }
+
+    return simObject
   }
 }
