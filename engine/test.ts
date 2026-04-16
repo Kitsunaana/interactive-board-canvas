@@ -275,5 +275,7 @@ const konvaRenderTest = () => {
   stage.content.classList.add("bg-red-200")
 }
 
-konvaRenderTest()
+// konvaRenderTest()
+
+ 
 

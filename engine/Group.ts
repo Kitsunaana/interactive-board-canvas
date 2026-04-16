@@ -1,9 +1,8 @@
-import { Mixin } from "ts-mixer";
-import { Transformable, drawOriginPoint } from "./behaviors/Transformable";
-import * as Primitive from "./maths";
-import { Node, type NodeConfig } from "./Node";
-import { Shape } from "./shapes/Shape";
+import { drawOriginPoint } from "./behaviors/Transformable";
 import { Container } from "./Container";
+import * as Primitive from "./maths";
+import { type NodeConfig } from "./Node";
+import { Shape } from "./shapes/Shape";
 
 interface GroupConfig extends NodeConfig {
 }
