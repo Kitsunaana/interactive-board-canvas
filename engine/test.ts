@@ -112,18 +112,22 @@ const polygon2 = new Polygon({
 
 const group = new Group({})
 const groupFigures = new Group({})
+ 
+groupFigures.add(polygon1, polygon2)
+group.add(groupFigures)
 
-groupFigures.add(polygon2, polygon1)
-group.add(groupFigures, polygon01)
-
-layer.add(group)
+layer.add(group, polygon01) 
 stage.add(layer)
 
 group._needShowOriginPoints = true
-groupFigures._needShowOriginPoints = true
+groupFigures._needShowOriginPoints = true 
 
 groupFigures.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
 group.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
+
+polygon2.tension = 0
+// polygon2.on("pointermove", (event) => console.log(event))
+// polygon1.on("pointermove", (event) => console.log(event))
 
 // groupFigures.rotatePolygon(0.5)
 // group.setOriginPoint({ x: 0.5, y: 0.5 }, "rotate")
@@ -141,50 +145,50 @@ const transform = new Transformer({
 
 const side: ResizeHandler = "e"
 
-polygon1.on("pointerdown", (event) => {
-  console.log("polygon1")
-})
+// polygon1.on("pointerdown", (event) => {
+//   console.log("polygon1")
+// })
 
-polygon2.on("pointerdown", (event) => {
-  console.log("polygon2", event)
-  event.cancelBubbles = true
-})
+// polygon2.on("pointerdown", (event) => {
+//   console.log("polygon2", event)
+//   event.cancelBubbles = true
+// })
 
-groupFigures.on("pointerdown", () => {
-  console.log("group figures")
-})
+// groupFigures.on("pointerdown", () => {
+//   console.log("group figures")
+// })
 
-window.addEventListener("pointerdown", (event) => {
-  const nodes = layer.getAllChildren()
+// window.addEventListener("pointerdown", (event) => {
+//   const nodes = layer.getAllChildren()
 
-  let candidate: Shape | Group | null = null
+//   let candidate: Shape | Group | null = null
 
-  for (let i = nodes.length - 1; i >= 0; i--) {
-    if (nodes[i].contains(event.clientX, event.clientY)) {
-      candidate = nodes[i]
-      break
-    }
-  }
+//   for (let i = nodes.length - 1; i >= 0; i--) {
+//     if (nodes[i].contains(event.clientX, event.clientY)) {
+//       candidate = nodes[i]
+//       break
+//     }
+//   }
 
-  if (candidate) {
-    const eventToNode: Record<string, any> = {
-      cancelBubbles: false,
-      currentTarget: candidate,
-      target: candidate,
-      evt: event,
-    }
+//   if (candidate) {
+//     const eventToNode: Record<string, any> = {
+//       cancelBubbles: false,
+//       currentTarget: candidate,
+//       target: candidate,
+//       evt: event,
+//     }
 
-    candidate.fire("pointerdown", eventToNode)
+//     candidate.fire("pointerdown", eventToNode)
 
-    candidate.getAllParents().forEach((parent) => {
-      eventToNode.currentTarget = parent
+//     candidate.getAllParents().forEach((parent) => {
+//       eventToNode.currentTarget = parent
 
-      if (eventToNode.cancelBubbles === false) {
-        parent.fire("pointerdown", eventToNode)
-      }
-    })
-  }
-})
+//       if (eventToNode.cancelBubbles === false) {
+//         parent.fire("pointerdown", eventToNode)
+//       }
+//     })
+//   }
+// })
 
 const downCallback = (event: PointerEvent) => {
   transform.setInitialState()

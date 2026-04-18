@@ -38,16 +38,16 @@ export class Draggable extends EventsMoveFlow {
       const delta = subtractPoint(this._startCursor, this._getCurrentPointer())
       const next = addPoint(this._startPosition, delta)
 
-      this.node.position(next)
+      this.node.setPosition(next)
     }
   }
 
   public start(_event: PointerEvent) {
     const node = this.node
 
-    if (this.canStart(_event) && node.isDraggable()) {
+    if (this.canStart(_event) && node.getIsDraggable()) {
       this._startCursor = this._getCurrentPointer()
-      this._startPosition = node.position().clone()
+      this._startPosition = node.getPosition().clone()
 
       node
         .getAllParents()
@@ -58,11 +58,12 @@ export class Draggable extends EventsMoveFlow {
   }
 
   public canStart(_event: PointerEvent) {
-    return this.node.contains(this.node.getRelativePointerPosition())
+    const pointer = this.node.getRelativePointerPosition()
+    return this.node.contains(pointer.x, pointer.y)
   }
 
   private _getCurrentPointer() {
-    const parent = this.node.parent()
+    const parent = this.node.getParent()
 
     return parent
       ? parent.getRelativePointerPosition()
