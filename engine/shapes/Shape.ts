@@ -1,5 +1,6 @@
 import { } from "lodash";
 import { Group } from "../Group";
+import { Layer } from "../Layer";
 import { Node, type NodeConfig } from "../Node";
 import * as Primitive from "../maths";
 import { Point, type PointData } from "../maths";
@@ -84,6 +85,31 @@ export class Shape extends Node {
 
     this._drawPolygon(context)
     this._applyStyles(context)
+
+    context.restore()
+  }
+
+  public drawHit(context: CanvasRenderingContext2D): void {
+    const layer = this.findAncestor<Layer>((node) => node instanceof Layer)
+    if (!layer) {
+      return
+    }
+
+    const hitColor = layer.getHitColor(this)
+
+    context.save()
+    this._drawPolygon(context)
+
+    context.fillStyle = hitColor
+    context.strokeStyle = hitColor
+
+    if (this._config.fill) {
+      context.fill()
+    }
+
+    if (this._config.stroke || !this._config.fill) {
+      context.stroke()
+    }
 
     context.restore()
   }

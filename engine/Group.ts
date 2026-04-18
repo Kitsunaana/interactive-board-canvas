@@ -108,4 +108,13 @@ export class Group extends Container<Group | Shape> {
       drawOriginPoint(context, this.absOriginScale, "scale")
     }
   }
+
+  public drawHit(context: CanvasRenderingContext2D): void {
+    const position = this.getPosition()
+
+    context.save()
+    context.translate(position.x, position.y)
+    this._children.forEach((child) => child.drawHit(context))
+    context.restore()
+  }
 }

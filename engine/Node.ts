@@ -1,10 +1,9 @@
 import { isNull } from "lodash"
 import { nanoid } from "nanoid"
-import { Draggable } from "./behaviors/Draggable"
-import * as Primitive from "./maths"
-import { addPoint, multiplePoint } from "./shared/point"
 import { Mixin } from "ts-mixer"
 import { Transformable } from "./behaviors/Transformable"
+import * as Primitive from "./maths"
+import { addPoint, multiplePoint } from "./shared/point"
 
 export interface NodeConfig {
   isDraggable?: boolean
@@ -87,9 +86,8 @@ export abstract class Node extends Mixin(Primitive.Polygon, Transformable) {
   protected readonly abstract _type: string
   protected _name: string | undefined = undefined
 
-  public readonly drag = new Draggable(this)
-
   public abstract draw(context: CanvasRenderingContext2D): void
+  public abstract drawHit(context: CanvasRenderingContext2D): void
   public abstract getClientRect(): Primitive.Rectangle
   public abstract getPoints(): Array<Primitive.PointData>
 
@@ -114,10 +112,6 @@ export abstract class Node extends Mixin(Primitive.Polygon, Transformable) {
 
     this._scale.set(config.scaleX, config.scaleY)
     this._position.set(config.x, config.y)
-
-    if (config.isDraggable) {
-      this.drag.subscribe()
-    }
   }
 
   public get id(): string {
@@ -134,17 +128,6 @@ export abstract class Node extends Mixin(Primitive.Polygon, Transformable) {
 
   public getAngle() {
     return this._angle
-  }
-
-  public getIsDraggable() {
-    return this._isDraggable
-  }
-
-  public setIsDraggable(enable: boolean) {
-    this._isDraggable = enable
-
-    if (enable) this.drag.subscribe()
-    else this.drag.unsubscribe()
   }
 
   public setPosition(point: Primitive.PointData) {
@@ -177,6 +160,17 @@ export abstract class Node extends Mixin(Primitive.Polygon, Transformable) {
     return isNull(parent)
       ? list
       : this.getAllParents.call(parent, list.concat(parent)) as Array<T>
+  }
+
+  public findAncestor<T extends Node>(predicate: (node: Node) => boolean): T | null {
+    let current = this.getParent()
+
+    while (current) {
+      if (predicate(current)) return current as T
+      current = current.getParent()
+    }
+
+    return null
   }
 
   public getRelativePointerPosition(): Primitive.PointData {

@@ -43,8 +43,6 @@ const TOUCH_ALIASES: Partial<Record<string, string>> = {
   pointercancel: "touchcancel",
 }
 
-const isContainerNode = (node: Node): node is Container<Node> => node instanceof Container
-
 export class Stage extends Container<Layer> {
   public readonly absolutePositionCursor = new Point()
   public readonly sizes: Sizes = {
@@ -111,16 +109,21 @@ export class Stage extends Container<Layer> {
     return this._type
   }
 
+  public drawHit(_context: CanvasRenderingContext2D): void { }
+
   public draw(_context: CanvasRenderingContext2D): void { }
 
   public render() {
     this.getChildren().forEach((layer) => layer.draw())
+
     requestAnimationFrame(this.render.bind(this))
   }
 
   public add(...layers: Array<Layer>) {
     layers.forEach((layer) => {
       this.content.appendChild(layer.getCanvas())
+      this.content.appendChild(layer.getHitCanvas())
+
       this.getChildren().push(layer)
       layer.setParent(this)
       layer.setStage(this)
@@ -167,9 +170,7 @@ export class Stage extends Container<Layer> {
       const isDoubleTap = state.lastTapTarget === target && now - state.lastTapTime <= DOUBLE_CLICK_WINDOW
 
       this._dispatchEventSequence(target, ["tap"], event)
-      if (isDoubleTap) {
-        this._dispatchEventSequence(target, ["dbltap"], event)
-      }
+      if (isDoubleTap) this._dispatchEventSequence(target, ["dbltap"], event)
 
       state.lastTapTarget = target
       state.lastTapTime = now
@@ -188,6 +189,7 @@ export class Stage extends Container<Layer> {
 
   private _dispatchPointerLeave(event: PointerEvent): void {
     const state = this._getPointerState(event.pointerId)
+
     this._updateHoverTargets(state.hoverTarget, null, event)
     state.hoverTarget = null
   }
@@ -201,15 +203,11 @@ export class Stage extends Container<Layer> {
     const state = this._getPointerState(pointerId)
     const target = this._resolveTargetForMouseEvent(event)
 
-    if (state.downTarget !== target) {
-      return
-    }
+    if (state.downTarget !== target) return
 
     this._dispatchEventSequence(target, [mouseEventName, pointerEventName], event)
 
-    if (state.hoverTarget === null) {
-      state.downTarget = null
-    }
+    if (state.hoverTarget === null) state.downTarget = null
   }
 
   private _dispatchFromDomEvent(eventName: string, event: MouseEvent | PointerEvent): void {
@@ -231,9 +229,7 @@ export class Stage extends Container<Layer> {
 
       if ("pointerType" in domEvent) {
         const alias = this._resolvePointerAlias(eventName, domEvent.pointerType)
-        if (alias) {
-          this._fireEvent(target, alias, domEvent, bubble)
-        }
+        if (alias) this._fireEvent(target, alias, domEvent, bubble)
       }
     })
   }
@@ -247,10 +243,10 @@ export class Stage extends Container<Layer> {
     target.fire(
       eventName,
       {
-        evt: domEvent,
         target,
-        currentTarget: target,
+        evt: domEvent,
         cancelBubble: false,
+        currentTarget: target,
       } satisfies Partial<KonvaEventObject<MouseEvent | PointerEvent>>,
       bubble
     )
@@ -278,21 +274,14 @@ export class Stage extends Container<Layer> {
     const previousExclusive = previousPath.slice(0, previousPath.length - sharedIndex)
     const nextExclusive = nextPath.slice(0, nextPath.length - sharedIndex)
 
-    if (previousTarget) {
-      this._dispatchEventSequence(previousTarget, ["pointerout"], event)
-    }
+    if (previousTarget) this._dispatchEventSequence(previousTarget, ["pointerout"], event)
 
     previousExclusive.forEach((node) => {
       this._fireEvent(node, "pointerleave", event, false)
-
-      if (event.pointerType === "mouse") {
-        this._fireEvent(node, "mouseleave", event, false)
-      }
+      if (event.pointerType === "mouse") this._fireEvent(node, "mouseleave", event, false)
     })
 
-    if (nextTarget) {
-      this._dispatchEventSequence(nextTarget, ["pointerover"], event)
-    }
+    if (nextTarget) this._dispatchEventSequence(nextTarget, ["pointerover"], event)
 
     nextExclusive
       .slice()
@@ -307,13 +296,8 @@ export class Stage extends Container<Layer> {
   }
 
   private _resolvePointerAlias(eventName: string, pointerType: string): string | null {
-    if (pointerType === "mouse") {
-      return MOUSE_ALIASES[eventName] ?? null
-    }
-
-    if (pointerType === "touch") {
-      return TOUCH_ALIASES[eventName] ?? null
-    }
+    if (pointerType === "mouse") return MOUSE_ALIASES[eventName] ?? null
+    if (pointerType === "touch") return TOUCH_ALIASES[eventName] ?? null
 
     return null
   }
@@ -337,27 +321,15 @@ export class Stage extends Container<Layer> {
     }
   }
 
-  private _findTopmostTarget(point: PointData): Node | null {
+  private _findTopmostTarget(point: PointData): EventTargetNode | null {
     const layers = this.getChildren()
 
     for (let i = layers.length - 1; i >= 0; i -= 1) {
-      const match = this._findTopmostNodeInBranch(layers[i], point)
+      const match = layers[i].getIntersection(point)
       if (match) return match
     }
 
     return null
-  }
-
-  private _findTopmostNodeInBranch(node: Node, point: PointData): Node | null {
-    if (isContainerNode(node)) {
-      const children = node.getChildren()
-      for (let i = children.length - 1; i >= 0; i -= 1) {
-        const match = this._findTopmostNodeInBranch(children[i], point)
-        if (match) return match
-      }
-    }
-
-    return node.contains(point.x, point.y) ? node : null
   }
 
   private _getPointerState(pointerId: number): PointerState {

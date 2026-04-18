@@ -113,7 +113,7 @@ const polygon2 = new Polygon({
 const group = new Group({})
 const groupFigures = new Group({})
  
-groupFigures.add(polygon1, polygon2)
+groupFigures.add(polygon2)
 group.add(groupFigures)
 
 layer.add(group, polygon01) 
@@ -126,7 +126,7 @@ groupFigures.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
 group.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
 
 polygon2.tension = 0
-// polygon2.on("pointermove", (event) => console.log(event))
+polygon2.on("pointerdown", (event) => console.log(event))
 // polygon1.on("pointermove", (event) => console.log(event))
 
 // groupFigures.rotatePolygon(0.5)
@@ -141,7 +141,7 @@ const transform = new Transformer({
   isDraggable: false,
 })
 
-// transform.add(polygon1, polygon2)
+// transform.add(polygon1, polygon2) 
 
 const side: ResizeHandler = "e"
 
