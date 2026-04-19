@@ -113,20 +113,20 @@ const polygon2 = new Polygon({
 const group = new Group({})
 const groupFigures = new Group({})
  
-groupFigures.add(polygon2)
+groupFigures.add(polygon1, polygon2)
 group.add(groupFigures)
 
 layer.add(group, polygon01) 
 stage.add(layer)
 
-group._needShowOriginPoints = true
-groupFigures._needShowOriginPoints = true 
+group._needShowOriginPoints = false
+groupFigures._needShowOriginPoints = false
 
 groupFigures.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
 group.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
 
-polygon2.tension = 0
-polygon2.on("pointerdown", (event) => console.log(event))
+// polygon2.tension = 0
+// polygon2.on("pointerdown", (event) => console.log(event))
 // polygon1.on("pointermove", (event) => console.log(event))
 
 // groupFigures.rotatePolygon(0.5)
@@ -136,6 +136,13 @@ polygon2.on("pointerdown", (event) => console.log(event))
 // group.scalePolygon({ x: 1.9, y: 1.9 })
 // groupFigures.rotatePolygon(0.5)
 // group.rotatePolygon(-0.4)
+
+polygon2.transformer.needShowOrigins = true
+polygon2.transformer.translate({ x: 101, y: 10 })
+// polygon2.transformer.rotate(0.3)
+// polygon2.transformer.rotate(0.3)
+// polygon2.transformer.scale({ x: 1.9, y: 1.6 })
+// polygon2.transformer.skew({ x: 0.3, y: 0.0 })
 
 const transform = new Transformer({
   isDraggable: false,

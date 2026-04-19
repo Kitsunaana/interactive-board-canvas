@@ -107,3 +107,17 @@ export function scalePointAroundOrigin(point: PointData, pivot: PointData, scale
 
   return Point.add(pivot, transformed)
 }
+
+export function skewPointAroundOrigin(point: PointData, pivot: PointData, skew: PointData) {
+  const offset = Point.subtract(point, pivot)
+
+  const tanX = Math.tan(skew.x)
+  const tanY = Math.tan(skew.y)
+
+  const transformed: PointData = {
+    x: offset.x + offset.y * tanX,
+    y: offset.x * tanY + offset.y
+  }
+
+  return Point.add(pivot, transformed)
+}

@@ -4,6 +4,7 @@ import { Layer } from "../Layer";
 import { Node, type NodeConfig } from "../Node";
 import * as Primitive from "../maths";
 import { Point, type PointData } from "../maths";
+import { ShapeTransformerContext } from "../behaviors/transformer/shape/ShapeTransformerContext";
 
 export interface PolygonConfig extends NodeConfig {
   points: Primitive.PointData[],
@@ -27,10 +28,40 @@ function fillConfigDefaultValues(config: PolygonConfig) {
   }
 }
 
+/**
+  private _bindEvents() {
+  const moveCallback = (event: KonvaEventObject<Event>) => {
+    // console.log("MOVE")
+  }
+
+  const upCallback = (event: KonvaEventObject<Event>) => {
+    // console.log("UP")
+
+    this._shape.off("pointermove", moveCallback)
+    this._shape.off("pointerup", upCallback)
+  }
+
+  const downCallback = (event: KonvaEventObject<Event>) => {
+    // console.log("DOWN")
+
+    this._shape.on("pointermove", moveCallback)
+    this._shape.on("pointerup", upCallback)
+  }
+
+  this._shape.on("pointerdown", downCallback)
+
+  this.unsubscribe = () => {
+    this._shape.off("pointerdown", downCallback)
+  }
+}
+*/
+
 export class Shape extends Node {
   protected readonly _type = "Shape"
 
   private readonly _bounds = new Primitive.Rectangle()
+
+  public transformer = new ShapeTransformerContext(this)
 
   public tension: number = 0.1
 
@@ -48,6 +79,8 @@ export class Shape extends Node {
 
     this.recalculateOriginPoint("rotate")
     this.recalculateOriginPoint("scale")
+
+    this.transformer.initialize()
   }
 
   public getParent(): Group | null {
@@ -82,18 +115,20 @@ export class Shape extends Node {
 
   public draw(context: CanvasRenderingContext2D): void {
     context.save()
+    this.transformer.bindTransformsToContext(context)
 
     this._drawPolygon(context)
     this._applyStyles(context)
 
     context.restore()
+
+    this.transformer.render(context)
+
   }
 
   public drawHit(context: CanvasRenderingContext2D): void {
     const layer = this.findAncestor<Layer>((node) => node instanceof Layer)
-    if (!layer) {
-      return
-    }
+    if (!layer) return
 
     const hitColor = layer.getHitColor(this)
 
@@ -103,13 +138,8 @@ export class Shape extends Node {
     context.fillStyle = hitColor
     context.strokeStyle = hitColor
 
-    if (this._config.fill) {
-      context.fill()
-    }
-
-    if (this._config.stroke || !this._config.fill) {
-      context.stroke()
-    }
+    if (this._config.fill) context.fill()
+    if (this._config.stroke || !this._config.fill) context.stroke()
 
     context.restore()
   }
