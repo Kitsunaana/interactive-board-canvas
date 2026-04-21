@@ -1,175 +1,90 @@
-import { Point, type PointData } from "./Point";
+import { type PointData } from "./Point";
 
-export interface TransformableObject {
-  position: PointData
-  scale: PointData
-  pivot: PointData
-  skew: PointData
-  rotation: number
-}
-
-export class Matrix {
-  public array: Float32Array | null = null
-
-  /**
-   * 
-   * @param a - x scale
-   * @param b - y skew
-   * @param c - x skew
-   * @param d - y scale
-   * @param tx - x translation
-   * @param ty - y translation
-   */
-  constructor(
+export class Matrix3x3 {
+  private constructor(
     public a: number = 1,
     public b: number = 0,
     public c: number = 0,
     public d: number = 1,
-    public tx: number = 0,
-    public ty: number = 0,
+    public e: number = 0,
+    public f: number = 0,
   ) { }
 
-  public clear(): this {
-    this.a = 1
-    this.b = 0
-    this.c = 0
-    this.d = 1
-    this.tx = 0
-    this.ty = 0
-
-    return this
+  public static identity(): Matrix3x3 {
+    return new Matrix3x3(1, 0, 0, 1, 0, 0)
   }
 
-  public fromArray(array: number[]): void {
-    this.a = array[0]
-    this.b = array[1]
-    this.c = array[2]
-    this.d = array[3]
-    this.tx = array[4]
-    this.ty = array[5]
+  public static translate(tx: number, ty: number): Matrix3x3 {
+    return new Matrix3x3(1, 0, 0, 1, tx, ty)
   }
 
-  public set(a: number, b: number, c: number, d: number, tx: number, ty: number) {
-    this.a = a
-    this.b = b
-    this.c = c
-    this.d = d
-    this.tx = tx
-    this.ty = ty
+  public static scale(sx: number, sy: number): Matrix3x3 {
+    return new Matrix3x3(sx, 0, 0, sy, 0, 0)
   }
 
-  public apply<P extends PointData = Point>(position: PointData, newPosition?: P): P {
-    newPosition = (newPosition || new Point()) as P
-
-    const x = position.x
-    const y = position.y
-
-    newPosition.x = (this.a * x) + (this.c * y) + this.tx
-    newPosition.y = (this.b * x) + (this.d * y) + this.ty
-
-    return newPosition
-  }
-
-  public translate(x: number, y: number): this {
-    this.tx = x
-    this.ty = y
-
-    return this
-  }
-
-  public scale(x: number, y: number): this {
-    this.a *= x
-    this.d *= y
-    this.c *= x
-    this.d *= y
-    this.tx *= x
-    this.ty *= y
-
-    return this
-  }
-
-  public rotate(angle: number): this {
+  public static rotate(angle: number): Matrix3x3 {
     const cos = Math.cos(angle)
     const sin = Math.sin(angle)
 
-    const a1 = this.a
-    const b1 = this.b
-    const c1 = this.c
-    const d1 = this.d
-    const tx = this.tx
-    const ty = this.ty
-
-    this.a = (a1 * cos) - (b1 * sin)
-    this.b = (a1 * sin) + (b1 * cos)
-    this.c = (c1 * cos) - (d1 * sin)
-    this.d = (c1 * sin) + (d1 * cos)
-    this.tx = (tx * cos) - (ty * sin)
-    this.ty = (tx * sin) + (ty * cos)
-
-    return this
+    return new Matrix3x3(cos, sin, -sin, cos, 0, 0)
   }
 
-  public setTransform(
-    x: number, y: number,
-    pivotX: number, pivotY: number,
-    scaleX: number, scaleY: number,
-    rotation: number,
-    skewX: number, skewY: number
-  ): this {
-    this.a = Math.cos(rotation + skewY) * scaleX
-    this.b = Math.sin(rotation + skewY) * scaleX
-    this.c = -Math.sin(rotation - skewX) * scaleY
-    this.d = Math.cos(rotation - skewX) * scaleY
-
-    this.tx = x - ((pivotX * this.a) + (pivotY * this.c))
-    this.ty = y - ((pivotX * this.b) + (pivotY * this.d))
-
-    return this
+  public static skew(kx: number, ky: number): Matrix3x3 {
+    return new Matrix3x3(1, Math.tan(ky), Math.tan(kx), 1, 0, 0)
   }
 
-  public clone(): Matrix {
-    const matrix = new Matrix()
+  public static multiply(m1: Matrix3x3, m2: Matrix3x3): Matrix3x3 {
+    const a = m1.a * m2.a + m1.c * m2.b
+    const b = m1.b * m2.a + m1.d * m2.b
+    const c = m1.a * m2.c + m1.c * m2.d
+    const d = m1.b * m2.c + m1.d * m2.d
+    const e = m1.a * m2.e + m1.c * m2.f + m1.e
+    const f = m1.b * m2.e + m1.d * m2.f + m1.f
 
-    matrix.a = this.a
-    matrix.b = this.b
-    matrix.c = this.c
-    matrix.d = this.d
-    matrix.tx = this.tx
-    matrix.ty = this.ty
-
-    return matrix
+    return new Matrix3x3(a, b, c, d, e, f)
   }
 
-  public copyTo(matrix: Matrix): Matrix {
-    matrix.a = this.a
-    matrix.b = this.b
-    matrix.c = this.c
-    matrix.d = this.d
-    matrix.tx = this.tx
-    matrix.ty = this.ty
+  public static aroundOrigin(origin: PointData, operation: (m: Matrix3x3) => Matrix3x3) {
+    const prev = Matrix3x3.translate(origin.x, origin.y)
+    const result = operation(Matrix3x3.identity())
+    const next = Matrix3x3.translate(-origin.x, -origin.y)
 
-    return matrix
+    return Matrix3x3.compose(prev, result, next)
   }
 
-  public copyFrom(matrix: Matrix): this {
-    this.a = matrix.a
-    this.b = matrix.b
-    this.c = matrix.c
-    this.d = matrix.d
-    this.tx = matrix.tx
-    this.ty = matrix.ty
+  public static compose(...matrices: Array<Matrix3x3>): Matrix3x3 {
+    if (matrices.length === 0) return Matrix3x3.identity()
 
-    return this
+    return matrices
+      .slice(1)
+      .reduce(Matrix3x3.multiply, matrices[0])
   }
 
-  public equals(matrix: Matrix) {
-    return (
-      matrix.a === this.a &&
-      matrix.b === this.b &&
-      matrix.c === this.c &&
-      matrix.d === this.d &&
-      matrix.tx === this.tx &&
-      matrix.ty === this.ty
-    )
+  public static fromArray(array: [number, number, number, number, number, number]): Matrix3x3 {
+    return new Matrix3x3(...array)
+  }
+
+  public static fromContext(context: CanvasRenderingContext2D): Matrix3x3 {
+    const matrix = context.getTransform()
+    return new Matrix3x3(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f)
+  }
+
+  public clone(): Matrix3x3 {
+    return new Matrix3x3(this.a, this.b, this.c, this.d, this.e, this.f)
+  }
+
+  public applyToPoint(point: PointData): PointData {
+    return {
+      x: this.a * point.x + this.c * point.y + this.e,
+      y: this.b * point.x + this.d * point.y + this.f,
+    }
+  }
+
+  public applyToContext(context: CanvasRenderingContext2D): void {
+    context.transform(this.a, this.b, this.c, this.d, this.e, this.f)
+  }
+
+  public toArray(): [number, number, number, number, number, number] {
+    return [this.a, this.b, this.c, this.d, this.e, this.f]
   }
 }
