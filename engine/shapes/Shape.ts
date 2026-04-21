@@ -4,7 +4,7 @@ import { Layer } from "../Layer";
 import { Node, type NodeConfig } from "../Node";
 import * as Primitive from "../maths";
 import { Point, type PointData } from "../maths";
-import { ShapeTransformerContext } from "../behaviors/transformer/shape/ShapeTransformerContext";
+import { ShapeTransformerPreviewState } from "../behaviors/transformer/shape/_preview";
 
 export interface PolygonConfig extends NodeConfig {
   points: Primitive.PointData[],
@@ -61,7 +61,7 @@ export class Shape extends Node {
 
   private readonly _bounds = new Primitive.Rectangle()
 
-  public transformer = new ShapeTransformerContext(this)
+  public transformer = new ShapeTransformerPreviewState(this)
 
   public tension: number = 0.1
 
@@ -76,9 +76,6 @@ export class Shape extends Node {
     Object.assign(this._config, filledConfing)
 
     this.points = filledConfing.points
-
-    this.recalculateOriginPoint("rotate")
-    this.recalculateOriginPoint("scale")
 
     this.transformer.initialize()
   }
@@ -95,22 +92,6 @@ export class Shape extends Node {
     this.getBounds(this._bounds)
     Point.add(this._bounds, this.getPosition(), this._bounds)
     return this._bounds
-  }
-
-  public translate(value: Primitive.PointData) {
-    this.points.forEach((point) => {
-      const next = Point.add(point, value)
-
-      point.x = next.x
-      point.y = next.y
-    })
-
-    const parent = this.getParent()
-
-    if (parent) {
-      parent.recalculateOriginPoint("scale")
-      parent.recalculateOriginPoint("rotate")
-    }
   }
 
   public draw(context: CanvasRenderingContext2D): void {

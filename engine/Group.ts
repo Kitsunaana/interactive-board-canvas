@@ -1,4 +1,4 @@
-import { drawOriginPoint } from "./behaviors/Transformable";
+import { ShapeTransformerPreviewState } from "./behaviors/transformer/shape/_preview";
 import { Container } from "./Container";
 import * as Primitive from "./maths";
 import { type NodeConfig } from "./Node";
@@ -11,6 +11,14 @@ export class Group extends Container<Group | Shape> {
   public _needShowOriginPoints = true
 
   protected readonly _type = "Group" as const
+
+  public readonly transformer = new ShapeTransformerPreviewState(this)
+
+  public constructor(params: GroupConfig) {
+    super(params)
+
+    this.transformer.initialize()
+  }
 
   public get absolutePositionCursor(): Primitive.PointData {
     return this.getParent()!.absolutePositionCursor
@@ -51,48 +59,8 @@ export class Group extends Container<Group | Shape> {
   public add(...children: Array<Group | Shape>): void {
     children.forEach((child) => {
       this._children.push(child)
-
-      this.recalculateOriginPoint("rotate")
-      this.recalculateOriginPoint("scale")
-
       child.setParent(this)
     })
-  }
-
-  public rotatePolygon(angle: number): void {
-    this.getChildren().forEach((child) => {
-      child.absOriginRotate.push()
-      child.absOriginRotate.copyFrom(this.absOriginRotate)
-      child.rotatePolygon(angle)
-      child.absOriginRotate.pop()
-      child.recalculateOriginPoint("rotate")
-    })
-
-    this.getAllParents().forEach((parent) => {
-      parent.recalculateOriginPoint("rotate")
-      parent.recalculateOriginPoint("scale")
-    })
-
-    this.updateOriginScalePosition(angle)
-    this.accumulateRotate(angle)
-  }
-
-  public scalePolygon(value: Primitive.PointData): void {
-    this.getChildren().forEach((child) => {
-      child.absOriginScale.push()
-      child.absOriginScale.copyFrom(this.absOriginScale)
-      child.scalePolygon(value)
-      child.absOriginScale.pop()
-      child.recalculateOriginPoint("scale")
-    })
-
-    this.getAllParents().forEach((parent) => {
-      parent.recalculateOriginPoint("rotate")
-      parent.recalculateOriginPoint("scale")
-    })
-
-    this.updateOriginRotatePosition(value)
-    this.accumulateScale(value)
   }
 
   public draw(context: CanvasRenderingContext2D): void {
@@ -100,13 +68,13 @@ export class Group extends Container<Group | Shape> {
 
     context.save()
     context.translate(position.x, position.y)
+
+    this.transformer.bindTransformsToContext(context)
+
     this._children.forEach((child) => child.draw(context))
     context.restore()
 
-    if (this._needShowOriginPoints) {
-      drawOriginPoint(context, this.absOriginRotate, "rotate")
-      drawOriginPoint(context, this.absOriginScale, "scale")
-    }
+    this.transformer.render(context)
   }
 
   public drawHit(context: CanvasRenderingContext2D): void {

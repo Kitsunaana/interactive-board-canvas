@@ -1,4 +1,4 @@
-import { Matrix } from "./Matrix"
+import { Matrix3x3 } from "./Matrix"
 import { Rectangle } from "./Rectangle"
 
 export interface BoundsData {
@@ -8,7 +8,7 @@ export interface BoundsData {
   maxY: number
 }
 
-const defaultMatrix = new Matrix()
+const defaultMatrix = Matrix3x3.identity()
 
 export class Bounds {
   public matrix = defaultMatrix
@@ -121,44 +121,6 @@ export class Bounds {
     this.minY = y1
     this.maxX = x2
     this.maxY = y2
-  }
-
-  public applyMatrix(matrix: Matrix): void {
-    const minX = this.minX
-    const minY = this.minY
-    const maxX = this.maxX
-    const maxY = this.maxY
-
-    const { a, b, c, d, tx, ty } = matrix
-
-    let x = (a * minX) + (c * minY) + tx
-    let y = (b * minX) + (d * minY) + ty
-
-    this.minX = x
-    this.minY = y
-    this.maxX = x
-    this.maxY = y
-
-    x = (a * maxX) + (c * minY) + tx
-    y = (b * maxX) + (d * minY) + ty
-    this.minX = x < this.minX ? x : this.minX
-    this.minY = y < this.minY ? y : this.minY
-    this.maxX = x > this.maxX ? x : this.maxX
-    this.maxY = y > this.maxY ? y : this.maxY
-
-    x = (a * minX) + (c * maxY) + tx
-    y = (b * minX) + (d * maxY) + ty
-    this.minX = x < this.minX ? x : this.minX
-    this.minY = y < this.minY ? y : this.minY
-    this.maxX = x > this.maxX ? x : this.maxX
-    this.maxY = y > this.maxY ? y : this.maxY
-
-    x = (a * maxX) + (c * maxY) + tx
-    y = (b * maxX) + (d * maxY) + ty
-    this.minX = x < this.minX ? x : this.minX
-    this.minY = y < this.minY ? y : this.minY
-    this.maxX = x > this.maxX ? x : this.maxX
-    this.maxY = y > this.maxY ? y : this.maxY
   }
 
   public padding(paddingX: number, paddingY: number = paddingX): this {

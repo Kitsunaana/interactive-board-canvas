@@ -1,4 +1,3 @@
-import type { Matrix } from "./Matrix"
 import { Point, type PointData } from "./Point"
 import { Rectangle } from "./Rectangle"
 
@@ -104,20 +103,5 @@ export class Polygon {
     polygon.copyFrom(this)
 
     return polygon
-  }
-
-  public applyMatrix(matrix: Matrix): this {
-    const { a, b, c, d, tx, ty } = matrix;
-
-    for (let i = 0; i < this.points.length; i++) {
-      const point = this.points[i];
-      const x = a * point.x + c * point.y + tx;
-      const y = b * point.x + d * point.y + ty;
-
-      point.x = x;
-      point.y = y;
-    }
-
-    return this
   }
 }

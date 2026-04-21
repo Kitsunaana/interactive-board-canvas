@@ -79,7 +79,9 @@ const points2 = [
   { x: 135, y: 90 },
   { x: 135, y: 105 },
   { x: 90, y: 105 },
-  { x: 90, y: 120 }
+  { x: 90, y: 120 },
+
+  // { x: 100, y: 200 }, { x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 200 }
 ]
 
 const polygon1 = new Polygon({
@@ -93,7 +95,7 @@ const polygon2 = new Polygon({
   isDraggable: true,
   points: points2,
   fillColor: "orange",
-  stroke: false,
+  stroke: true,
   fill: true,
   scaleX: 1.0,
   scaleY: 1.0,
@@ -112,90 +114,54 @@ const polygon2 = new Polygon({
 
 const group = new Group({})
 const groupFigures = new Group({})
- 
-groupFigures.add(polygon1, polygon2)
-group.add(groupFigures)
 
-layer.add(group, polygon01) 
+groupFigures.add(polygon1, polygon2)
+// group.add(groupFigures)
+
+layer.add(groupFigures)
 stage.add(layer)
 
-group._needShowOriginPoints = false
-groupFigures._needShowOriginPoints = false
+// groupFigures.transformer.translate({ x: 200, y: 50 })
+groupFigures.transformer.rotate(0.9)
+// groupFigures.transformer.scale({ x: 2, y: 2 })
+groupFigures.transformer.isShowOrigins = true
 
-groupFigures.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
-group.setOriginPoint("rotate", { x: 0.5, y: 0.5 })
+polygon2.transformer.isShowOrigins = false
 
-// polygon2.tension = 0
-// polygon2.on("pointerdown", (event) => console.log(event))
-// polygon1.on("pointermove", (event) => console.log(event))
-
-// groupFigures.rotatePolygon(0.5)
-// group.setOriginPoint({ x: 0.5, y: 0.5 }, "rotate")
-// group.rotatePolygon(0.4)
-// group.setOriginPoint({ x: 0.0, y: 0.5 }, "scale")
-// group.scalePolygon({ x: 1.9, y: 1.9 })
-// groupFigures.rotatePolygon(0.5)
-// group.rotatePolygon(-0.4)
-
-polygon2.transformer.needShowOrigins = true
-polygon2.transformer.translate({ x: 101, y: 10 })
-// polygon2.transformer.rotate(0.3)
-// polygon2.transformer.rotate(0.3)
+polygon2.tension = 0.13
+// polygon2.transformer.translate({ x: 201, y: 120 })
+// polygon2.transformer.scale({ x: 2, y: 2 })
+// polygon2.transformer.rotate(0.8)
+// polygon2.transformer.scale({ x: 1.6, y: 1 })
+// polygon2.transformer.setOrigin("scale", { x: 0, y: 0.5 })
 // polygon2.transformer.scale({ x: 1.9, y: 1.6 })
 // polygon2.transformer.skew({ x: 0.3, y: 0.0 })
+// polygon2.transformer.setOrigin("rotate", { x: 1, y: 1 })
+// polygon2.transformer.setOrigin("scale", { x: 0.5, y: 0.5 })
+// polygon2.transformer.rotate(1.9)
 
 const transform = new Transformer({
   isDraggable: false,
 })
 
+// polygon2.transformer.beginInteraction("scale")
+
+window.addEventListener("pointermove", (event) => {
+  const position = getPointFromEvent(event)
+  const value = Point.divide(position, { x: 200, y: 200 })
+
+  const nextX = Math.cos(value.x) * 2
+  const nextY = Math.sin(value.y) * 2
+
+  // polygon2.transformer.updateInteraction({
+  //   x: nextX,
+  //   y: nextY,
+  // })
+})
+
 // transform.add(polygon1, polygon2) 
 
 const side: ResizeHandler = "e"
-
-// polygon1.on("pointerdown", (event) => {
-//   console.log("polygon1")
-// })
-
-// polygon2.on("pointerdown", (event) => {
-//   console.log("polygon2", event)
-//   event.cancelBubbles = true
-// })
-
-// groupFigures.on("pointerdown", () => {
-//   console.log("group figures")
-// })
-
-// window.addEventListener("pointerdown", (event) => {
-//   const nodes = layer.getAllChildren()
-
-//   let candidate: Shape | Group | null = null
-
-//   for (let i = nodes.length - 1; i >= 0; i--) {
-//     if (nodes[i].contains(event.clientX, event.clientY)) {
-//       candidate = nodes[i]
-//       break
-//     }
-//   }
-
-//   if (candidate) {
-//     const eventToNode: Record<string, any> = {
-//       cancelBubbles: false,
-//       currentTarget: candidate,
-//       target: candidate,
-//       evt: event,
-//     }
-
-//     candidate.fire("pointerdown", eventToNode)
-
-//     candidate.getAllParents().forEach((parent) => {
-//       eventToNode.currentTarget = parent
-
-//       if (eventToNode.cancelBubbles === false) {
-//         parent.fire("pointerdown", eventToNode)
-//       }
-//     })
-//   }
-// })
 
 const downCallback = (event: PointerEvent) => {
   transform.setInitialState()
@@ -224,6 +190,8 @@ import Konva from 'konva'
 import { Shape } from "./shapes/Shape";
 import { nanoid } from "nanoid";
 import { bind } from "lodash";
+import { Point } from "./maths";
+import { ShapeTransformerPreviewState } from "./behaviors/transformer/shape/_preview";
 
 const konvaRenderTest = () => {
   const stage = new Konva.Stage({
@@ -288,5 +256,5 @@ const konvaRenderTest = () => {
 
 // konvaRenderTest()
 
- 
+
 

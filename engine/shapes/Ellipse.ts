@@ -11,7 +11,6 @@ export class Ellipse extends Node {
   public readonly boundsSkippedRotate: Primitive.Rectangle
 
   private readonly _math: Primitive.Polygon
-  private readonly _matrix: Primitive.Matrix = new Primitive.Matrix()
   private readonly _bounds: Primitive.Rectangle = new Primitive.Rectangle()
 
   public get absolutePositionCursor() {

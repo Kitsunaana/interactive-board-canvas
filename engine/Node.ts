@@ -1,7 +1,6 @@
 import { isNull } from "lodash"
 import { nanoid } from "nanoid"
 import { Mixin } from "ts-mixer"
-import { Transformable } from "./behaviors/Transformable"
 import * as Primitive from "./maths"
 import { addPoint, multiplePoint } from "./shared/point"
 
@@ -78,7 +77,7 @@ const toEventTokens = (eventNames?: string): ParsedEventToken[] => {
     .filter((token) => token.eventType || token.namespace)
 }
 
-export abstract class Node extends Mixin(Primitive.Polygon, Transformable) {
+export abstract class Node extends Mixin(Primitive.Polygon) {
   private readonly _id = nanoid()
 
   public abstract readonly absolutePositionCursor: Primitive.PointData

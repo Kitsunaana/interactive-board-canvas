@@ -1,5 +1,4 @@
 import type { Bounds } from "./Bounds"
-import type { Matrix } from "./Matrix"
 import type { PointData } from "./Point"
 
 export class Rectangle {
@@ -120,34 +119,6 @@ export class Rectangle {
     const p4 = { x: this.x, y: this.y + this.height }
 
     return [p1, p2, p3, p4]
-  }
-
-  public applyMatrix(matrix: Matrix): this {
-    const { a, b, c, d, tx, ty } = matrix
-
-    const [p1, p2, p3, p4] = this.getCorner()
-
-    const transform = (point: PointData) => ({
-      x: point.x * a + point.y * c + tx,
-      y: point.x * b + point.y * d + ty,
-    })
-
-    const t1 = transform(p1)
-    const t2 = transform(p2)
-    const t3 = transform(p3)
-    const t4 = transform(p4)
-
-    const minX = Math.min(t1.x, t2.x, t3.x, t4.x)
-    const maxX = Math.max(t1.x, t2.x, t3.x, t4.x)
-    const minY = Math.min(t1.y, t2.y, t3.y, t4.y)
-    const maxY = Math.max(t1.y, t2.y, t3.y, t4.y)
-
-    this.x = minX
-    this.y = minY
-    this.width = maxX - minX
-    this.height = maxY - minY
-
-    return this
   }
 
   public getAABB() {
