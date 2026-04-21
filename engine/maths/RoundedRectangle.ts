@@ -1,7 +1,7 @@
 import { Rectangle } from "./Rectangle"
 
 export class RoundedRectangle {
-  constructor(
+  public constructor(
     public x: number = 0,
     public y: number = 0,
     public width: number = 0,

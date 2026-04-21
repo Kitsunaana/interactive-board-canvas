@@ -4,7 +4,7 @@ import { Layer } from "../Layer";
 import { Node, type NodeConfig } from "../Node";
 import * as Primitive from "../maths";
 import { Point, type PointData } from "../maths";
-import { ShapeTransformerPreviewState } from "../behaviors/transformer/shape/_preview";
+import { Transformable } from "../behaviors/Transformable"
 
 export interface PolygonConfig extends NodeConfig {
   points: Primitive.PointData[],
@@ -61,13 +61,9 @@ export class Shape extends Node {
 
   private readonly _bounds = new Primitive.Rectangle()
 
-  public transformer = new ShapeTransformerPreviewState(this)
+  public transformer = new Transformable(this)
 
   public tension: number = 0.1
-
-  public get absolutePositionCursor() {
-    return this.getParent()!.absolutePositionCursor
-  }
 
   public constructor(private readonly _config: PolygonConfig) {
     super(_config)

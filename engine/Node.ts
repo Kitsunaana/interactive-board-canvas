@@ -77,72 +77,36 @@ const toEventTokens = (eventNames?: string): ParsedEventToken[] => {
     .filter((token) => token.eventType || token.namespace)
 }
 
-export abstract class Node extends Mixin(Primitive.Polygon) {
-  private readonly _id = nanoid()
-
-  public abstract readonly absolutePositionCursor: Primitive.PointData
-
-  protected readonly abstract _type: string
-  protected _name: string | undefined = undefined
-
+export abstract class Node extends Primitive.Polygon {
   public abstract draw(context: CanvasRenderingContext2D): void
   public abstract drawHit(context: CanvasRenderingContext2D): void
   public abstract getClientRect(): Primitive.Rectangle
   public abstract getPoints(): Array<Primitive.PointData>
 
-  public getType(): string {
-    return this._type
-  }
+  private readonly _id = nanoid()
 
-  private _isDraggable: boolean = true
+  protected readonly abstract _type: string
+  protected _name: string | undefined = undefined
+
   private _parent: Node | null = null
-
-  private _position = new Primitive.Point()
-  private _scale = new Primitive.Point()
-  private _angle: number = 0
-
-  public constructor(params: NodeConfig) {
-    super([])
-
-    const config = fillConfigDefaultValues(params)
-
-    this._isDraggable = config.isDraggable
-    this._name = config.name
-
-    this._scale.set(config.scaleX, config.scaleY)
-    this._position.set(config.x, config.y)
-  }
 
   public get id(): string {
     return this._id
   }
 
+  public constructor(params: NodeConfig) {
+    super([])
+
+    const config = fillConfigDefaultValues(params)
+    this._name = config.name
+  }
+
+  public getType(): string {
+    return this._type
+  }
+
   public getName() {
     return this._name
-  }
-
-  public setAngle(angle: number) {
-    this._angle = angle
-  }
-
-  public getAngle() {
-    return this._angle
-  }
-
-  public setPosition(point: Primitive.PointData) {
-    this._position.set(point.x, point.y)
-  }
-
-  public getPosition() {
-    return this._position
-  }
-
-  public setScale(point: Primitive.PointData) {
-    this._scale.set(point.x, point.y)
-  }
-
-  public getScale() {
-    return this._scale
   }
 
   public setParent(node: Node) {
@@ -170,42 +134,6 @@ export abstract class Node extends Mixin(Primitive.Polygon) {
     }
 
     return null
-  }
-
-  public getRelativePointerPosition(): Primitive.PointData {
-    const absolutePosition = this.getAbsolutePosition()
-    const absoluteScale = this.getAbsoluteScale()
-
-    return {
-      x: (this.absolutePositionCursor.x - absolutePosition.x) / absoluteScale.x,
-      y: (this.absolutePositionCursor.y - absolutePosition.y) / absoluteScale.y,
-    }
-  }
-
-  public getAbsoluteScale(): Primitive.PointData {
-    if (this._parent) {
-      const parentScale = this._parent.getAbsoluteScale()
-      return multiplePoint(parentScale, this._scale)
-    }
-
-    return {
-      x: this._scale.x,
-      y: this._scale.y,
-    }
-  }
-
-  public getAbsolutePosition(): Primitive.PointData {
-    if (this._parent) {
-      const parentPosition = this._parent.getAbsolutePosition()
-      const parentScale = this._parent.getAbsoluteScale()
-
-      return addPoint(parentPosition, multiplePoint(this._position, parentScale))
-    }
-
-    return {
-      x: this._position.x,
-      y: this._position.y,
-    }
   }
 
   private readonly _listenersMap: Map<string, Array<ListenerEntry>> = new Map()

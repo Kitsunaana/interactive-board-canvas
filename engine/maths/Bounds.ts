@@ -15,7 +15,7 @@ export class Bounds {
 
   private _rectangle!: Rectangle
 
-  constructor(
+  public constructor(
     public minX: number = Infinity, public minY: number = Infinity,
     public maxX: number = -Infinity, public maxY: number = -Infinity
   ) { }
@@ -164,7 +164,7 @@ export class Bounds {
     return this
   }
 
-  public containsPoint(x: number, y: number): boolean {
+  public contains(x: number, y: number): boolean {
     if (this.minX <= x && this.minY <= y && this.maxX >= x && this.maxY >= y) {
       return true
     }

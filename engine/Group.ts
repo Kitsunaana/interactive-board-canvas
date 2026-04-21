@@ -1,4 +1,4 @@
-import { ShapeTransformerPreviewState } from "./behaviors/transformer/shape/_preview";
+import { Transformable } from "./behaviors/Transformable";
 import { Container } from "./Container";
 import * as Primitive from "./maths";
 import { type NodeConfig } from "./Node";
@@ -12,7 +12,7 @@ export class Group extends Container<Group | Shape> {
 
   protected readonly _type = "Group" as const
 
-  public readonly transformer = new ShapeTransformerPreviewState(this)
+  public readonly transformer = new Transformable(this)
 
   public constructor(params: GroupConfig) {
     super(params)
@@ -20,28 +20,12 @@ export class Group extends Container<Group | Shape> {
     this.transformer.initialize()
   }
 
-  public get absolutePositionCursor(): Primitive.PointData {
-    return this.getParent()!.absolutePositionCursor
-  }
-
-  public getType(): string {
-    return this._type
-  }
-
-  public getChildren(): Array<Shape | Group> {
-    return super.getChildren()
-  }
-
   public contains(x: number, y: number): boolean {
-    this.getClientRect()
-
-    return this._localBounds.contains(x, y)
+    return this.getClientRect().contains(x, y)
   }
 
   public getPoints(): Array<Primitive.PointData> {
-    return this.getChildren().flatMap((child) => {
-      return child.getPoints()
-    })
+    return this.getChildren().flatMap((child) => child.getPoints())
   }
 
   public getClientRect(): Primitive.Rectangle {
@@ -64,10 +48,7 @@ export class Group extends Container<Group | Shape> {
   }
 
   public draw(context: CanvasRenderingContext2D): void {
-    const position = this.getPosition()
-
     context.save()
-    context.translate(position.x, position.y)
 
     this.transformer.bindTransformsToContext(context)
 
@@ -78,10 +59,7 @@ export class Group extends Container<Group | Shape> {
   }
 
   public drawHit(context: CanvasRenderingContext2D): void {
-    const position = this.getPosition()
-
     context.save()
-    context.translate(position.x, position.y)
     this._children.forEach((child) => child.drawHit(context))
     context.restore()
   }

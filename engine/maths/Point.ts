@@ -11,7 +11,7 @@ export interface PointLike {
 }
 
 export class Point implements PointLike {
-  constructor(public x: number = 0, public y: number = 0) { }
+  public constructor(public x: number = 0, public y: number = 0) { }
 
   public clone(): Point {
     return new Point(this.x, this.y)
@@ -40,18 +40,6 @@ export class Point implements PointLike {
     return this
   }
 
-  static rotate(point: PointData, angle: number, out?: PointData) {
-    const cos = Math.cos(angle)
-    const sin = Math.sin(angle)
-
-    out ||= new Point()
-
-    out.x = point.x * cos - point.y * sin
-    out.y = point.x * sin + point.y * cos
-
-    return out
-  }
-
   static subtract(pointA: PointData, pointB: PointData, out?: PointData) {
     out ||= new Point()
 
@@ -70,7 +58,7 @@ export class Point implements PointLike {
     return out
   }
 
-  static multiple(pointA: PointData, pointB: PointData, out?: PointData) {
+  static multiply(pointA: PointData, pointB: PointData, out?: PointData) {
     out ||= new Point()
 
     out.x = pointA.x * pointB.x
@@ -89,35 +77,6 @@ export class Point implements PointLike {
   }
 
   static length(point: PointData): number {
-    return Math.hypot(point.x, point.y); // современный и более точный вариант
+    return Math.hypot(point.x, point.y)
   }
-}
-
-export function rotatePointAroundOrigin(point: PointData, pivot: PointData, angle: number) {
-  const offset = Point.subtract(point, pivot)
-  const unrotated = Point.rotate(offset, angle)
-  const next = Point.add(unrotated, pivot)
-
-  return next
-}
-
-export function scalePointAroundOrigin(point: PointData, pivot: PointData, scale: PointData) {
-  const offset = Point.subtract(point, pivot)
-  const transformed = Point.multiple(offset, scale)
-
-  return Point.add(pivot, transformed)
-}
-
-export function skewPointAroundOrigin(point: PointData, pivot: PointData, skew: PointData) {
-  const offset = Point.subtract(point, pivot)
-
-  const tanX = Math.tan(skew.x)
-  const tanY = Math.tan(skew.y)
-
-  const transformed: PointData = {
-    x: offset.x + offset.y * tanX,
-    y: offset.x * tanY + offset.y
-  }
-
-  return Point.add(pivot, transformed)
 }

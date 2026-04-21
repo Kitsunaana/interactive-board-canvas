@@ -1,21 +1,7 @@
-import { Point, type PointData } from "./Point"
+import { type PointData } from "./Point"
 import { Rectangle } from "./Rectangle"
 
 export class Polygon {
-  static rotate(points: PointData[], angle: number, origin: PointData): void {
-    points.forEach((point) => {
-      Point.rotate(Point.subtract(point, origin), angle, point)
-      Point.add(point, origin, point)
-    })
-  }
-
-  static scale(points: PointData[], scale: PointData, origin: PointData): void {
-    points.forEach((point) => {
-      Point.multiple(Point.subtract(point, origin), scale, point)
-      Point.add(point, origin, point)
-    })
-  }
-
   public constructor(public points: PointData[]) { }
 
   public get lastX(): number {

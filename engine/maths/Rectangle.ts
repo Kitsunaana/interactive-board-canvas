@@ -120,13 +120,4 @@ export class Rectangle {
 
     return [p1, p2, p3, p4]
   }
-
-  public getAABB() {
-    return {
-      minX: this.x,
-      minY: this.y,
-      maxX: this.x + this.width,
-      maxY: this.y + this.height,
-    }
-  }
 }

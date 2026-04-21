@@ -1,10 +1,9 @@
-import { type ResizeHandler, Transformer } from "./behaviors/Transformer";
 import { Group } from "./Group";
+import "./index.css";
 import { Layer } from "./Layer";
 import { Polygon } from "./shapes";
 import { getPointFromEvent } from "./shared/point";
 import { Stage } from "./Stage";
-import "./index.css"
 
 const stage = new Stage({
   height: 600,
@@ -140,9 +139,9 @@ polygon2.tension = 0.13
 // polygon2.transformer.setOrigin("scale", { x: 0.5, y: 0.5 })
 // polygon2.transformer.rotate(1.9)
 
-const transform = new Transformer({
-  isDraggable: false,
-})
+// const transform = new Transformer({
+//   isDraggable: false,
+// })
 
 // polygon2.transformer.beginInteraction("scale")
 
@@ -161,37 +160,33 @@ window.addEventListener("pointermove", (event) => {
 
 // transform.add(polygon1, polygon2) 
 
-const side: ResizeHandler = "e"
+// const side: ResizeHandler = "e"
 
-const downCallback = (event: PointerEvent) => {
-  transform.setInitialState()
-  transform.setHandlePosition(side)
-  transform.setPivotPosition(side)
-  transform.setWorldPivot()
+// const downCallback = (event: PointerEvent) => {
+//   transform.setInitialState()
+//   transform.setHandlePosition(side)
+//   transform.setPivotPosition(side)
+//   transform.setWorldPivot()
 
-  const upCallback = () => {
+//   const upCallback = () => {
 
-    window.removeEventListener("pointerup", upCallback)
-    window.removeEventListener("pointermove", moveCallback)
-  }
+//     window.removeEventListener("pointerup", upCallback)
+//     window.removeEventListener("pointermove", moveCallback)
+//   }
 
-  const moveCallback = (event: PointerEvent) => {
-    transform.setTransformScale(getPointFromEvent(event))
-    transform.applyTransform()
-  }
+//   const moveCallback = (event: PointerEvent) => {
+//     transform.setTransformScale(getPointFromEvent(event))
+//     transform.applyTransform()
+//   }
 
-  window.addEventListener("pointerup", upCallback)
-  window.addEventListener("pointermove", moveCallback)
-}
+//   window.addEventListener("pointerup", upCallback)
+//   window.addEventListener("pointermove", moveCallback)
+// }
 
-window.addEventListener("pointerdown", downCallback)
+// window.addEventListener("pointerdown", downCallback)
 
-import Konva from 'konva'
-import { Shape } from "./shapes/Shape";
-import { nanoid } from "nanoid";
-import { bind } from "lodash";
+import Konva from 'konva';
 import { Point } from "./maths";
-import { ShapeTransformerPreviewState } from "./behaviors/transformer/shape/_preview";
 
 const konvaRenderTest = () => {
   const stage = new Konva.Stage({

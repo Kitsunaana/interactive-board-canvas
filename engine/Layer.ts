@@ -1,4 +1,3 @@
-import { isNull } from "lodash";
 import { Container } from "./Container";
 import { Group } from "./Group";
 import * as Primitive from "./maths";
@@ -20,12 +19,8 @@ export class Layer extends Container<Group | Shape> {
   private readonly _hitContext: CanvasRenderingContext2D
   private readonly _hitColorsToNodes = new Map<string, Shape>()
   private readonly _nodesToHitColors = new Map<string, string>()
-  private _lastHitColorId = 0
 
-  public get absolutePositionCursor() {
-    if (isNull(this._stage)) throw new Error("Слой должен быть добавлен в Stage")
-    return this._stage.absolutePositionCursor
-  }
+  private _lastHitColorId = 0
 
   public constructor(config: LayerConfig) {
     super(config)
@@ -36,6 +31,10 @@ export class Layer extends Container<Group | Shape> {
     this._hitContext = this._hitCanvas.getContext("2d", {
       willReadFrequently: true
     }) as CanvasRenderingContext2D
+  }
+
+  public getPoints(): Array<Primitive.PointData> {
+    return []
   }
 
   public getStage(): Stage | null {
@@ -83,11 +82,10 @@ export class Layer extends Container<Group | Shape> {
 
   public getHitColor(shape: Shape): string {
     const current = this._nodesToHitColors.get(shape.id)
-    if (current) {
-      return current
-    }
+    if (current) return current
 
     const next = this._createUniqueHitColor()
+
     this._nodesToHitColors.set(shape.id, next)
     this._hitColorsToNodes.set(next, shape)
 
@@ -112,59 +110,20 @@ export class Layer extends Container<Group | Shape> {
     return this._hitColorsToNodes.get(rgb) ?? null
   }
 
-  public getType(): string {
-    return this._type
-  }
-
-  public getPoints(): Array<Primitive.PointData> {
-    return []
-  }
-
-  public rotate() {
-
-  }
-
   public draw(): void {
     const sizes = this.getSizes()
-    const scale = this.getScale()
     const context = this.getContext()
     const hitContext = this.getHitContext()
-    const position = this.getPosition()
 
     context.clearRect(0, 0, sizes.width, sizes.height)
     hitContext.clearRect(0, 0, sizes.width, sizes.height)
 
-    context.save()
-    context.translate(position.x, position.y)
-    context.rotate(0.0)
-    context.scale(scale.x, scale.y)
-
     this.getChildren().forEach((child) => child.draw(context))
-
-    context.restore()
-
-    hitContext.save()
-    hitContext.translate(position.x, position.y)
-    hitContext.rotate(0.0)
-    hitContext.scale(scale.x, scale.y)
-
     this.getChildren().forEach((child) => child.drawHit(hitContext))
-
-    hitContext.restore()
   }
 
   public drawHit(context: CanvasRenderingContext2D): void {
-    const position = this.getPosition()
-    const scale = this.getScale()
-
-    context.save()
-    context.translate(position.x, position.y)
-    context.rotate(0.0)
-    context.scale(scale.x, scale.y)
-
     this.getChildren().forEach((child) => child.drawHit(context))
-
-    context.restore()
   }
 
   public contains(x: number, y: number): boolean {
@@ -174,7 +133,7 @@ export class Layer extends Container<Group | Shape> {
   }
 
   public getCorners(): Array<Primitive.PointData> {
-    const position = this.getPosition()
+    const position = new Primitive.Point(0, 0)
     const { width, height } = this.getSizes()
 
     return [
@@ -185,7 +144,7 @@ export class Layer extends Container<Group | Shape> {
     ]
   }
 
-  public add(...items: Array<Group | Shape>) {
+  public add(...items: Array<Group | Shape>): void {
     const children = this.getChildren()
 
     items.forEach((child) => {
@@ -199,18 +158,14 @@ export class Layer extends Container<Group | Shape> {
   }
 
   private _createUniqueHitColor(): string {
-    const r = Math.floor(Math.random() * 255)
-    const g = Math.floor(Math.random() * 255)
-    const b = Math.floor(Math.random() * 255)
-    return `rgb(${r},${g},${b})`
     while (this._lastHitColorId < 0xffffff) {
       this._lastHitColorId += 1
 
-      const color = Layer._toHitColor(
-        (this._lastHitColorId >> 16) & 255,
-        (this._lastHitColorId >> 8) & 255,
-        this._lastHitColorId & 255
-      )
+      const red = (this._lastHitColorId >> 16) & 255
+      const green = (this._lastHitColorId >> 8) & 255
+      const blue = this._lastHitColorId & 255
+
+      const color = Layer._toHitColor(red, green, blue)
 
       if (!this._hitColorsToNodes.has(color)) {
         return color
@@ -221,7 +176,7 @@ export class Layer extends Container<Group | Shape> {
   }
 
   private static _toHitColor(red: number, green: number, blue: number): string {
-    return `${red},${green},${blue}`
+    return `rgb(${red},${green},${blue})`
   }
 }
 
