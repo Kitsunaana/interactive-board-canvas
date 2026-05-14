@@ -1,41 +1,52 @@
-import { Matrix3x3, Point, Polygon, type PointData } from "../maths"
-import { Node } from "../Node"
+import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths"
 
-export type TramsformOperation = "scale" | "skew" | "rotate"
+export type TramsformOperation = "scale" | "skew" | "rotate" | "translate"
 
-export const TRANSFORM_OPERATIONS = ["rotate", "skew", "scale"] as Array<TramsformOperation>
+export const TRANSFORM_OPERATIONS = ["rotate", "skew", "scale", "translate"] as Array<TramsformOperation>
 
 export type TransformScaleInstruction = {
   type: "scale"
   value: PointData
+  points: Array<PointData>
   relativeOrigin: PointData
 }
 
 export type TransformSkewInstruction = {
   type: "skew"
   value: PointData
+  points: Array<PointData>
   relativeOrigin: PointData
 }
 
 export type TransformRotateInstruction = {
   type: "rotate"
   value: number
+  points: Array<PointData>
   relativeOrigin: PointData
+}
+
+export type TransformTranslateInstruction = {
+  type: "translate"
+  value: PointData
+  points: Array<PointData>
 }
 
 export type TransformInstruction =
   | TransformScaleInstruction
   | TransformSkewInstruction
   | TransformRotateInstruction
+  | TransformTranslateInstruction
 
 export const buildInitialOpearationsRecord = (): Record<TramsformOperation, Point> => ({
+  translate: new Point(),
   rotate: new Point(),
   scale: new Point(),
   skew: new Point(),
 })
 
-export class Transformable {
-  private _translate: Point = new Point(0, 0)
+export abstract class Transformable {
+  public abstract getBounds(): Rectangle
+
   private _instructions: TransformInstruction[] = []
 
   private _cachedBaseMatrix: Matrix3x3 | null = null
@@ -44,15 +55,16 @@ export class Transformable {
   public currentRelativeOrigins = buildInitialOpearationsRecord()
   public isShowOrigins: boolean = false
 
-  public constructor(private readonly _node: Node) { }
+  public constructor() {
+    this.setInitialRelativeOrigins()
+  }
 
-  public initialize(): void {
+  public setInitialRelativeOrigins(): void {
     this.currentRelativeOrigins.rotate.set(0.5, 0.5)
     this.currentRelativeOrigins.scale.set(0.0, 0.0)
     this.currentRelativeOrigins.skew.set(1.0, 1.0)
 
     this._instructions = []
-    this._translate.set(0, 0)
   }
 
   public setOrigin(operation: TramsformOperation, relativeOrigin: PointData): void {
@@ -60,12 +72,17 @@ export class Transformable {
   }
 
   public translate(delta: PointData): void {
-    this._translate.copyFrom(Point.add(this._translate, delta))
+    this._pushInstruction({
+      points: this.getBounds().getCorner(),
+      type: "translate",
+      value: delta,
+    })
   }
 
   public rotate(angle: number): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.rotate.clone(),
+      points: this.getBounds().getCorner(),
       type: "rotate",
       value: angle,
     })
@@ -74,6 +91,7 @@ export class Transformable {
   public scale(scale: PointData): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.scale.clone(),
+      points: this.getBounds().getCorner(),
       type: "scale",
       value: scale,
     })
@@ -82,8 +100,46 @@ export class Transformable {
   public skew(skew: PointData): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.skew.clone(),
+      points: this.getBounds().getCorner(),
       type: "skew",
       value: skew,
+    })
+  }
+
+  public setInstructions(instructions: Array<TransformInstruction>): void {
+    this._instructions.splice(0, this._instructions.length)
+    this._instructions.push(...instructions)
+  }
+
+  public getInvertInstructions(): Array<TransformInstruction> {
+    return this._instructions.map((instruction) => {
+      switch (instruction.type) {
+        case "scale": return {
+          ...instruction,
+          value: {
+            x: -instruction.value.x,
+            y: -instruction.value.y
+          }
+        }
+        case "skew": return {
+          ...instruction,
+          value: {
+            x: -instruction.value.x,
+            y: -instruction.value.y
+          }
+        }
+        case "rotate": return {
+          ...instruction,
+          value: -instruction.value
+        }
+        case "translate": return {
+          ...instruction,
+          value: {
+            x: -instruction.value.x,
+            y: -instruction.value.y,
+          }
+        }
+      }
     })
   }
 
@@ -93,14 +149,16 @@ export class Transformable {
 
   public beginInteraction(type: TramsformOperation): void {
     const identityValue = ({
+      translate: () => ({ x: 0, y: 0 }),
       rotate: () => 0,
       scale: () => ({ x: 1, y: 1 }),
-      skew: () => ({ x: 0, y: 0 })
+      skew: () => ({ x: 0, y: 0 }),
     })[type]()
 
     this._instructions.push({
       type,
       value: identityValue,
+      points: this.getBounds().getCorner(),
       relativeOrigin: {
         x: this.currentRelativeOrigins[type].x,
         y: this.currentRelativeOrigins[type].y
@@ -132,12 +190,12 @@ export class Transformable {
   }
 
   private _computeMatrixUpTo(count: number): Matrix3x3 {
-    const originalPoints = this._node.getPoints().map((point) => ({ ...point }))
     let accumulated = Matrix3x3.identity()
 
     for (let i = 0; i < count; i++) {
       const instruction = this._instructions[i]
-      const stepMatrix = this._buildStepForInstruction(instruction, originalPoints, accumulated)
+
+      const stepMatrix = this._buildStepForInstruction(instruction, accumulated)
       accumulated = Matrix3x3.compose(stepMatrix, accumulated)
     }
 
@@ -147,23 +205,34 @@ export class Transformable {
   private _computeLastStepFromCache(): Matrix3x3 {
     const base = this._cachedBaseMatrix!
     const lastInstruction = this._instructions[this._instructions.length - 1]
-    const originalPoints = this._node.getPoints().map((point) => ({ ...point }))
 
-    const stepMatrix = this._buildStepForInstruction(lastInstruction, originalPoints, base)
+    const stepMatrix = this._buildStepForInstruction(lastInstruction, base)
     return Matrix3x3.compose(stepMatrix, base)
+  }
+
+  private _getOriginInOriginalSpace(instruction: TransformInstruction) {
+    const originalBounds = Polygon.prototype.getBounds.call({ points: instruction.points })
+
+    const propertyName = "relativeOrigin" as const
+
+    if (propertyName in instruction) {
+      return {
+        x: originalBounds.x + originalBounds.width * instruction[propertyName].x,
+        y: originalBounds.y + originalBounds.height * instruction[propertyName].y,
+      }
+    }
+
+    return {
+      x: 0,
+      y: 0,
+    }
   }
 
   private _buildStepForInstruction(
     instruction: TransformInstruction,
-    originalPoints: PointData[],
     accumulated: Matrix3x3,
   ): Matrix3x3 {
-    const originalBounds = Polygon.prototype.getBounds.call({ points: originalPoints })
-
-    const originInOriginalSpace: PointData = {
-      x: originalBounds.x + originalBounds.width * instruction.relativeOrigin.x,
-      y: originalBounds.y + originalBounds.height * instruction.relativeOrigin.y,
-    }
+    const originInOriginalSpace = this._getOriginInOriginalSpace(instruction)
 
     const absoluteOrigin = accumulated.applyToPoint(originInOriginalSpace)
     const currentAngle = Math.atan2(accumulated.b, accumulated.a)
@@ -181,8 +250,7 @@ export class Transformable {
 
   public getOriginPosition(operation: TramsformOperation): PointData {
     const matrix = this.computeMatrix()
-    const originalPoints = this._node.getPoints().map((point) => ({ ...point }))
-    const originalBounds = Polygon.prototype.getBounds.call({ points: originalPoints })
+    const originalBounds = this.getBounds()
 
     const originInOriginalSpace: PointData = {
       x: originalBounds.x + originalBounds.width * this.currentRelativeOrigins[operation].x,
@@ -193,15 +261,13 @@ export class Transformable {
   }
 
   public bindTransformsToContext(context: CanvasRenderingContext2D): void {
-    context.translate(this._translate.x, this._translate.y)
     const matrix = this.computeMatrix()
     matrix.applyToContext(context)
   }
 
-  public render(context: CanvasRenderingContext2D): void {
+  public drawOrigins(context: CanvasRenderingContext2D): void {
     if (this.isShowOrigins) {
       context.save()
-      context.translate(this._translate.x, this._translate.y)
 
       const rotateOrigin = this.getOriginPosition("rotate")
       const scaleOrigin = this.getOriginPosition("scale")

@@ -105,12 +105,11 @@ export class Layer extends Container<Group | Shape> {
     if (pixel[3] === 0) return null
 
     const color = Layer._toHitColor(pixel[0], pixel[1], pixel[2])
-    const rgb = `rgb(${color})`
 
-    return this._hitColorsToNodes.get(rgb) ?? null
+    return this._hitColorsToNodes.get(color) ?? null
   }
 
-  public draw(): void {
+  public render(): void {
     const sizes = this.getSizes()
     const context = this.getContext()
     const hitContext = this.getHitContext()
@@ -118,12 +117,12 @@ export class Layer extends Container<Group | Shape> {
     context.clearRect(0, 0, sizes.width, sizes.height)
     hitContext.clearRect(0, 0, sizes.width, sizes.height)
 
-    this.getChildren().forEach((child) => child.draw(context))
-    this.getChildren().forEach((child) => child.drawHit(hitContext))
+    this.getChildren().forEach((child) => child.render(context))
+    this.getChildren().forEach((child) => child.renderHit(hitContext))
   }
 
-  public drawHit(context: CanvasRenderingContext2D): void {
-    this.getChildren().forEach((child) => child.drawHit(context))
+  public renderHit(context: CanvasRenderingContext2D): void {
+    this.getChildren().forEach((child) => child.renderHit(context))
   }
 
   public contains(x: number, y: number): boolean {

@@ -3,7 +3,7 @@ import * as Primitive from "./maths";
 import { Node } from "./Node";
 
 export abstract class Container<Child extends Node> extends Node {
-  public abstract draw(context: CanvasRenderingContext2D): void
+  public abstract render(context: CanvasRenderingContext2D): void
 
   protected readonly _localBounds: Primitive.Rectangle = new Primitive.Rectangle()
 
@@ -14,20 +14,25 @@ export abstract class Container<Child extends Node> extends Node {
   }
 
   public contains(x: number, y: number): boolean {
-    return this.getClientRect().contains(x, y)
+    return this.getBounds().contains(x, y)
   }
 
   public getCorners() {
     return this._children.flatMap((child) => (
       child
-        .getClientRect()
+        .getBounds()
         .getCorner()
     ))
   }
 
-  public getClientRect(): Primitive.Rectangle {
+  public getBounds(): Primitive.Rectangle {
     const corners = this.getCorners()
-    new Primitive.Polygon(corners).getBounds(this._localBounds)
+    const matrix = this.computeMatrix()
+
+    const points = corners.map((point) => matrix.applyToPoint(point))
+
+    Primitive.Polygon.prototype.getBounds.call({ points }, this._localBounds)
+
     return this._localBounds
   }
 

@@ -1,13 +1,13 @@
 import { Group } from "./Group";
 import "./index.css";
 import { Layer } from "./Layer";
-import { Polygon } from "./shapes";
+import { Circle, Polygon } from "./shapes";
 import { getPointFromEvent } from "./shared/point";
 import { Stage } from "./Stage";
 
 const stage = new Stage({
-  height: 600,
-  width: 600,
+  height: window.innerHeight,
+  width: window.innerWidth,
   draggable: false,
 })
 
@@ -22,7 +22,7 @@ const layer = new Layer({
 })
 
 const points01 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
-// const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
+const points02 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
 
 const polygon01 = new Polygon({
   isDraggable: true,
@@ -33,7 +33,7 @@ const polygon01 = new Polygon({
 
 const polygon011 = new Polygon({
   isDraggable: true,
-  points: points01.map(p => ({ ...p })),
+  points: points02,
   scaleX: 1.0,
   scaleY: 1.0,
 })
@@ -111,82 +111,55 @@ const polygon2 = new Polygon({
 // polygon1.scale({ x: 1.9, y: 1.9 })
 // polygon1.setOriginScale({ x: 0.5, y: 0.5 }, "rotate")
 
+const circle = new Circle({
+  fillColor: "red",
+  fill: true,
+  radius: 20,
+  x: 400,
+  y: 100,
+})
+
 const group = new Group({})
 const groupFigures = new Group({})
 
-groupFigures.add(polygon1, polygon2)
-// group.add(groupFigures)
+group.add(polygon2, polygon01)
+groupFigures.add(group)
 
 layer.add(groupFigures)
 stage.add(layer)
 
-// groupFigures.transformer.translate({ x: 200, y: 50 })
-groupFigures.transformer.rotate(0.9)
-// groupFigures.transformer.scale({ x: 2, y: 2 })
-groupFigures.transformer.isShowOrigins = true
+// group.scale({ x: 1.0, y: 1.4 })
 
-polygon2.transformer.isShowOrigins = false
+// group.scale({ x: 1.5, y: 1.5 })
+// group.translate({ x: 0, y: 100 })
+// group.rotate(0.3)
+// groupFigures.rotate(0.3)
+
+// groupFigures.translate({ x: 100, y: 100 })
+// groupFigures.scale({ x: 2, y: 1.1 })
+groupFigures.isShowOrigins = true
+group.isShowOrigins = true
+polygon2.isShowOrigins = false
 
 polygon2.tension = 0.13
-// polygon2.transformer.translate({ x: 201, y: 120 })
-// polygon2.transformer.scale({ x: 2, y: 2 })
-// polygon2.transformer.rotate(0.8)
-// polygon2.transformer.scale({ x: 1.6, y: 1 })
-// polygon2.transformer.setOrigin("scale", { x: 0, y: 0.5 })
-// polygon2.transformer.scale({ x: 1.9, y: 1.6 })
-// polygon2.transformer.skew({ x: 0.3, y: 0.0 })
-// polygon2.transformer.setOrigin("rotate", { x: 1, y: 1 })
-// polygon2.transformer.setOrigin("scale", { x: 0.5, y: 0.5 })
-// polygon2.transformer.rotate(1.9)
+// polygon2.setOrigin("scale", { x: 1, y: 0.5 })
+// polygon2.scale({ x: 1.5, y: 1 })
+// group.scale({ x: 1.0, y: 1.4 })
+// polygon2.rotate(0.9)
+// polygon2.isShowOrigins = true
+groupFigures.add(polygon011)
+// groupFigures.rotate(0.2)
+// polygon011.isShowOrigins = true
 
-// const transform = new Transformer({
-//   isDraggable: false,
-// })
+// polygon2.translate({ x: 20, y: 0 })
 
-// polygon2.transformer.beginInteraction("scale")
-
-window.addEventListener("pointermove", (event) => {
-  const position = getPointFromEvent(event)
-  const value = Point.divide(position, { x: 200, y: 200 })
-
-  const nextX = Math.cos(value.x) * 2
-  const nextY = Math.sin(value.y) * 2
-
-  // polygon2.transformer.updateInteraction({
-  //   x: nextX,
-  //   y: nextY,
-  // })
-})
-
-// transform.add(polygon1, polygon2) 
-
-// const side: ResizeHandler = "e"
-
-// const downCallback = (event: PointerEvent) => {
-//   transform.setInitialState()
-//   transform.setHandlePosition(side)
-//   transform.setPivotPosition(side)
-//   transform.setWorldPivot()
-
-//   const upCallback = () => {
-
-//     window.removeEventListener("pointerup", upCallback)
-//     window.removeEventListener("pointermove", moveCallback)
-//   }
-
-//   const moveCallback = (event: PointerEvent) => {
-//     transform.setTransformScale(getPointFromEvent(event))
-//     transform.applyTransform()
-//   }
-
-//   window.addEventListener("pointerup", upCallback)
-//   window.addEventListener("pointermove", moveCallback)
-// }
-
-// window.addEventListener("pointerdown", downCallback)
+const matrix2 = groupFigures.computeMatrix()
+const currentAngle = Math.atan2(matrix2.b, matrix2.a)
+const matrix3 = Matrix3x3.aroundOrigin(groupFigures.currentRelativeOrigins.rotate, () => Matrix3x3.rotate(-currentAngle))
 
 import Konva from 'konva';
-import { Point } from "./maths";
+import { Matrix3x3, Point } from "./maths";
+import { type EventObject } from "./behaviors/EventBehavior";
 
 const konvaRenderTest = () => {
   const stage = new Konva.Stage({
@@ -226,19 +199,13 @@ const konvaRenderTest = () => {
     draggable: true
   })
 
-  first.on("mouseleave", (event) => {
+  first.on("a.a", (event) => {
     console.log("first")
-    event.cancelBubble = true
   })
 
-  second.on("mouseleave", (event) => {
-    console.log("second")
-    // event.cancelBubble = true
-  })
+  first.fire("a.a")
+  // first.fire("a.b")
 
-  group.on("mouseleave", () => {
-    console.log("group")
-  })
 
   group.add(first, second)
   layer.add(group)

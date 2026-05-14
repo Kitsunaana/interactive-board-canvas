@@ -1,7 +1,8 @@
+import type { EventObject } from "./behaviors/EventBehavior"
 import { Container } from "./Container"
 import type { Layer } from "./Layer"
 import { Point, type PointData } from "./maths"
-import { type KonvaEventObject, Node } from "./Node"
+import { Node } from "./Node"
 import { getPointFromEvent } from "./shared/point"
 
 export interface StageConfig {
@@ -109,12 +110,12 @@ export class Stage extends Container<Layer> {
     return this._type
   }
 
-  public drawHit(_context: CanvasRenderingContext2D): void { }
+  public renderHit(_context: CanvasRenderingContext2D): void { }
 
-  public draw(_context: CanvasRenderingContext2D): void { }
+  public render(_context: CanvasRenderingContext2D): void { }
 
   public render() {
-    this.getChildren().forEach((layer) => layer.draw())
+    this.getChildren().forEach((layer) => layer.render())
 
     requestAnimationFrame(this.render.bind(this))
   }
@@ -247,7 +248,7 @@ export class Stage extends Container<Layer> {
         evt: domEvent,
         cancelBubble: false,
         currentTarget: target,
-      } satisfies Partial<KonvaEventObject<MouseEvent | PointerEvent>>,
+      } satisfies Partial<EventObject<MouseEvent | PointerEvent>>,
       bubble
     )
   }

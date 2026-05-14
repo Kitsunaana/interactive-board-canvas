@@ -1,7 +1,8 @@
-import { type PointData } from "./Point"
+import type { PointData } from "./Point"
+import type { ShapePrimitive } from "./ShapePrimitive"
 import { Rectangle } from "./Rectangle"
 
-export class Polygon {
+export class Polygon implements ShapePrimitive {
   public constructor(public points: PointData[]) { }
 
   public get lastX(): number {

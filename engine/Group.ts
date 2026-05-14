@@ -1,6 +1,5 @@
-import { Transformable } from "./behaviors/Transformable";
 import { Container } from "./Container";
-import * as Primitive from "./maths";
+import { type PointData, Matrix3x3, Point, Polygon, Rectangle } from "./maths";
 import { type NodeConfig } from "./Node";
 import { Shape } from "./shapes/Shape";
 
@@ -8,59 +7,69 @@ interface GroupConfig extends NodeConfig {
 }
 
 export class Group extends Container<Group | Shape> {
-  public _needShowOriginPoints = true
-
   protected readonly _type = "Group" as const
-
-  public readonly transformer = new Transformable(this)
 
   public constructor(params: GroupConfig) {
     super(params)
-
-    this.transformer.initialize()
   }
 
   public contains(x: number, y: number): boolean {
-    return this.getClientRect().contains(x, y)
+    return this.getBounds().contains(x, y)
   }
 
-  public getPoints(): Array<Primitive.PointData> {
-    return this.getChildren().flatMap((child) => child.getPoints())
+  public getPoints(): Array<PointData> {
+    return this
+      .getChildren()
+      .flatMap((child) => {
+        const matrix = child.computeMatrix()
+
+        return child
+          .getBounds()
+          .getCorner()
+          .map((point) => matrix.applyToPoint(point))
+      })
   }
 
-  public getClientRect(): Primitive.Rectangle {
-    const corners = this._children.flatMap((child) => (
-      child
-        .getClientRect()
-        .getCorner()
-    ))
-
-    new Primitive.Polygon(corners).getBounds(this._localBounds)
-
-    return this._localBounds
+  public getBounds(): Rectangle {
+    const bounds = Polygon.prototype.getBounds.call({ points: this.getPoints() })
+    return bounds
   }
 
   public add(...children: Array<Group | Shape>): void {
+    const instructions = this.getInvertInstructions()
+
     children.forEach((child) => {
       this._children.push(child)
+
       child.setParent(this)
+      child.setInstructions(instructions)
     })
   }
 
-  public draw(context: CanvasRenderingContext2D): void {
+  public render(context: CanvasRenderingContext2D): void {
     context.save()
-
-    this.transformer.bindTransformsToContext(context)
-
-    this._children.forEach((child) => child.draw(context))
+    this.bindTransformsToContext(context)
+    this._children.forEach((child) => child.render(context))
     context.restore()
 
-    this.transformer.render(context)
+    this.drawOrigins(context)
+    this.renderBoundingBox(context)
   }
 
-  public drawHit(context: CanvasRenderingContext2D): void {
+  public renderBoundingBox(context: CanvasRenderingContext2D) {
+    const matrix = this.computeMatrix()
+    const bounds = this.getBounds()
+
     context.save()
-    this._children.forEach((child) => child.drawHit(context))
+    matrix.applyToContext(context)
+    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    context.restore()
+  }
+
+  public renderHit(context: CanvasRenderingContext2D): void {
+    context.save()
+    this.bindTransformsToContext(context)
+    this._children.forEach((child) => child.renderHit(context))
     context.restore()
   }
 }

@@ -1,2 +1,2 @@
 export * from "./Polygon"
-export * from "./Ellipse"
+export * from "./Circle"

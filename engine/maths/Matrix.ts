@@ -44,6 +44,24 @@ export class Matrix3x3 {
     return new Matrix3x3(a, b, c, d, e, f)
   }
 
+  public static invert(matrix: Matrix3x3): Matrix3x3 | null {
+    const [a, b, c, d, e, f] = matrix.toArray()
+    const det = a * d - b * c
+
+    if (Math.abs(det) < 1e-10) return null
+
+    const invDet = 1 / det;
+
+    return new Matrix3x3(
+      d * invDet,
+      -b * invDet,
+      -c * invDet,
+      a * invDet,
+      (c * f - d * e) * invDet,
+      (b * e - a * f) * invDet
+    )
+  }
+
   public static aroundOrigin(origin: PointData, operation: (m: Matrix3x3) => Matrix3x3) {
     const prev = Matrix3x3.translate(origin.x, origin.y)
     const result = operation(Matrix3x3.identity())
