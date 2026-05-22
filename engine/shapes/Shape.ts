@@ -1,12 +1,10 @@
-import { } from "lodash";
+import type { EventObject } from "../behaviors/EventBehavior";
 import { Group } from "../Group";
 import { Layer } from "../Layer";
+import { Rectangle, Point, type PointData } from "../maths";
 import { Node, type NodeConfig } from "../Node";
-import * as Primitive from "../maths";
-import { type PointData } from "../maths";
-import { drawOriginPoint } from "../behaviors/Transformable";
-import type { EventObject } from "../behaviors/EventBehavior";
-import { getPointFromEvent } from "../shared/point";
+import { getPointFromEvent, pointFromEvent } from "../shared/point";
+import { Stage } from "../Stage";
 
 export interface ShapeConfig extends NodeConfig {
   name?: string | undefined
@@ -19,8 +17,9 @@ export interface ShapeConfig extends NodeConfig {
 
 export abstract class Shape extends Node {
   public abstract buildPath(context: CanvasRenderingContext2D): void
-  public abstract getBounds(): Primitive.Rectangle
-  public abstract getPoints(): Array<Primitive.PointData>
+  public abstract getBounds(): Rectangle
+  public abstract getPoints(): Array<PointData>
+  public abstract contains(x: number, y: number): boolean
 
   protected readonly _type = "Shape"
 
@@ -34,32 +33,43 @@ export abstract class Shape extends Node {
     return super.getParent() as Group | null
   }
 
-  private _startDragPointer = new Primitive.Point()
+  public getStage(): Stage | null {
+    return this.findAncestor((node) => node.getType() === "Stage") as Stage | null
+  }
+
+  private _startDragPointer = Point.zero()
 
   public bindEvents() {
     const moveCallback = (event: EventObject<Event>) => {
       event.cancelBubble = false
 
-      const currentPointer = new Primitive.Point().copyFrom(getPointFromEvent(event.evt as PointerEvent))
-      const delta = Primitive.Point.subtract(currentPointer, this._startDragPointer)
+      const currentPointer = pointFromEvent(event.evt as PointerEvent)
+      const delta = currentPointer.sub(this._startDragPointer)
 
       this.updateInteraction(delta)
     }
 
     const upCallback = (event: EventObject<Event>) => {
-      this.endInteraction()
+      const stage = this.getStage()
 
-      this.off("pointermove", moveCallback)
-      this.off("pointerup", upCallback)
+      if (stage) {
+        this.endInteraction()
+
+        stage.off("pointermove", moveCallback)
+        stage.off("pointerup", upCallback)
+      }
     }
 
     const downCallback = (event: EventObject<Event>) => {
-      this.beginInteraction("translate")
+      const stage = this.getStage()
 
-      this._startDragPointer.copyFrom(getPointFromEvent(event.evt as PointerEvent))
+      if (stage) {
+        this.beginInteraction("translate")
+        this._startDragPointer.copyFrom(getPointFromEvent(event.evt as PointerEvent))
 
-      this.on("pointermove", moveCallback)
-      this.on("pointerup", upCallback)
+        stage.on("pointermove", moveCallback)
+        stage.on("pointerup", upCallback)
+      }
     }
 
     this.on("pointerdown", downCallback)

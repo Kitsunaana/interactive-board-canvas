@@ -112,8 +112,6 @@ export class Stage extends Container<Layer> {
 
   public renderHit(_context: CanvasRenderingContext2D): void { }
 
-  public render(_context: CanvasRenderingContext2D): void { }
-
   public render() {
     this.getChildren().forEach((layer) => layer.render())
 

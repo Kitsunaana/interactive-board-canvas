@@ -6,28 +6,28 @@ export const TRANSFORM_OPERATIONS = ["rotate", "skew", "scale", "translate"] as 
 
 export type TransformScaleInstruction = {
   type: "scale"
-  value: PointData
+  value: Point
   points: Array<PointData>
   relativeOrigin: PointData
 }
 
 export type TransformSkewInstruction = {
   type: "skew"
-  value: PointData
+  value: Point
   points: Array<PointData>
   relativeOrigin: PointData
 }
 
 export type TransformRotateInstruction = {
   type: "rotate"
-  value: number
+  value: Point
   points: Array<PointData>
   relativeOrigin: PointData
 }
 
 export type TransformTranslateInstruction = {
   type: "translate"
-  value: PointData
+  value: Point
   points: Array<PointData>
 }
 
@@ -71,7 +71,7 @@ export abstract class Transformable {
     this.currentRelativeOrigins[operation].set(relativeOrigin.x, relativeOrigin.y)
   }
 
-  public translate(delta: PointData): void {
+  public translate(delta: Point): void {
     this._pushInstruction({
       points: this.getBounds().getCorner(),
       type: "translate",
@@ -84,11 +84,11 @@ export abstract class Transformable {
       relativeOrigin: this.currentRelativeOrigins.rotate.clone(),
       points: this.getBounds().getCorner(),
       type: "rotate",
-      value: angle,
+      value: new Point(angle, 0),
     })
   }
 
-  public scale(scale: PointData): void {
+  public scale(scale: Point): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.scale.clone(),
       points: this.getBounds().getCorner(),
@@ -97,7 +97,7 @@ export abstract class Transformable {
     })
   }
 
-  public skew(skew: PointData): void {
+  public skew(skew: Point): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.skew.clone(),
       points: this.getBounds().getCorner(),
@@ -112,35 +112,7 @@ export abstract class Transformable {
   }
 
   public getInvertInstructions(): Array<TransformInstruction> {
-    return this._instructions.map((instruction) => {
-      switch (instruction.type) {
-        case "scale": return {
-          ...instruction,
-          value: {
-            x: -instruction.value.x,
-            y: -instruction.value.y
-          }
-        }
-        case "skew": return {
-          ...instruction,
-          value: {
-            x: -instruction.value.x,
-            y: -instruction.value.y
-          }
-        }
-        case "rotate": return {
-          ...instruction,
-          value: -instruction.value
-        }
-        case "translate": return {
-          ...instruction,
-          value: {
-            x: -instruction.value.x,
-            y: -instruction.value.y,
-          }
-        }
-      }
-    })
+    return this._instructions.map((instruction) => ({ ...instruction, value: instruction.value.opposite() }))
   }
 
   private _pushInstruction(instruction: TransformInstruction): void {
@@ -149,10 +121,10 @@ export abstract class Transformable {
 
   public beginInteraction(type: TramsformOperation): void {
     const identityValue = ({
-      translate: () => ({ x: 0, y: 0 }),
-      rotate: () => 0,
-      scale: () => ({ x: 1, y: 1 }),
-      skew: () => ({ x: 0, y: 0 }),
+      translate: () => Point.zero(),
+      rotate: () => Point.zero(),
+      scale: () => Point.one(),
+      skew: () => Point.zero(),
     })[type]()
 
     this._instructions.push({
@@ -163,17 +135,17 @@ export abstract class Transformable {
         x: this.currentRelativeOrigins[type].x,
         y: this.currentRelativeOrigins[type].y
       },
-    } as TransformInstruction)
+    })
 
     this._cachedBaseMatrix = this._computeMatrixUpTo(this._instructions.length - 1)
     this._isInteracting = true
   }
 
-  public updateInteraction(value: number | PointData): void {
+  public updateInteraction(value: Point | PointData): void {
     if (!this._isInteracting || this._instructions.length === 0) return
 
     const last = this._instructions[this._instructions.length - 1]
-    last.value = value
+    last.value.copyFrom(value)
   }
 
   public endInteraction(): void {
@@ -222,10 +194,7 @@ export abstract class Transformable {
       }
     }
 
-    return {
-      x: 0,
-      y: 0,
-    }
+    return Point.zero()
   }
 
   private _buildStepForInstruction(
@@ -238,7 +207,7 @@ export abstract class Transformable {
     const currentAngle = Math.atan2(accumulated.b, accumulated.a)
 
     return Matrix3x3.aroundOrigin(absoluteOrigin, () => {
-      if (instruction.type === "rotate") return Matrix3x3.rotate(instruction.value)
+      if (instruction.type === "rotate") return Matrix3x3.rotate(instruction.value.x)
 
       const rotation = Matrix3x3.rotate(currentAngle)
       const inverseRotation = Matrix3x3.rotate(-currentAngle)

@@ -11,6 +11,14 @@ export interface PointLike {
 }
 
 export class Point implements PointLike {
+  public static zero(): Point {
+    return new Point(0, 0)
+  }
+
+  public static one(): Point {
+    return new Point(1, 1)
+  }
+
   public constructor(public x: number = 0, public y: number = 0) { }
 
   public clone(): Point {
@@ -40,43 +48,31 @@ export class Point implements PointLike {
     return this
   }
 
-  static subtract(pointA: PointData, pointB: PointData, out?: PointData) {
-    out ||= new Point()
-
-    out.x = pointA.x - pointB.x
-    out.y = pointA.y - pointB.y
-
-    return out
+  public sub(point: PointData): Point {
+    return new Point(this.x - point.x, this.y - point.y)
   }
 
-  static divide(pointA: PointData, pointB: PointData, out?: PointData) {
-    out ||= new Point()
-
-    out.x = pointA.x / pointB.x
-    out.y = pointA.y / pointB.y
-
-    return out
+  public div(point: PointData): Point {
+    return new Point(this.x / point.x, this.y / point.y)
   }
 
-  static multiply(pointA: PointData, pointB: PointData, out?: PointData) {
-    out ||= new Point()
-
-    out.x = pointA.x * pointB.x
-    out.y = pointA.y * pointB.y
-
-    return out
+  public mul(point: PointData): Point {
+    return new Point(this.x * point.x, this.y * point.y)
   }
 
-  static add(pointA: PointData, pointB: PointData, out?: PointData) {
-    out ||= new Point()
-
-    out.x = pointA.x + pointB.x
-    out.y = pointA.y + pointB.y
-
-    return out
+  public add(point: PointData): Point {
+    return new Point(this.x + point.x, this.y + point.y)
   }
 
-  static length(point: PointData): number {
-    return Math.hypot(point.x, point.y)
+  public scale(value: number): Point {
+    return new Point(this.x * value, this.y * value)
+  }
+
+  public length(): number {
+    return Math.hypot(this.x, this.y)
+  }
+
+  public opposite() {
+    return new Point(-this.x, -this.y)
   }
 }

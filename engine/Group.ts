@@ -1,5 +1,5 @@
 import { Container } from "./Container";
-import { type PointData, Matrix3x3, Point, Polygon, Rectangle } from "./maths";
+import { type PointData, Polygon, Rectangle } from "./maths";
 import { type NodeConfig } from "./Node";
 import { Shape } from "./shapes/Shape";
 
