@@ -9,7 +9,10 @@ export abstract class BaseShapeComponent extends BaseComponent {
   protected abstract _primitive: ShapePrimitive
 
   protected _gradient: BaseGradient | null = null
-  protected _strokeWidth: number = 10
+  
+  public lineWidth: number = 10
+  public fillColor: string = "red"
+  public strokeColor: string = "blue"
 
   public setGradient(gradient: BaseGradient): void {
     this._gradient = gradient
@@ -19,10 +22,10 @@ export abstract class BaseShapeComponent extends BaseComponent {
   public getBounds(): Rectangle {
     const bounds = this._primitive.getBounds()
 
-    bounds.x -= this._strokeWidth / 2
-    bounds.y -= this._strokeWidth / 2
-    bounds.width += this._strokeWidth
-    bounds.height += this._strokeWidth
+    bounds.x -= this.lineWidth / 2
+    bounds.y -= this.lineWidth / 2
+    bounds.width += this.lineWidth
+    bounds.height += this.lineWidth
 
     return bounds
   }
@@ -32,8 +35,8 @@ export abstract class BaseShapeComponent extends BaseComponent {
   }
 
   public applyMainStyles(context: CanvasRenderingContext2D): void {
-    context.fillStyle = this._gradient ? this._gradient.getGradient(context) : "black"
-    context.lineWidth = this._strokeWidth
-    context.strokeStyle = "red"
+    context.fillStyle = this._gradient ? this._gradient.getGradient(context) : this.fillColor
+    context.lineWidth = this.lineWidth
+    context.strokeStyle = this.strokeColor
   }
 }

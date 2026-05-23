@@ -29,14 +29,14 @@ export class RadialGradient extends BaseGradient {
     return this
   }
 
-  public setStartRadius(radius: number): this {
-    this._startRadius = radius
+  public setEndPoint(point: PointData): this {
+    this._endPoint.copyFrom(this.component.getBounds().center.add(point))
     this.markDirty()
     return this
   }
 
-  public setEndPoint(point: PointData): this {
-    this._endPoint.copyFrom(this.component.getBounds().center.add(point))
+  public setStartRadius(radius: number): this {
+    this._startRadius = radius
     this.markDirty()
     return this
   }
@@ -57,7 +57,7 @@ export class RadialGradient extends BaseGradient {
       this._endRadius
     )
 
-    this.colorStops.forEach((stop) => gradient.addColorStop(...stop))
+    this.applyColorStops(gradient)
 
     return gradient
   }

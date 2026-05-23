@@ -41,6 +41,10 @@ export abstract class BaseGradient {
     return this._gradient
   }
 
+  public applyColorStops(gradient: CanvasGradient): void {
+    this.colorStops.forEach((stop) => gradient.addColorStop(...stop))
+  }
+
   public setComponent(component: BaseShapeComponent): this {
     this._component = component
     return this

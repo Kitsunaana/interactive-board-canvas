@@ -1,6 +1,6 @@
 import { Circle } from "../maths"
+import { LinearGradient } from "../styles/fill/linear-gradient"
 import { BaseShapeComponent } from "./base-shape-component"
-import { RadialGradient } from "../styles/fill/radial-gradient"
 
 export class CircleComponent extends BaseShapeComponent {
   protected _primitive: Circle
@@ -10,6 +10,7 @@ export class CircleComponent extends BaseShapeComponent {
 
     this._primitive = new Circle(x, y, radius)
 
+    /**
     this._gradient = new RadialGradient()
       .setComponent(this)
       .setStartPoint({ x: 0, y: 0 })
@@ -17,9 +18,16 @@ export class CircleComponent extends BaseShapeComponent {
       .setStartRadius(0)
       .setEndRadius(60)
       .setColorStops([0, 'red', 0.5, 'yellow', 1, 'blue'])
+     */
+
+    this._gradient = new LinearGradient()
+      .setComponent(this)
+      .setStartPoint({ x: -50, y: -50 })
+      .setEndPoint({ x: 50, y: 50 })
+      .setColorStops([0, "red", 1, "yellow"])
   }
 
-  public update(time: number): void {}
+  public update(time: number): void { }
 
   public render(context: CanvasRenderingContext2D): void {
     const bounds = this.getBounds()
@@ -38,6 +46,5 @@ export class CircleComponent extends BaseShapeComponent {
     context.restore()
   }
 
-  public renderHit(context: CanvasRenderingContext2D): void {
-  }
+  public renderHit(context: CanvasRenderingContext2D): void {}
 }
