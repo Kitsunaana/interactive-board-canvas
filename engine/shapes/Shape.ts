@@ -1,7 +1,7 @@
 import type { EventObject } from "../behaviors/EventBehavior";
 import { Group } from "../Group";
 import { Layer } from "../Layer";
-import { Rectangle, Point, type PointData } from "../maths";
+import { Rectangle, Point, type PointData, Matrix3x3 } from "../maths";
 import { Node, type NodeConfig } from "../Node";
 import { getPointFromEvent, pointFromEvent } from "../shared/point";
 import { Stage } from "../Stage";
@@ -38,13 +38,16 @@ export abstract class Shape extends Node {
   }
 
   private _startDragPointer = Point.zero()
+  private _moveMatrix = Matrix3x3.identity()
 
   public bindEvents() {
     const moveCallback = (event: EventObject<Event>) => {
       event.cancelBubble = false
 
       const currentPointer = pointFromEvent(event.evt as PointerEvent)
-      const delta = currentPointer.sub(this._startDragPointer)
+      const inverted = Matrix3x3.invert(this._moveMatrix)
+
+      const delta = inverted.applyToPoint(currentPointer).sub(this._startDragPointer)
 
       this.updateInteraction(delta)
     }
@@ -63,9 +66,14 @@ export abstract class Shape extends Node {
     const downCallback = (event: EventObject<Event>) => {
       const stage = this.getStage()
 
+      this._moveMatrix = this.getParent()!.computeMatrix() // this.computeMatrix()
+
       if (stage) {
         this.beginInteraction("translate")
+
+        const inverted = Matrix3x3.invert(this._moveMatrix)
         this._startDragPointer.copyFrom(getPointFromEvent(event.evt as PointerEvent))
+        this._startDragPointer.copyFrom(inverted.applyToPoint(this._startDragPointer))
 
         stage.on("pointermove", moveCallback)
         stage.on("pointerup", upCallback)

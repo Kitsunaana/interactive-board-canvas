@@ -1,4 +1,4 @@
-import { type PointData } from "./Point";
+import { Point, type PointData } from "./Point";
 
 export class Matrix3x3 {
   private constructor(
@@ -91,11 +91,11 @@ export class Matrix3x3 {
     return new Matrix3x3(this.a, this.b, this.c, this.d, this.e, this.f)
   }
 
-  public applyToPoint(point: PointData): PointData {
-    return {
-      x: this.a * point.x + this.c * point.y + this.e,
-      y: this.b * point.x + this.d * point.y + this.f,
-    }
+  public applyToPoint(point: PointData): Point {
+    return new Point(
+      this.a * point.x + this.c * point.y + this.e,
+      this.b * point.x + this.d * point.y + this.f
+    )
   }
 
   public applyToContext(context: CanvasRenderingContext2D): void {

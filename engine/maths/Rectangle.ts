@@ -1,15 +1,12 @@
 import type { Bounds } from "./Bounds"
-import type { PointData } from "./Point"
+import { Point } from "./Point"
 import type { ShapePrimitive } from "./ShapePrimitive"
 
 export class Rectangle implements ShapePrimitive {
   public constructor(public x: number = 0, public y: number = 0, public width: number = 0, public height: number = 0) { }
 
-  public get center(): PointData {
-    return {
-      x: this.centerX,
-      y: this.centerY,
-    }
+  public get center(): Point {
+    return new Point(this.centerX, this.centerY)
   }
 
   public get left(): number {
@@ -113,7 +110,7 @@ export class Rectangle implements ShapePrimitive {
     return this
   }
 
-  public getCorner() {
+  public getCorners() {
     const p1 = { x: this.x, y: this.y }
     const p2 = { x: this.x + this.width, y: this.y }
     const p3 = { x: this.x + this.width, y: this.y + this.height }

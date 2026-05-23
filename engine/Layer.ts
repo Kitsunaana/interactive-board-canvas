@@ -147,12 +147,8 @@ export class Layer extends Container<Group | Shape> {
     const children = this.getChildren()
 
     items.forEach((child) => {
-      const type = child.getType()
-
-      if (type === "Shape" || type === "Group") {
-        children.push(child)
-        child.setParent(this)
-      }
+      children.push(child)
+      child.setParent(this)
     })
   }
 

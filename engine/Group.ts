@@ -1,5 +1,5 @@
 import { Container } from "./Container";
-import { type PointData, Polygon, Rectangle } from "./maths";
+import { Matrix3x3, type PointData, Polygon, Rectangle } from "./maths";
 import { type NodeConfig } from "./Node";
 import { Shape } from "./shapes/Shape";
 
@@ -25,7 +25,7 @@ export class Group extends Container<Group | Shape> {
 
         return child
           .getBounds()
-          .getCorner()
+          .getCorners()
           .map((point) => matrix.applyToPoint(point))
       })
   }
@@ -36,13 +36,15 @@ export class Group extends Container<Group | Shape> {
   }
 
   public add(...children: Array<Group | Shape>): void {
-    const instructions = this.getInvertInstructions()
+    const matrix = this.computeMatrix()
 
     children.forEach((child) => {
       this._children.push(child)
 
       child.setParent(this)
-      child.setInstructions(instructions)
+      
+      const inverted = Matrix3x3.invert(matrix)
+      if (inverted) child._cachedBaseMatrix = inverted
     })
   }
 

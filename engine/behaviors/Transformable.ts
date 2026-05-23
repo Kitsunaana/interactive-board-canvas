@@ -49,7 +49,7 @@ export abstract class Transformable {
 
   private _instructions: TransformInstruction[] = []
 
-  private _cachedBaseMatrix: Matrix3x3 | null = null
+  public _cachedBaseMatrix: Matrix3x3 = Matrix3x3.identity()
   private _isInteracting: boolean = false
 
   public currentRelativeOrigins = buildInitialOpearationsRecord()
@@ -73,7 +73,7 @@ export abstract class Transformable {
 
   public translate(delta: Point): void {
     this._pushInstruction({
-      points: this.getBounds().getCorner(),
+      points: this.getBounds().getCorners(),
       type: "translate",
       value: delta,
     })
@@ -82,7 +82,7 @@ export abstract class Transformable {
   public rotate(angle: number): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.rotate.clone(),
-      points: this.getBounds().getCorner(),
+      points: this.getBounds().getCorners(),
       type: "rotate",
       value: new Point(angle, 0),
     })
@@ -91,7 +91,7 @@ export abstract class Transformable {
   public scale(scale: Point): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.scale.clone(),
-      points: this.getBounds().getCorner(),
+      points: this.getBounds().getCorners(),
       type: "scale",
       value: scale,
     })
@@ -100,19 +100,10 @@ export abstract class Transformable {
   public skew(skew: Point): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.skew.clone(),
-      points: this.getBounds().getCorner(),
+      points: this.getBounds().getCorners(),
       type: "skew",
       value: skew,
     })
-  }
-
-  public setInstructions(instructions: Array<TransformInstruction>): void {
-    this._instructions.splice(0, this._instructions.length)
-    this._instructions.push(...instructions)
-  }
-
-  public getInvertInstructions(): Array<TransformInstruction> {
-    return this._instructions.map((instruction) => ({ ...instruction, value: instruction.value.opposite() }))
   }
 
   private _pushInstruction(instruction: TransformInstruction): void {
@@ -130,7 +121,7 @@ export abstract class Transformable {
     this._instructions.push({
       type,
       value: identityValue,
-      points: this.getBounds().getCorner(),
+      points: this.getBounds().getCorners(),
       relativeOrigin: {
         x: this.currentRelativeOrigins[type].x,
         y: this.currentRelativeOrigins[type].y
@@ -150,7 +141,7 @@ export abstract class Transformable {
 
   public endInteraction(): void {
     this._isInteracting = false
-    this._cachedBaseMatrix = null
+    this._cachedBaseMatrix = Matrix3x3.identity()
   }
 
   public computeMatrix(): Matrix3x3 {
@@ -162,7 +153,7 @@ export abstract class Transformable {
   }
 
   private _computeMatrixUpTo(count: number): Matrix3x3 {
-    let accumulated = Matrix3x3.identity()
+    let accumulated = this._cachedBaseMatrix //Matrix3x3.identity()
 
     for (let i = 0; i < count; i++) {
       const instruction = this._instructions[i]

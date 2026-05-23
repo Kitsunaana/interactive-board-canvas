@@ -2,7 +2,6 @@ import { Group } from "./Group";
 import "./index.css";
 import { Layer } from "./Layer";
 import { Circle, Polygon } from "./shapes";
-import { getPointFromEvent } from "./shared/point";
 import { Stage } from "./Stage";
 
 const stage = new Stage({
@@ -125,20 +124,47 @@ const groupFigures = new Group({})
 group.add(polygon2, polygon01)
 groupFigures.add(group)
 
-layer.add(groupFigures)
+groupFigures.add(circle)
+circle.isShowOrigins = true
+// circle.scale(new Point(1.9, 1))
+// circle.rotate(1)
+
+const testSimObject = new SimObject()
+const testCircle1 = new CircleComponent(100, 100, 70)
+const testCircle2 = new CircleComponent(200, 100, 70)
+
+// testSimObject.isShowOrigins = true
+testSimObject.addComponent(testCircle1)
+testSimObject.addComponent(testCircle2)
+// testSimObject.scale(new Point(1.7, 1))
+// testSimObject.rotate(0.4)
+
+const testSimObject2 = new SimObject()
+testSimObject2.isShowOrigins = true
+testSimObject2.addChild(testSimObject)
+testSimObject2.addComponent(new CircleComponent(200, 300, 20))
+
+const testSimObject3 = new SimObject()
+// testSimObject3.isShowOrigins = true
+testSimObject3.addChild(testSimObject2)
+testSimObject3.addComponent(new CircleComponent(300, 350, 20))
+
+layer.add(testSimObject3)
+// layer.add(groupFigures)
 stage.add(layer)
 
 // group.scale({ x: 1.0, y: 1.4 })
+// groupFigures.isShowOrigins = true
 
-// group.scale({ x: 1.5, y: 1.5 })
+// groupFigures.translate(new Point(100, 100))
+group.scale(new Point(1.5, 1.5))
 // group.translate({ x: 0, y: 100 })
 // group.rotate(0.3)
 // groupFigures.rotate(0.3)
 
 // groupFigures.translate({ x: 100, y: 100 })
 // groupFigures.scale({ x: 2, y: 1.1 })
-groupFigures.isShowOrigins = true
-group.isShowOrigins = true
+group.isShowOrigins = false
 polygon2.isShowOrigins = false
 
 polygon2.tension = 0.13
@@ -147,7 +173,9 @@ polygon2.tension = 0.13
 // group.scale({ x: 1.0, y: 1.4 })
 // polygon2.rotate(0.9)
 // polygon2.isShowOrigins = true
+
 groupFigures.add(polygon011)
+
 // groupFigures.rotate(0.2)
 // polygon011.isShowOrigins = true
 
@@ -158,8 +186,10 @@ const currentAngle = Math.atan2(matrix2.b, matrix2.a)
 const matrix3 = Matrix3x3.aroundOrigin(groupFigures.currentRelativeOrigins.rotate, () => Matrix3x3.rotate(-currentAngle))
 
 import Konva from 'konva';
+import { CircleComponent } from "./components/circle-component";
 import { Matrix3x3, Point } from "./maths";
-import { type EventObject } from "./behaviors/EventBehavior";
+import { SimObject } from "./world/sim-object";
+import { RadialGradient } from "./styles/fill/radial-gradient";
 
 const konvaRenderTest = () => {
   const stage = new Konva.Stage({
