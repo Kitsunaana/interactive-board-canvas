@@ -26,10 +26,11 @@ export class Layer extends Container<Group | Shape> {
     super(config)
 
     this._canvas = document.createElement("canvas")
-    this._context = this._canvas.getContext("2d") as CanvasRenderingContext2D
+    this._context = this._canvas.getContext("2d", { alpha: true }) as CanvasRenderingContext2D
     this._hitCanvas = document.createElement("canvas")
     this._hitContext = this._hitCanvas.getContext("2d", {
-      willReadFrequently: true
+      willReadFrequently: true,
+      alpha: true,
     }) as CanvasRenderingContext2D
   }
 

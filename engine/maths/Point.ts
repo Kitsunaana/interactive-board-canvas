@@ -1,3 +1,8 @@
+export interface SizeData {
+  width: number
+  height: number
+}
+
 export interface PointData {
   x: number
   y: number
@@ -17,6 +22,10 @@ export class Point implements PointLike {
 
   public static one(): Point {
     return new Point(1, 1)
+  }
+
+  public static fromSize<T extends SizeData>(value: T): Point {
+    return new Point(value.width, value.height)
   }
 
   public constructor(public x: number = 0, public y: number = 0) { }
@@ -74,5 +83,20 @@ export class Point implements PointLike {
 
   public array(): [number, number] {
     return [this.x, this.y]
+  }
+
+  public toSize(): SizeData {
+    return {
+      width: this.x,
+      height: this.y,
+    }
+  }
+
+  public floor(): Point {
+    return new Point(Math.floor(this.x), Math.floor(this.y))
+  }
+
+  public ceil(): Point {
+    return new Point(Math.ceil(this.x), Math.ceil(this.y))
   }
 }

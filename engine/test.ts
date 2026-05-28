@@ -130,24 +130,26 @@ circle.isShowOrigins = true
 // circle.rotate(1)
 
 const testSimObject = new SimObject()
-const testCircle1 = new CircleComponent(100, 100, 70)
-const testCircle2 = new CircleComponent(200, 100, 70)
+const testCircle1 = new CircleComponent(300, 300, 240)
+// const testCircle2 = new CircleComponent(500, 200, 140)
 
 // testSimObject.isShowOrigins = true
 testSimObject.addComponent(testCircle1)
-testSimObject.addComponent(testCircle2)
+// testSimObject.addComponent(testCircle2)
 // testSimObject.scale(new Point(1.7, 1))
+testSimObject.rotate(0.4)
+testSimObject.translate(new Point(100, 100))
 // testSimObject.rotate(0.4)
 
 const testSimObject2 = new SimObject()
 testSimObject2.isShowOrigins = true
 testSimObject2.addChild(testSimObject)
-testSimObject2.addComponent(new CircleComponent(200, 300, 20))
+// testSimObject2.addComponent(new CircleComponent(200, 300, 20))
 
 const testSimObject3 = new SimObject()
 // testSimObject3.isShowOrigins = true
 testSimObject3.addChild(testSimObject2)
-testSimObject3.addComponent(new CircleComponent(300, 350, 20))
+// testSimObject3.addComponent(new CircleComponent(300, 350, 20))
 
 layer.add(testSimObject3)
 // layer.add(groupFigures)
@@ -189,7 +191,6 @@ import Konva from 'konva';
 import { CircleComponent } from "./components/circle-component";
 import { Matrix3x3, Point } from "./maths";
 import { SimObject } from "./world/sim-object";
-import { RadialGradient } from "./styles/fill/radial-gradient";
 
 const konvaRenderTest = () => {
   const stage = new Konva.Stage({

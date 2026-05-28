@@ -1,4 +1,5 @@
 import { Matrix3x3 } from "./Matrix"
+import { Point } from "./Point"
 import { Rectangle } from "./Rectangle"
 
 export interface BoundsData {
@@ -170,5 +171,9 @@ export class Bounds {
     }
 
     return false
+  }
+
+  public toPoint(): Point {
+    return new Point(this.x, this.y)
   }
 }

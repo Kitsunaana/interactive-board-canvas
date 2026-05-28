@@ -153,7 +153,7 @@ export abstract class Transformable {
   }
 
   private _computeMatrixUpTo(count: number): Matrix3x3 {
-    let accumulated = this._cachedBaseMatrix //Matrix3x3.identity()
+    let accumulated = this._cachedBaseMatrix
 
     for (let i = 0; i < count; i++) {
       const instruction = this._instructions[i]

@@ -118,4 +118,8 @@ export class Rectangle implements ShapePrimitive {
 
     return [p1, p2, p3, p4]
   }
+
+  public point(): Point {
+    return new Point(this.x, this.y)
+  }
 }

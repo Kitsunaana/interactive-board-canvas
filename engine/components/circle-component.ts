@@ -1,6 +1,13 @@
-import { Circle } from "../maths"
-import { LinearGradient } from "../styles/fill/linear-gradient"
+import { Circle, Point } from "../maths"
+import { BackgroundImage } from "../styles/background-image"
 import { BaseShapeComponent } from "./base-shape-component"
+
+const sources = {
+  // darthVader: 'https://konvajs.org/assets/darth-vader.jpg',
+  darthVader: 'https://i.pinimg.com/originals/02/25/2e/02252e85fef76ab07d9536d39056cead.jpg',
+  yoda: 'https://konvajs.org/assets/yoda.jpg',
+}
+
 
 export class CircleComponent extends BaseShapeComponent {
   protected _primitive: Circle
@@ -10,21 +17,13 @@ export class CircleComponent extends BaseShapeComponent {
 
     this._primitive = new Circle(x, y, radius)
 
-    /**
-    this._gradient = new RadialGradient()
-      .setComponent(this)
-      .setStartPoint({ x: 0, y: 0 })
-      .setEndPoint({ x: 0, y: 0 })
-      .setStartRadius(0)
-      .setEndRadius(60)
-      .setColorStops([0, 'red', 0.5, 'yellow', 1, 'blue'])
-     */
-
-    this._gradient = new LinearGradient()
-      .setComponent(this)
-      .setStartPoint({ x: -50, y: -50 })
-      .setEndPoint({ x: 50, y: 50 })
-      .setColorStops([0, "red", 1, "yellow"])
+    this.setBackgroundImage(
+      new BackgroundImage()
+        .setComponent(this)
+        .setBackgroundImage(sources.darthVader)
+        .setBackgroundRepeat("repeat")
+        .setBackgroundSize("contain")
+    )
   }
 
   public update(time: number): void { }
@@ -46,5 +45,5 @@ export class CircleComponent extends BaseShapeComponent {
     context.restore()
   }
 
-  public renderHit(context: CanvasRenderingContext2D): void {}
+  public renderHit(context: CanvasRenderingContext2D): void { }
 }
