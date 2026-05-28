@@ -7,7 +7,7 @@ export abstract class BaseShapeComponent extends BaseComponent {
   public abstract render(context: CanvasRenderingContext2D): void
   public abstract update(time: number): void
 
-  protected abstract _primitive: ShapePrimitive
+  protected abstract _geometry: ShapePrimitive
 
   protected _backgroundImage: BackgroundImage | null = null
   protected _gradient: BaseGradient | null = null
@@ -27,7 +27,7 @@ export abstract class BaseShapeComponent extends BaseComponent {
   }
 
   public getBounds(): Rectangle {
-    const bounds = this._primitive.getBounds()
+    const bounds = this._geometry.getBounds()
 
     bounds.x -= this.lineWidth / 2
     bounds.y -= this.lineWidth / 2
@@ -49,5 +49,8 @@ export abstract class BaseShapeComponent extends BaseComponent {
 
     context.lineWidth = this.lineWidth
     context.strokeStyle = this.strokeColor
+    
+    context.fill()
+    context.stroke()
   }
 }

@@ -8,14 +8,13 @@ const sources = {
   yoda: 'https://konvajs.org/assets/yoda.jpg',
 }
 
-
 export class CircleComponent extends BaseShapeComponent {
-  protected _primitive: Circle
+  protected _geometry: Circle
 
   public constructor(public x: number, public y: number, public radius: number) {
     super()
 
-    this._primitive = new Circle(x, y, radius)
+    this._geometry = new Circle(x, y, radius)
 
     this.setBackgroundImage(
       new BackgroundImage()
@@ -36,11 +35,9 @@ export class CircleComponent extends BaseShapeComponent {
 
     context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
 
+    context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false)
     this.applyMainStyles(context)
 
-    context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false)
-    context.fill()
-    context.stroke()
     context.closePath()
     context.restore()
   }

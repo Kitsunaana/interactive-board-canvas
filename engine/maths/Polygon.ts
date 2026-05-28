@@ -3,6 +3,70 @@ import type { ShapePrimitive } from "./ShapePrimitive"
 import { Rectangle } from "./Rectangle"
 
 export class Polygon implements ShapePrimitive {
+  public static EPS: number = 1e-9
+
+  public static getQuadraticRoots(a: number, b: number, c: number): Array<number> {
+    const roots: Array<number> = []
+
+    if (Math.abs(a) < Polygon.EPS) {
+
+      if (Math.abs(b) > Polygon.EPS) {
+        const t = -c / b
+
+        if (t > Polygon.EPS && t < 1 - Polygon.EPS) roots.push(t)
+      }
+
+    } else {
+      const delta = b * b - 4 * a * c
+
+      if (delta >= 0) {
+        const sqrtDelta = Math.sqrt(delta)
+        const t1 = (-b - sqrtDelta) / (2 * a)
+        const t2 = (-b + sqrtDelta) / (2 * a)
+
+        if (t1 > Polygon.EPS && t1 < 1 - Polygon.EPS) roots.push(t1)
+        if (t2 > Polygon.EPS && t2 < 1 - Polygon.EPS) roots.push(t2)
+      }
+    }
+
+    return roots
+  }
+
+  public static evaluteBezier(t: number, p0: PointData, p1: PointData, p2: PointData, p3: PointData): PointData {
+    const u = 1 - t
+    const u2 = u * u
+    const u3 = u2 * u
+    const t2 = t * t
+    const t3 = t2 * t
+
+    return {
+      x: u3 * p0.x + 3 * u2 * t * p1.x + 3 * u * t2 * p2.x + t3 * p3.x,
+      y: u3 * p0.y + 3 * u2 * t * p1.y + 3 * u * t2 * p2.y + t3 * p3.y,
+    }
+  }
+
+  public static getBezierExtremaList(p0: PointData, p1: PointData, p2: PointData, p3: PointData) {
+    const ax = -p0.x + 3 * p1.x - 3 * p2.x + p3.x
+    const bx = 2 * p0.x - 4 * p1.x + 2 * p2.x
+    const cx = p1.x - p0.x
+
+    const list: Array<PointData> = []
+
+    Polygon.getQuadraticRoots(ax, bx, cx).forEach((t) => {
+      list.push(Polygon.evaluteBezier(t, p0, p1, p2, p3))
+    })
+
+    const ay = -p0.y + 3 * p1.y - 3 * p2.y + p3.y
+    const by = 2 * p0.y - 4 * p1.y + 2 * p2.y
+    const cy = p1.y - p0.y
+
+    Polygon.getQuadraticRoots(ay, by, cy).forEach((t) => {
+      list.push(Polygon.evaluteBezier(t, p0, p1, p2, p3))
+    })
+
+    return list
+  }
+
   public constructor(public points: PointData[]) { }
 
   public get lastX(): number {
@@ -90,5 +154,36 @@ export class Polygon implements ShapePrimitive {
     polygon.copyFrom(this)
 
     return polygon
+  }
+
+  public computeTensionedCurveExtrema(tension: number): Array<PointData> {
+    if (tension === 0) return []
+
+    const points = this.points
+    const length = points.length
+
+    const nest: Array<PointData> = []
+
+    for (let i = 0; i < length; i++) {
+      const p0 = points[(i - 1 + length) % length]
+      const p1 = points[i]
+      const p2 = points[(i + 1) % length]
+      const p3 = points[(i + 2) % length]
+
+      const cp1: PointData = {
+        x: p1.x + (p2.x - p0.x) * tension,
+        y: p1.y + (p2.y - p0.y) * tension
+      }
+
+      const cp2: PointData = {
+        x: p2.x - (p3.x - p1.x) * tension,
+        y: p2.y - (p3.y - p1.y) * tension,
+      }
+
+      const list = Polygon.getBezierExtremaList(p1, cp1, cp2, p2)
+      nest.push(...list)
+    }
+
+    return nest
   }
 }
