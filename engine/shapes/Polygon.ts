@@ -41,7 +41,7 @@ export class PolygonShape extends Shape {
     context.closePath()
 
     const bounds = this.getBounds({ skipTransform: false })
-    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
 
     const selfRect = this.getBounds()
     // context.strokeRect(selfRect.x, selfRect.y, selfRect.width, selfRect.height)

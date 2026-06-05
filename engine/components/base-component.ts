@@ -1,4 +1,4 @@
-import { Matrix3x3, type PointData, Rectangle } from "../maths";
+import { type PointData, Rectangle } from "../maths";
 import { SimObject } from "../world/sim-object";
 
 export abstract class BaseComponent {

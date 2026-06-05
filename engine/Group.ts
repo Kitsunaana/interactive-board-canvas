@@ -1,12 +1,16 @@
-import { Polygon, Rectangle } from "./maths"
-import { Shape } from "./shapes/Shape"
-import { type GetBoundsParams, SimObject } from "./world/sim-object"
+import { Matrix3x3, Polygon, Rectangle } from "./maths"
+import { Node, Shape } from "./shapes/Shape"
+import { type GetBoundsParams } from "./world/sim-object"
 
-export class Group extends SimObject {
+export class Group extends Node {
+  public static isGroup(candidate: unknown): candidate is Group {
+    return candidate instanceof Group
+  }
+
   public constructor() {
     super()
 
-    this.isShowOrigins = true
+    this.isShowOrigins = false
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
@@ -21,13 +25,11 @@ export class Group extends SimObject {
     return Polygon.prototype.getBounds.call({ points: corners })
   }
 
-  public rotate(angle: number): void {
-    super.rotate(angle)
-
-    const matrix = this.computeMatrix()
+  protected _updatePointsToTrace(): void {
+    const matrix = Matrix3x3.compose(this._worldMatrix, this._localMatrix)
 
     this._children.forEach((child) => {
-      if (child instanceof Shape) {
+      if (Shape.isShape(child) || Group.isGroup(child)) {
         child.worldMatrix = matrix.clone()
       }
     })
@@ -39,6 +41,6 @@ export class Group extends SimObject {
     this.drawOrigins(context)
 
     const bounds = this.getBounds()
-    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
   }
 }

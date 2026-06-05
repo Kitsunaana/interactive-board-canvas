@@ -2,7 +2,7 @@ import { Group } from "./Group";
 import "./index.css";
 import { Layer } from "./Layer";
 import { Point } from "./maths";
-import { Circle } from "./shapes/Circle";
+import { Ellipse } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
 
@@ -58,7 +58,7 @@ const groupSimObject = new Group()
 const polygonShape1 = new PolygonShape(points2)
 const polygonShape2 = new PolygonShape(points4)
 
-const circleShape1 = new Circle(500, 600, 40, 60)
+const circleShape1 = new Ellipse(500, 600, 40, 60)
 circleShape1.rotate(0.5)
 circleShape1.scale(new Point(1, 1.5))
 // circleShape1.rotate(0.5)
@@ -73,6 +73,7 @@ groupSimObject.children(circleShape1)
 
 polygonShape1.rotate(0.5)
 groupSimObject.rotate(0.2)
+groupSimObject.scale(new Point(1, 1.0))
 
 groupSimObject.beginInteraction("rotate")
 let angle = 0.01

@@ -14,36 +14,14 @@ export type GetBoundsParams = {
 export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   public abstract getBounds(params?: GetBoundsParams): Rectangle
 
+  public id: string = nanoid()
+
   protected _children: Array<SimObject> = []
   protected _parent: SimObject | null = null
   protected _layer: Layer | null = null
 
-  public id: string = nanoid()
-
   protected _localMatrix: Matrix3x3 = Matrix3x3.identity()
   protected _worldMatrix: Matrix3x3 = Matrix3x3.identity()
-
-  public getCorners(): Array<PointData> {
-    const matrix = this.computeMatrix()
-
-    return this
-      .getBounds()
-      .getCorners()
-      .map((point) => matrix.applyToPoint(point))
-  }
-
-  public computeWorldMatrix() {
-    const parents = this.getAllParents()
-
-    return parents.reduce(
-      (accMatrix, object) => {
-        const matrix = object.computeMatrix()
-        
-        return Matrix3x3.compose(accMatrix, matrix)
-      }, 
-      Matrix3x3.identity()
-    )
-  }
 
   public children(): Array<SimObject>
   public children(...list: Array<SimObject>): void
@@ -70,6 +48,28 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
 
     this._layer = layer
     this._children.forEach((child) => child.layer(layer))
+  }
+
+  public getCorners(): Array<PointData> {
+    const matrix = this.computeMatrix()
+
+    return this
+      .getBounds()
+      .getCorners()
+      .map((point) => matrix.applyToPoint(point))
+  }
+
+  public computeWorldMatrix(): Matrix3x3 {
+    const parents = this.getAllParents()
+
+    return parents.reduce(
+      (accMatrix, object) => {
+        const matrix = object.computeMatrix()
+
+        return Matrix3x3.compose(accMatrix, matrix)
+      },
+      Matrix3x3.identity()
+    )
   }
 
   public getAllParents<T extends SimObject>(list: Array<T> = []): Array<T> {

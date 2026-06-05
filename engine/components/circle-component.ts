@@ -1,11 +1,10 @@
-import { Mixin } from "ts-mixer"
-import { Circle, Point } from "../maths"
-import { BackgroundImage } from "../styles/background-image"
-import { BaseShapeComponent } from "./base-shape-component"
-import { EventBehavior, type EventObject } from "../behaviors/EventBehavior"
-import { SimObject } from "../world/sim-object"
-import { Stage } from "../Stage"
 import { nanoid } from "nanoid"
+import { Mixin } from "ts-mixer"
+import { EventBehavior, type EventObject } from "../behaviors/EventBehavior"
+import { Circle } from "../maths"
+import { Stage } from "../Stage"
+import { SimObject } from "../world/sim-object"
+import { BaseShapeComponent } from "./base-shape-component"
 
 const sources = {
   // darthVader: 'https://konvajs.org/assets/darth-vader.jpg',

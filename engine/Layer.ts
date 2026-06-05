@@ -1,10 +1,9 @@
 import { isUndefined } from "lodash";
 import * as Primitive from "./maths";
-import { type NodeConfig } from "./Node";
 import { type Sizes, Stage } from "./Stage";
 import { SimObject } from "./world/sim-object";
 
-export interface LayerConfig extends NodeConfig {
+export interface LayerConfig {
 }
 
 export class Layer extends SimObject {

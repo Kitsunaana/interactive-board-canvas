@@ -1,4 +1,3 @@
-import { isNil } from "lodash"
 import { BaseShapeComponent } from "../components/base-shape-component"
 import { BackgroundSizeParser } from "../components/string-size-parser"
 import { Matrix3x3, Point, Rectangle, type PointData } from "../maths"

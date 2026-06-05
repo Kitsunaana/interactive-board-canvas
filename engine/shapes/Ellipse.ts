@@ -1,44 +1,8 @@
-import { Bounds, Matrix3x3, Point, type PointData, Polygon, Rectangle } from "../maths";
-import { type GetBoundsParams, SimObject } from "../world/sim-object";
+import { Bounds, Matrix3x3, Point, type PointData, Rectangle } from "../maths";
+import { type GetBoundsParams } from "../world/sim-object";
 import { Shape } from "./Shape";
 
-export function getEllipsePath(cx: number, cy: number, rx: number, ry: number, matrix: Matrix3x3) {
-  const K = 4 * (Math.sqrt(2) - 1) / 3
-
-  const transform = (x: number, y: number) => {
-    return matrix.applyToPoint(new Point(cx + x, cy + y)).array()
-  }
-
-  const [x0, y0] = transform(rx, 0);
-  const [x1, y1] = transform(rx, K * ry);
-  const [x2, y2] = transform(K * rx, ry);
-  const [x3, y3] = transform(0, ry);
-  const [x4, y4] = transform(-K * rx, ry);
-  const [x5, y5] = transform(-rx, K * ry);
-  const [x6, y6] = transform(-rx, 0);
-  const [x7, y7] = transform(-rx, -K * ry);
-  const [x8, y8] = transform(-K * rx, -ry);
-  const [x9, y9] = transform(0, -ry);
-  const [x10, y10] = transform(K * rx, -ry);
-  const [x11, y11] = transform(rx, -K * ry);
-
-  return [
-    new Point(x0, y0),
-    new Point(x1, y1),
-    new Point(x2, y2),
-    new Point(x3, y3),
-    new Point(x4, y4),
-    new Point(x5, y5),
-    new Point(x6, y6),
-    new Point(x7, y7),
-    new Point(x8, y8),
-    new Point(x9, y9),
-    new Point(x10, y10),
-    new Point(x11, y11),
-  ]
-}
-
-export class Circle extends Shape {
+export class Ellipse extends Shape {
   public initialPoints: Array<PointData>
   public pointsToTrace: Array<PointData>
 
@@ -47,8 +11,34 @@ export class Circle extends Shape {
 
     this.isShowOrigins = true
 
-    this.initialPoints = getEllipsePath(x, y, rx, ry, Matrix3x3.identity())
-    this.pointsToTrace = getEllipsePath(x, y, rx, ry, Matrix3x3.identity())
+    this.initialPoints = this._getEllipsePath()
+    this.pointsToTrace = this._getEllipsePath()
+  }
+
+  private _getEllipsePath() {
+    const cx = this.x
+    const cy = this.y
+    const rx = this.rx
+    const ry = this.ry
+
+    const K = 4 * (Math.sqrt(2) - 1) / 3
+
+    const transform = (x: number, y: number) => new Point(cx + x, cy + y)
+
+    return [
+      transform(rx, 0),
+      transform(rx, K * ry),
+      transform(K * rx, ry),
+      transform(0, ry),
+      transform(-K * rx, ry),
+      transform(-rx, K * ry),
+      transform(-rx, 0),
+      transform(-rx, -K * ry),
+      transform(-K * rx, -ry),
+      transform(0, -ry),
+      transform(K * rx, -ry),
+      transform(rx, -K * ry),
+    ]
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
