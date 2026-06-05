@@ -1,9 +1,10 @@
+import { Group } from "./Group";
 import "./index.css";
 import { Layer } from "./Layer";
+import { Point } from "./maths";
+import { Circle } from "./shapes/Circle";
+import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
-import { SimObject } from "./world/sim-object"
-import { CircleComponent } from "./components/circle-component"
-import { PolygonComponent } from "./components/polygon-component";
 
 const stage = new Stage({
   height: window.innerHeight,
@@ -11,13 +12,7 @@ const stage = new Stage({
   draggable: false,
 })
 
-const layer = new Layer({
-  isDraggable: false,
-  scaleX: 1,
-  scaleY: 1,
-  x: 0,
-  y: 0,
-})
+const layer = new Layer()
 
 const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
 const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
@@ -58,16 +53,45 @@ const points4 = [
   // { x: 100, y: 200 }, { x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 200 }
 ]
 
-const circleSimObject = new SimObject()
-const circleComponent = new CircleComponent(100, 200, 40)
-const polygonComponent = new PolygonComponent(points1)
+const groupSimObject = new Group()
 
-circleSimObject.addComponent(circleComponent)
-circleSimObject.addComponent(polygonComponent)
-// circleSimObject.rotate(0.5)
+const polygonShape1 = new PolygonShape(points2)
+const polygonShape2 = new PolygonShape(points4)
 
-layer.add(circleSimObject)
+const circleShape1 = new Circle(500, 600, 40, 60)
+circleShape1.rotate(0.5)
+circleShape1.scale(new Point(1, 1.5))
+// circleShape1.rotate(0.5)
+
+polygonShape1.scale(new Point(1, 1.9))
+polygonShape1.rotate(0.5)
+
+groupSimObject.children(polygonShape1)
+groupSimObject.children(polygonShape2)
+
+groupSimObject.children(circleShape1)
+
+polygonShape1.rotate(0.5)
+groupSimObject.rotate(0.2)
+
+groupSimObject.beginInteraction("rotate")
+let angle = 0.01
+setInterval(() => {
+  angle += 0.01
+  // groupSimObject.rotate(angle)
+}, 16)
+
+layer.add(groupSimObject)
 stage.add(layer)
+
+// console.log(groupSimObject.getParent())
+
+// console.log(polygonShape1.computeMatrix())
+// console.log(groupSimObject.computeMatrix())
+
+// polygonShape.on("pointerdown", () => {
+  // console.log("CLICK")  
+// })
 
 // const matrix2 = groupFigures.computeMatrix()
 // const currentAngle = Math.atan2(matrix2.b, matrix2.a)

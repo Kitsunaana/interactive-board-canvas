@@ -99,4 +99,8 @@ export class Point implements PointLike {
   public ceil(): Point {
     return new Point(Math.ceil(this.x), Math.ceil(this.y))
   }
+
+  public sign(): Point {
+    return new Point(Math.sign(this.x), Math.sign(this.y))
+  }
 }

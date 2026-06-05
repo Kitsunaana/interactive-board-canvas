@@ -1,14 +1,13 @@
-import { Container } from "./Container";
-import { Group } from "./Group";
+import { isUndefined } from "lodash";
 import * as Primitive from "./maths";
-import { Node, type NodeConfig } from "./Node";
-import { Shape } from "./shapes/Shape";
+import { type NodeConfig } from "./Node";
 import { type Sizes, Stage } from "./Stage";
+import { SimObject } from "./world/sim-object";
 
 export interface LayerConfig extends NodeConfig {
 }
 
-export class Layer extends Container<Group | Shape> {
+export class Layer extends SimObject {
   protected readonly _type = "Layer"
 
   private _stage: Stage | null = null
@@ -17,13 +16,13 @@ export class Layer extends Container<Group | Shape> {
   private readonly _context: CanvasRenderingContext2D
   private readonly _hitCanvas: HTMLCanvasElement
   private readonly _hitContext: CanvasRenderingContext2D
-  private readonly _hitColorsToNodes = new Map<string, Shape>()
+  private readonly _hitColorsToNodes = new Map<string, SimObject>()
   private readonly _nodesToHitColors = new Map<string, string>()
 
   private _lastHitColorId = 0
 
-  public constructor(config: LayerConfig) {
-    super(config)
+  public constructor() {
+    super()
 
     this._canvas = document.createElement("canvas")
     this._context = this._canvas.getContext("2d", { alpha: true }) as CanvasRenderingContext2D
@@ -34,35 +33,41 @@ export class Layer extends Container<Group | Shape> {
     }) as CanvasRenderingContext2D
   }
 
+  public getBounds(): Primitive.Rectangle {
+    return new Primitive.Rectangle(0, 0, 1, 1)
+  }
+
+  public getSelfRect(): Primitive.Rectangle {
+    return new Primitive.Rectangle(0, 0, 1, 1)
+  }
+
   public getPoints(): Array<Primitive.PointData> {
     return []
   }
 
-  public getStage(): Stage | null {
-    return this._stage
+  public stage(): Stage | null
+  public stage(stage: Stage): void
+  public stage(stage?: Stage): Stage | null | void {
+    if (isUndefined(stage)) return this._stage
+
+    this._stage = stage
+    this.sizes(stage.sizes)
   }
 
-  public setStage(parent: Stage) {
-    this._stage = parent
-    this.setSizes(parent.sizes)
-  }
+  public sizes(): Sizes
+  public sizes(sizes: Sizes): void
+  public sizes(sizes?: Sizes): Sizes | void {
+    if (isUndefined(sizes)) {
+      return {
+        width: this._canvas.width,
+        height: this._canvas.height,
+      }
+    }
 
-  public setSizes(sizes: Sizes) {
     this._canvas.width = sizes.width
     this._canvas.height = sizes.height
     this._hitCanvas.width = sizes.width
     this._hitCanvas.height = sizes.height
-  }
-
-  public getSizes(): Sizes {
-    return {
-      width: this._canvas.width,
-      height: this._canvas.height,
-    }
-  }
-
-  public getParent(): Node | null {
-    return this._stage
   }
 
   public getCanvas() {
@@ -81,7 +86,7 @@ export class Layer extends Container<Group | Shape> {
     return this._hitContext
   }
 
-  public getHitColor(shape: Shape): string {
+  public getHitColor(shape: SimObject): string {
     const current = this._nodesToHitColors.get(shape.id)
     if (current) return current
 
@@ -93,8 +98,9 @@ export class Layer extends Container<Group | Shape> {
     return next
   }
 
-  public getIntersection(point: Primitive.PointData): Shape | null {
-    const sizes = this.getSizes()
+  public getIntersection(point: Primitive.PointData): SimObject | null {
+    const sizes = this.sizes()
+
     const x = Math.floor(point.x)
     const y = Math.floor(point.y)
 
@@ -111,30 +117,32 @@ export class Layer extends Container<Group | Shape> {
   }
 
   public render(): void {
-    const sizes = this.getSizes()
+    const sizes = this.sizes()
     const context = this.getContext()
     const hitContext = this.getHitContext()
 
     context.clearRect(0, 0, sizes.width, sizes.height)
     hitContext.clearRect(0, 0, sizes.width, sizes.height)
 
-    this.getChildren().forEach((child) => child.render(context))
-    this.getChildren().forEach((child) => child.renderHit(hitContext))
+    this.children().forEach((child) => {
+      child.render(context)
+      child.renderHit(hitContext)
+    })
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {
-    this.getChildren().forEach((child) => child.renderHit(context))
+    this.children().forEach((child) => child.renderHit(context))
   }
 
   public contains(x: number, y: number): boolean {
     return this
-      .getChildren()
+      .children()
       .some((child) => child.contains(x, y))
   }
 
   public getCorners(): Array<Primitive.PointData> {
     const position = new Primitive.Point(0, 0)
-    const { width, height } = this.getSizes()
+    const { width, height } = this.sizes()
 
     return [
       { x: position.x, y: position.y },                  // top-left
@@ -144,12 +152,10 @@ export class Layer extends Container<Group | Shape> {
     ]
   }
 
-  public add(...items: Array<Group | Shape>): void {
-    const children = this.getChildren()
-
+  public add(...items: Array<SimObject>): void {
     items.forEach((child) => {
-      children.push(child)
-      child.setParent(this)
+      this.children(child)
+      child.layer(this)
     })
   }
 

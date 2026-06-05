@@ -1,4 +1,4 @@
-import { Node } from "../Node"
+import type { SimObject } from "../world/sim-object"
 
 type EventHandler<EventPayload = EventObject<any>> = (event: EventPayload) => void
 
@@ -15,11 +15,11 @@ type ParsedEventToken = {
 
 export interface EventObject<EventType = Event> {
   type: string
-  target: Node
-  currentTarget: Node
+  target: SimObject
+  currentTarget: SimObject
   evt: EventType
   cancelBubble: boolean
-  child?: Node
+  child?: SimObject
   [key: string]: unknown
   stopPropagation(): void
 }
@@ -54,7 +54,7 @@ const toEventTokens = (eventNames?: string): ParsedEventToken[] => {
 }
 
 export abstract class EventBehavior {
-  public abstract getParent(): Node | null
+  public abstract parent(): SimObject | null
 
   private readonly _listenersMap: Map<string, Array<ListenerEntry>> = new Map()
 
@@ -129,7 +129,7 @@ export abstract class EventBehavior {
     this._fire(eventType, namespace, evt)
 
     if (bubble && !evt.cancelBubble) {
-      this.getParent()?.fire(eventType, evt, true)
+      this.parent()?.fire(eventType, evt, true)
     }
 
     return this
@@ -153,8 +153,8 @@ export abstract class EventBehavior {
     event?: Partial<EventObject<EventType>> & Record<string, unknown>
   ): EventObject<EventType> {
     const evt = (event?.evt ?? event) as EventType
-    const target = (event?.target as Node | undefined) ?? this as unknown as Node
-    const currentTarget = (event?.currentTarget as Node | undefined) ?? this as unknown as Node
+    const target = (event?.target as SimObject | undefined) ?? this as unknown as SimObject
+    const currentTarget = (event?.currentTarget as SimObject | undefined) ?? this as unknown as SimObject
 
     const normalizedEvent: EventObject<EventType> = {
       ...(event ?? {}),
@@ -181,7 +181,7 @@ export abstract class EventBehavior {
       return
     }
 
-    event.currentTarget = this as unknown as Node
+    event.currentTarget = this as unknown as SimObject
 
     const listenersSnapshot = listeners.slice()
 

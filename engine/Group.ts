@@ -1,77 +1,44 @@
-import { Container } from "./Container";
-import { Matrix3x3, type PointData, Polygon, Rectangle } from "./maths";
-import { type NodeConfig } from "./Node";
-import { Shape } from "./shapes/Shape";
+import { Polygon, Rectangle } from "./maths"
+import { Shape } from "./shapes/Shape"
+import { type GetBoundsParams, SimObject } from "./world/sim-object"
 
-interface GroupConfig extends NodeConfig {
-}
+export class Group extends SimObject {
+  public constructor() {
+    super()
 
-export class Group extends Container<Group | Shape> {
-  protected readonly _type = "Group" as const
-
-  public constructor(params: GroupConfig) {
-    super(params)
+    this.isShowOrigins = true
   }
 
-  public contains(x: number, y: number): boolean {
-    return this.getBounds().contains(x, y)
-  }
-
-  public getPoints(): Array<PointData> {
-    return this
-      .getChildren()
-      .flatMap((child) => {
-        const matrix = child.computeMatrix()
-
-        return child
-          .getBounds()
-          .getCorners()
-          .map((point) => matrix.applyToPoint(point))
+  public getBounds(params: GetBoundsParams = {}): Rectangle {
+    const corners = this._children.flatMap((child) => child
+      .getBounds({
+        skipWorldTransform: params.skipTransform,
+        skipTransform: false,
       })
+      .getCorners()
+    )
+
+    return Polygon.prototype.getBounds.call({ points: corners })
   }
 
-  public getBounds(): Rectangle {
-    const bounds = Polygon.prototype.getBounds.call({ points: this.getPoints() })
-    return bounds
-  }
+  public rotate(angle: number): void {
+    super.rotate(angle)
 
-  public add(...children: Array<Group | Shape>): void {
     const matrix = this.computeMatrix()
 
-    children.forEach((child) => {
-      this._children.push(child)
-
-      child.setParent(this)
-      
-      const inverted = Matrix3x3.invert(matrix)
-      if (inverted) child._cachedBaseMatrix = inverted
+    this._children.forEach((child) => {
+      if (child instanceof Shape) {
+        child.worldMatrix = matrix.clone()
+      }
     })
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    context.save()
-    this.bindTransformsToContext(context)
-    this._children.forEach((child) => child.render(context))
-    context.restore()
+    super.render(context)
 
     this.drawOrigins(context)
-    this.renderBoundingBox(context)
-  }
 
-  public renderBoundingBox(context: CanvasRenderingContext2D) {
-    const matrix = this.computeMatrix()
     const bounds = this.getBounds()
-
-    context.save()
-    matrix.applyToContext(context)
     context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-    context.restore()
-  }
-
-  public renderHit(context: CanvasRenderingContext2D): void {
-    context.save()
-    this.bindTransformsToContext(context)
-    this._children.forEach((child) => child.renderHit(context))
-    context.restore()
   }
 }

@@ -1,85 +1,80 @@
-import { Mixin } from "ts-mixer";
-import * as Primitive from "../maths";
-import type { PointData } from "../maths";
-import { Shape, type ShapeConfig } from "./Shape";
+import { Matrix3x3, Polygon, Rectangle, type PointData } from "../maths"
+import { type GetBoundsParams } from "../world/sim-object"
+import { Shape } from "./Shape"
 
-export interface PolygonConfig extends ShapeConfig {
-  points: Primitive.PointData[],
-}
+export class PolygonShape extends Shape {
+  public tension: number = 0.2
+  public geometry: Polygon
 
-export class Polygon extends Mixin(Shape, Primitive.Polygon) {
-  public tension: number = 0.3
+  public pointsToTrace: Array<PointData> = []
 
-  public constructor(config: PolygonConfig) {
-    super({})
+  public constructor(public readonly initialPoints: Array<PointData>) {
+    super()
 
-    this.points = config.points
-    this.bindEvents()
+    this.isShowOrigins = true
+
+    this.geometry = new Polygon(initialPoints)
+    this.pointsToTrace = initialPoints
   }
 
-  public getPoints(): Array<Primitive.PointData> {
-    return this.points
-  }
+  public getBounds(params: GetBoundsParams = {}): Rectangle {
+    let points = this.initialPoints
 
-  public getBounds(): Primitive.Rectangle {
-    const points = this.getPoints().map(point => ({ ...point }))
+    if (params.skipTransform === false) {
+      const computed = params.skipWorldTransform
+        ? this.localMatrix
+        : Matrix3x3.compose(this.worldMatrix, this.localMatrix)
 
-    /**  */
-    const length = points.length
-
-    for (let i = 0; i < length; i++) {
-      const p0 = points[(i - 1 + length) % length]
-      const p1 = points[i]
-      const p2 = points[(i + 1) % length]
-      const p3 = points[(i + 2) % length]
-
-      const cp1: PointData = {
-        x: p1.x + (p2.x - p0.x) * this.tension,
-        y: p1.y + (p2.y - p0.y) * this.tension
-      }
-
-      const cp2: PointData = {
-        x: p2.x - (p3.x - p1.x) * this.tension,
-        y: p2.y - (p3.y - p1.y) * this.tension,
-      }
-
-      const list = getBezierExtremaList(p1, cp1, cp2, p2)
-      points.push(...list)
+      points = this.initialPoints.map((point) => computed.applyToPoint(point))
     }
-    /**  */
 
-    const bounds = Primitive.Polygon.prototype.getBounds.call({ points })
+    const curved = Polygon.prototype.computeTensionedCurveExtrema.call({ points }, this.tension)
+    const allPoints = points.concat(curved)
 
-    // bounds.x += this._translate.x
-    // bounds.y += this._translate.y
-
-    bounds.x -= this.lineWidth / 2
-    bounds.y -= this.lineWidth / 2
-    bounds.width += this.lineWidth
-    bounds.height += this.lineWidth
-
-    return bounds
+    return Polygon.prototype.getBounds.call({ points: allPoints })
   }
 
-  public buildPath(context: CanvasRenderingContext2D): void {
-    const length = this.points.length
+  public render(context: CanvasRenderingContext2D): void {
+    context.save()
+    this.tracePath(context)
+    context.stroke()
+    context.closePath()
 
+    const bounds = this.getBounds({ skipTransform: false })
+    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+
+    const selfRect = this.getBounds()
+    // context.strokeRect(selfRect.x, selfRect.y, selfRect.width, selfRect.height)
+
+    this.drawOrigins(context, this._worldMatrix)
+  }
+
+  public tracePath(context: CanvasRenderingContext2D): void {
     context.beginPath()
+    if (this._shouldRenderStraightEdges()) this._traceLinearPath(context)
+    else this._traceSplinePath(context)
+    context.closePath()
+  }
 
-    if (length < 3 || this.tension === 0) {
-      context.moveTo(this.points[0].x, this.points[0].y)
-      this.points.forEach(point => context.lineTo(point.x, point.y))
-      context.closePath()
-      return
-    }
+  private _shouldRenderStraightEdges(): boolean {
+    return this.pointsToTrace.length < 3 || this.tension === 0
+  }
 
-    context.moveTo(this.points[0].x, this.points[0].y)
+  private _traceLinearPath(context: CanvasRenderingContext2D): void {
+    context.moveTo(this.pointsToTrace[0].x, this.pointsToTrace[0].y)
+    this.pointsToTrace.forEach((point) => context.lineTo(point.x, point.y))
+  }
+
+  private _traceSplinePath(context: CanvasRenderingContext2D): void {
+    const length = this.pointsToTrace.length
+
+    context.moveTo(this.pointsToTrace[0].x, this.pointsToTrace[0].y)
 
     for (let i = 0; i < length; i++) {
-      const p0 = this.points[(i - 1 + length) % length]
-      const p1 = this.points[i]
-      const p2 = this.points[(i + 1) % length]
-      const p3 = this.points[(i + 2) % length]
+      const p0 = this.pointsToTrace[(i - 1 + length) % length]
+      const p1 = this.pointsToTrace[i]
+      const p2 = this.pointsToTrace[(i + 1) % length]
+      const p3 = this.pointsToTrace[(i + 2) % length]
 
       const cp1x = p1.x + (p2.x - p0.x) * this.tension
       const cp1y = p1.y + (p2.y - p0.y) * this.tension
@@ -88,71 +83,9 @@ export class Polygon extends Mixin(Shape, Primitive.Polygon) {
 
       context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
     }
-
-    context.closePath()
-  }
-}
-
-const EPS = 1e-9
-
-const getQuadraticRoots = (a: number, b: number, c: number): Array<number> => {
-  const roots: Array<number> = []
-
-  if (Math.abs(a) < EPS) {
-
-    if (Math.abs(b) > EPS) {
-      const t = -c / b
-
-      if (t > EPS && t < 1 - EPS) roots.push(t)
-    }
-
-  } else {
-    const delta = b * b - 4 * a * c
-
-    if (delta >= 0) {
-      const sqrtDelta = Math.sqrt(delta)
-      const t1 = (-b - sqrtDelta) / (2 * a)
-      const t2 = (-b + sqrtDelta) / (2 * a)
-
-      if (t1 > EPS && t1 < 1 - EPS) roots.push(t1)
-      if (t2 > EPS && t2 < 1 - EPS) roots.push(t2)
-    }
   }
 
-  return roots
-}
+  public update(time: number): void {
 
-const evaluteBezier = (t: number, p0: PointData, p1: PointData, p2: PointData, p3: PointData): PointData => {
-  const u = 1 - t
-  const u2 = u * u
-  const u3 = u2 * u
-  const t2 = t * t
-  const t3 = t2 * t
-
-  return {
-    x: u3 * p0.x + 3 * u2 * t * p1.x + 3 * u * t2 * p2.x + t3 * p3.x,
-    y: u3 * p0.y + 3 * u2 * t * p1.y + 3 * u * t2 * p2.y + t3 * p3.y,
   }
-}
-
-const getBezierExtremaList = (p0: PointData, p1: PointData, p2: PointData, p3: PointData) => {
-  const ax = -p0.x + 3 * p1.x - 3 * p2.x + p3.x
-  const bx = 2 * p0.x - 4 * p1.x + 2 * p2.x
-  const cx = p1.x - p0.x
-
-  const list: Array<PointData> = []
-
-  getQuadraticRoots(ax, bx, cx).forEach((t) => {
-    list.push(evaluteBezier(t, p0, p1, p2, p3))
-  })
-
-  const ay = -p0.y + 3 * p1.y - 3 * p2.y + p3.y
-  const by = 2 * p0.y - 4 * p1.y + 2 * p2.y
-  const cy = p1.y - p0.y
-
-  getQuadraticRoots(ay, by, cy).forEach((t) => {
-    list.push(evaluteBezier(t, p0, p1, p2, p3))
-  })
-
-  return list
 }

@@ -1,4 +1,5 @@
 import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths"
+import type { GetBoundsParams } from "../world/sim-object"
 
 export type TramsformOperation = "scale" | "skew" | "rotate" | "translate"
 
@@ -45,14 +46,13 @@ export const buildInitialOpearationsRecord = (): Record<TramsformOperation, Poin
 })
 
 export abstract class Transformable {
-  public abstract getBounds(): Rectangle
+  public abstract getBounds(params: GetBoundsParams): Rectangle
 
   private _instructions: TransformInstruction[] = []
-
-  public _cachedBaseMatrix: Matrix3x3 = Matrix3x3.identity()
-  private _isInteracting: boolean = false
-
+  private _cachedBaseMatrix: Matrix3x3 = Matrix3x3.identity()
+  
   public currentRelativeOrigins = buildInitialOpearationsRecord()
+  public isInteracting: boolean = false
   public isShowOrigins: boolean = false
 
   public constructor() {
@@ -73,7 +73,7 @@ export abstract class Transformable {
 
   public translate(delta: Point): void {
     this._pushInstruction({
-      points: this.getBounds().getCorners(),
+      points: this.getBounds({ skipTransform: true }).getCorners(),
       type: "translate",
       value: delta,
     })
@@ -82,7 +82,7 @@ export abstract class Transformable {
   public rotate(angle: number): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.rotate.clone(),
-      points: this.getBounds().getCorners(),
+      points: this.getBounds({ skipTransform: true }).getCorners(),
       type: "rotate",
       value: new Point(angle, 0),
     })
@@ -91,7 +91,7 @@ export abstract class Transformable {
   public scale(scale: Point): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.scale.clone(),
-      points: this.getBounds().getCorners(),
+      points: this.getBounds({ skipTransform: true }).getCorners(),
       type: "scale",
       value: scale,
     })
@@ -100,7 +100,7 @@ export abstract class Transformable {
   public skew(skew: Point): void {
     this._pushInstruction({
       relativeOrigin: this.currentRelativeOrigins.skew.clone(),
-      points: this.getBounds().getCorners(),
+      points: this.getBounds({ skipTransform: true }).getCorners(),
       type: "skew",
       value: skew,
     })
@@ -121,7 +121,7 @@ export abstract class Transformable {
     this._instructions.push({
       type,
       value: identityValue,
-      points: this.getBounds().getCorners(),
+      points: this.getBounds({ skipTransform: true }).getCorners(),
       relativeOrigin: {
         x: this.currentRelativeOrigins[type].x,
         y: this.currentRelativeOrigins[type].y
@@ -129,23 +129,23 @@ export abstract class Transformable {
     })
 
     this._cachedBaseMatrix = this._computeMatrixUpTo(this._instructions.length - 1)
-    this._isInteracting = true
+    this.isInteracting = true
   }
 
   public updateInteraction(value: Point | PointData): void {
-    if (!this._isInteracting || this._instructions.length === 0) return
+    if (!this.isInteracting || this._instructions.length === 0) return
 
     const last = this._instructions[this._instructions.length - 1]
     last.value.copyFrom(value)
   }
 
   public endInteraction(): void {
-    this._isInteracting = false
+    this.isInteracting = false
     this._cachedBaseMatrix = Matrix3x3.identity()
   }
 
   public computeMatrix(): Matrix3x3 {
-    if (this._isInteracting && this._cachedBaseMatrix) {
+    if (this.isInteracting && this._cachedBaseMatrix) {
       return this._computeLastStepFromCache()
     }
 
@@ -193,7 +193,7 @@ export abstract class Transformable {
     accumulated: Matrix3x3,
   ): Matrix3x3 {
     const originInOriginalSpace = this._getOriginInOriginalSpace(instruction)
-
+    
     const absoluteOrigin = accumulated.applyToPoint(originInOriginalSpace)
     const currentAngle = Math.atan2(accumulated.b, accumulated.a)
 
@@ -210,7 +210,7 @@ export abstract class Transformable {
 
   public getOriginPosition(operation: TramsformOperation): PointData {
     const matrix = this.computeMatrix()
-    const originalBounds = this.getBounds()
+    const originalBounds = this.getBounds({ skipTransform: true })
 
     const originInOriginalSpace: PointData = {
       x: originalBounds.x + originalBounds.width * this.currentRelativeOrigins[operation].x,
@@ -225,13 +225,13 @@ export abstract class Transformable {
     matrix.applyToContext(context)
   }
 
-  public drawOrigins(context: CanvasRenderingContext2D): void {
+  public drawOrigins(context: CanvasRenderingContext2D, modifyMatrix: Matrix3x3 = Matrix3x3.identity()): void {
     if (this.isShowOrigins) {
       context.save()
 
-      const rotateOrigin = this.getOriginPosition("rotate")
-      const scaleOrigin = this.getOriginPosition("scale")
-      const skewOrigin = this.getOriginPosition("skew")
+      const rotateOrigin = modifyMatrix.applyToPoint(this.getOriginPosition("rotate"))
+      const scaleOrigin = modifyMatrix.applyToPoint(this.getOriginPosition("scale"))
+      const skewOrigin = modifyMatrix.applyToPoint(this.getOriginPosition("skew"))
 
       drawOriginPoint(context, rotateOrigin, "rotate")
       drawOriginPoint(context, scaleOrigin, "scale")

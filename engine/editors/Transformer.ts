@@ -1,20 +1,33 @@
-import { Mixin } from "ts-mixer"
 import { Group } from "../Group"
-import * as Primitive from "../maths"
-import { Polygon } from "../shapes/Polygon"
+import { Matrix3x3, Point, Rectangle, type PointData } from "../maths"
 
-const { Point } = Primitive
+const t = (denom: Point, adjustedPointer: Point, DEAD_ZONE: number, a: keyof PointData) => {
+  if (denom[a] !== 0) {
+    const raw = adjustedPointer[a] / denom[a]
+
+    if (raw > 0) return Math.max(0.01, raw)
+    else if (Math.abs(adjustedPointer[a]) <= DEAD_ZONE) return 0.01
+    else {
+      const flipPointer = adjustedPointer[a] + Math.sign(denom[a]) * DEAD_ZONE
+      const z = flipPointer / denom[a]
+
+      return  Math.sign(z) * Math.max(0.01, Math.abs(z))
+    }
+  }
+
+  return 1
+}
 
 export type ResizeHandler = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w"
 
-export class Transformer extends Mixin(Group) {
+export class Transformer extends Group {
   private readonly _originsShape: Record<string, {
-    originRotate: Primitive.PointData
-    originScale: Primitive.PointData
-    points: Array<Primitive.PointData>
+    originRotate: Point
+    originScale: Point
+    points: Array<PointData>
   }> = {}
 
-  public readonly initialOBB = new Primitive.Rectangle()
+  public readonly initialOBB = new Rectangle()
 
   private readonly _handlePosition = new Point()
   private readonly _transformScale = new Point(1, 1)
@@ -23,7 +36,7 @@ export class Transformer extends Mixin(Group) {
   private readonly _obbWorldCenter = new Point()
   private readonly _padding = 7
 
-  public get center(): Primitive.PointData {
+  public get center(): Point {
     return this._obbWorldCenter
   }
 
@@ -33,10 +46,6 @@ export class Transformer extends Mixin(Group) {
 
     const isMultiple = children.length > 1
 
-    if (isMultiple === false && children[0] instanceof Polygon) {
-      return children[0].transformer.angle
-    }
-
     return isMultiple ? 0.5 : 0
   }
 
@@ -44,12 +53,10 @@ export class Transformer extends Mixin(Group) {
     const angle = this.angle
 
     this.getChildren().forEach((shape) => {
-      if (shape instanceof Polygon) {
-        this._originsShape[shape.id] = {
-          originRotate: shape.transformer.originRotate.clone(),
-          originScale: shape.transformer.originScale.clone(),
-          points: shape.getPoints(),
-        }
+      this._originsShape[shape.id] = {
+        originRotate: shape.transformer.originRotate.clone(),
+        originScale: shape.transformer.originScale.clone(),
+        points: shape.getPoints(),
       }
     })
 
@@ -196,53 +203,24 @@ export class Transformer extends Mixin(Group) {
     this._pivotPosition.set(pivotX, pivotY)
   }
 
-  public setTransformScale(currentPointer: Primitive.PointData): void {
+  public setTransformScale(currentPointer: Point): void {
     const PADDING = this._padding
     const DEAD_ZONE = 2 * PADDING
 
-    const delta = Point.subtract(currentPointer, this._worldPivot)
-    const localPointer = Point.rotate(delta, -this.angle)
+    const delta = currentPointer.sub(this._worldPivot)
+    const localPointer = Matrix3x3.rotate(-this.angle).applyToPoint(delta)
 
-    const paddingOffset = {
-      x: Math.sign(this._handlePosition.x) * PADDING,
-      y: Math.sign(this._handlePosition.y) * PADDING,
-    }
+    const paddingOffset = this._handlePosition.sign().scale(PADDING)
+    const adjustedPointer = localPointer.sub(paddingOffset)
 
-    const adjustedPointer = {
-      x: localPointer.x - paddingOffset.x,
-      y: localPointer.y - paddingOffset.y,
-    }
+    const denom = this._handlePosition.sub(this._pivotPosition)
 
-    const denom = Point.subtract(this._handlePosition, this._pivotPosition)
+    const s = new Point(
+      t(denom, adjustedPointer, DEAD_ZONE, "x"),
+      t(denom, adjustedPointer, DEAD_ZONE, "y")
+    )
 
-    let sx = 1
-    let sy = 1
-
-    if (denom.x !== 0) {
-      const raw = adjustedPointer.x / denom.x
-
-      if (raw > 0) sx = Math.max(0.01, raw)
-      else if (Math.abs(adjustedPointer.x) <= DEAD_ZONE) sx = 0.01
-      else {
-        const flipPointer = adjustedPointer.x + Math.sign(denom.x) * DEAD_ZONE
-        sx = flipPointer / denom.x
-        sx = Math.sign(sx) * Math.max(0.01, Math.abs(sx))
-      }
-    }
-
-    if (denom.y !== 0) {
-      const raw = adjustedPointer.y / denom.y
-
-      if (raw > 0) sy = Math.max(0.01, raw)
-      else if (Math.abs(adjustedPointer.y) <= DEAD_ZONE) sy = 0.01
-      else {
-        const flipPointer = adjustedPointer.y + Math.sign(denom.y) * DEAD_ZONE
-        sy = flipPointer / denom.y
-        sy = Math.sign(sy) * Math.max(0.01, Math.abs(sy))
-      }
-    }
-
-    this._transformScale.set(sx, sy)
+    s.copyTo(this._transformScale)
   }
 
   public applyTransform(): void {

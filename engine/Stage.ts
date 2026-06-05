@@ -1,9 +1,8 @@
 import type { EventObject } from "./behaviors/EventBehavior"
-import { Container } from "./Container"
 import type { Layer } from "./Layer"
 import { Point, type PointData } from "./maths"
-import { Node } from "./Node"
 import { getPointFromEvent } from "./shared/point"
+import { SimObject } from "./world/sim-object"
 
 export interface StageConfig {
   draggable: boolean
@@ -16,7 +15,7 @@ export type Sizes = {
   height: number
 }
 
-type EventTargetNode = Node | Stage
+type EventTargetNode = SimObject | Stage
 
 type PointerState = {
   downTarget: EventTargetNode | null
@@ -44,7 +43,7 @@ const TOUCH_ALIASES: Partial<Record<string, string>> = {
   pointercancel: "touchcancel",
 }
 
-export class Stage extends Container<Layer> {
+export class Stage extends SimObject {
   public readonly absolutePositionCursor = new Point()
   public readonly sizes: Sizes = {
     width: 0,
@@ -87,7 +86,7 @@ export class Stage extends Container<Layer> {
   }
 
   public constructor(config: StageConfig) {
-    super({})
+    super()
 
     this.sizes.width = config.width
     this.sizes.height = config.height
@@ -113,7 +112,7 @@ export class Stage extends Container<Layer> {
   public renderHit(_context: CanvasRenderingContext2D): void { }
 
   public render() {
-    this.getChildren().forEach((layer) => layer.render())
+    this.children().forEach((layer) => layer.render())
 
     requestAnimationFrame(this.render.bind(this))
   }
@@ -123,9 +122,10 @@ export class Stage extends Container<Layer> {
       this.content.appendChild(layer.getCanvas())
       this.content.appendChild(layer.getHitCanvas())
 
-      this.getChildren().push(layer)
-      layer.setParent(this)
-      layer.setStage(this)
+      this.children(layer)
+
+      layer.parent(this)
+      layer.stage(this)
     })
   }
 
@@ -321,7 +321,7 @@ export class Stage extends Container<Layer> {
   }
 
   private _findTopmostTarget(point: PointData): EventTargetNode | null {
-    const layers = this.getChildren()
+    const layers = this.children()
 
     for (let i = layers.length - 1; i >= 0; i -= 1) {
       const match = layers[i].getIntersection(point)
