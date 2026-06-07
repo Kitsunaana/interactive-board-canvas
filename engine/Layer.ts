@@ -1,7 +1,9 @@
+import rough from 'roughjs'
 import { isUndefined } from "lodash";
 import * as Primitive from "./maths";
 import { type Sizes, Stage } from "./Stage";
 import { SimObject } from "./world/sim-object";
+import { RoughCanvas } from "roughjs/bin/canvas";
 
 export interface LayerConfig {
 }
@@ -20,6 +22,8 @@ export class Layer extends SimObject {
 
   private _lastHitColorId = 0
 
+  public rc: RoughCanvas
+
   public constructor() {
     super()
 
@@ -30,6 +34,8 @@ export class Layer extends SimObject {
       willReadFrequently: true,
       alpha: true,
     }) as CanvasRenderingContext2D
+
+    this.rc = rough.canvas(this._canvas)
   }
 
   public getBounds(): Primitive.Rectangle {

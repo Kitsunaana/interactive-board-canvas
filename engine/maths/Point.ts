@@ -28,6 +28,10 @@ export class Point implements PointLike {
     return new Point(value.width, value.height)
   }
 
+  public static fromData(point: PointData) {
+    return new Point(point.x, point.y)
+  }
+
   public constructor(public x: number = 0, public y: number = 0) { }
 
   public clone(): Point {
@@ -85,7 +89,7 @@ export class Point implements PointLike {
     return [this.x, this.y]
   }
 
-  public toSize(): SizeData {
+  public size(): SizeData {
     return {
       width: this.x,
       height: this.y,

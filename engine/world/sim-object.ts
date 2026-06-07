@@ -4,7 +4,7 @@ import { Mixin } from "ts-mixer";
 import { EventBehavior } from "../behaviors/EventBehavior";
 import { Transformable } from "../behaviors/Transformable";
 import type { Layer } from "../Layer";
-import { Matrix3x3, type PointData, Rectangle } from "../maths";
+import { Matrix3x3, Point, type PointData, Rectangle } from "../maths";
 
 export type GetBoundsParams = {
   skipWorldTransform?: boolean
@@ -12,6 +12,7 @@ export type GetBoundsParams = {
 }
 
 export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
+  public abstract updateAfterTransform(): void
   public abstract getBounds(params?: GetBoundsParams): Rectangle
 
   public id: string = nanoid()
@@ -22,6 +23,38 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
 
   protected _localMatrix: Matrix3x3 = Matrix3x3.identity()
   protected _worldMatrix: Matrix3x3 = Matrix3x3.identity()
+
+  public get worldMatrix(): Matrix3x3 {
+    return this._worldMatrix
+  }
+
+  public get localMatrix(): Matrix3x3 {
+    return this._localMatrix
+  }
+
+  public set worldMatrix(matrix: Matrix3x3) {
+    this._worldMatrix = matrix
+    this.updateAfterTransform()
+  }
+
+  public set localMatrix(matrix: Matrix3x3) {
+    this._localMatrix = matrix
+    this.updateAfterTransform()
+  }
+
+  public rotate(angle: number): void {
+    super.rotate(angle)
+    this.localMatrix = this.computeMatrix()
+  }
+
+  public scale(scale: Point): void {
+    super.scale(scale)
+    this.localMatrix = this.computeMatrix()
+  }
+
+  public getCurrentAngle(): number {
+    return Math.atan2(this.localMatrix.b, this.localMatrix.a)
+  }
 
   public children(): Array<SimObject>
   public children(...list: Array<SimObject>): void
@@ -56,7 +89,7 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
     return this
       .getBounds()
       .getCorners()
-      .map((point) => matrix.applyToPoint(point))
+      .map(matrix.applyToPoint.bind(matrix))
   }
 
   public computeWorldMatrix(): Matrix3x3 {
@@ -65,7 +98,6 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
     return parents.reduce(
       (accMatrix, object) => {
         const matrix = object.computeMatrix()
-
         return Matrix3x3.compose(accMatrix, matrix)
       },
       Matrix3x3.identity()

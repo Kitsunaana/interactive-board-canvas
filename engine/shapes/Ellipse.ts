@@ -1,4 +1,4 @@
-import { Bounds, Matrix3x3, Point, type PointData, Rectangle } from "../maths";
+import { Bounds, Matrix3x3, Point, type PointData, Polygon, Rectangle } from "../maths";
 import { type GetBoundsParams } from "../world/sim-object";
 import { Shape } from "./Shape";
 
@@ -9,21 +9,16 @@ export class Ellipse extends Shape {
   public constructor(private x: number, private y: number, private rx: number, private ry: number) {
     super()
 
-    this.isShowOrigins = true
+    this.isShowOrigins = false
 
-    this.initialPoints = this._getEllipsePath()
-    this.pointsToTrace = this._getEllipsePath()
+    this.initialPoints = Ellipse.computePointsToTrace(x, y, rx, ry)
+    this.pointsToTrace = this.initialPoints.map(point => ({ ...point }))
   }
 
-  private _getEllipsePath() {
-    const cx = this.x
-    const cy = this.y
-    const rx = this.rx
-    const ry = this.ry
-
+  public static computePointsToTrace(cx: number, cy: number, rx: number, ry: number): Array<PointData> {
     const K = 4 * (Math.sqrt(2) - 1) / 3
 
-    const transform = (x: number, y: number) => new Point(cx + x, cy + y)
+    const transform = (x: number, y: number) => ({ x: cx + x, y: cy + y })
 
     return [
       transform(rx, 0),
@@ -60,23 +55,10 @@ export class Ellipse extends Shape {
 
     const bounds = new Bounds(...min.array(), ...max.array())
 
-    return bounds.rectangle
+    return this.applyStylesToBounds(bounds.rectangle)
   }
 
-  public render(context: CanvasRenderingContext2D): void {
-    this._traceSplinePath(context)
-    context.stroke()
-
-    const bounds = this.getBounds({ skipTransform: true })
-    // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-
-    const selfRect = this.getBounds({ skipTransform: true })
-    // context.strokeRect(selfRect.x, selfRect.y, selfRect.width, selfRect.height)
-
-    this.drawOrigins(context, this._worldMatrix)
-  }
-
-  private _traceSplinePath(context: CanvasRenderingContext2D): void {
+  public tracePath(context: CanvasRenderingContext2D): void {
     const length = this.pointsToTrace.length
 
     context.moveTo(this.pointsToTrace[0].x, this.pointsToTrace[0].y)

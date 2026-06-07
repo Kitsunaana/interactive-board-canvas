@@ -10,7 +10,7 @@ export class Group extends Node {
   public constructor() {
     super()
 
-    this.isShowOrigins = false
+    this.isShowOrigins = true
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
@@ -22,10 +22,10 @@ export class Group extends Node {
       .getCorners()
     )
 
-    return Polygon.prototype.getBounds.call({ points: corners })
+    return Polygon.getBounds(corners)
   }
 
-  protected _updatePointsToTrace(): void {
+  public updateAfterTransform(): void {
     const matrix = Matrix3x3.compose(this._worldMatrix, this._localMatrix)
 
     this._children.forEach((child) => {

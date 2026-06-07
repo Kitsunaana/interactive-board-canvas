@@ -1,52 +1,90 @@
-import { Matrix3x3, Polygon, Rectangle, type PointData } from "../maths"
+import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths"
+import { BackgroundImage } from "../styles/background-image"
 import { type GetBoundsParams } from "../world/sim-object"
 import { Shape } from "./Shape"
 
-export class PolygonShape extends Shape {
-  public tension: number = 0.2
-  public geometry: Polygon
+const source = "https://avatars.mds.yandex.net/i?id=2e34b2a2ac0026106cc76353e2797bf03b9e2551-5249431-images-thumbs&n=13"
 
+export class PolygonShape extends Shape {
+  public static computePointsToTraceWithTension(points: Array<PointData>, tension: number) {
+    const length = points.length
+
+    return points.reduce((result, _, index, list) => {
+      const p0 = list[(index - 1 + length) % length]
+      const p1 = list[index]
+      const p2 = list[(index + 1) % length]
+      const p3 = list[(index + 2) % length]
+
+      const cp1 = Point
+        .fromData(p2)
+        .sub(p0)
+        .scale(tension)
+        .add(p1)
+
+      const cp2 = Point
+        .fromData(p2)
+        .sub(
+          Point
+            .fromData(p3)
+            .sub(p1)
+            .scale(tension)
+        )
+
+      return result.concat([cp1, cp2, p2])
+    }, [{ ...points[0] }] as Array<PointData>)
+  }
+
+  public tension: number = 0.2
   public pointsToTrace: Array<PointData> = []
+  public backgroundImage: BackgroundImage
 
   public constructor(public readonly initialPoints: Array<PointData>) {
     super()
 
-    this.isShowOrigins = true
+    this.isShowOrigins = false
+    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(initialPoints, this.tension)
 
-    this.geometry = new Polygon(initialPoints)
-    this.pointsToTrace = initialPoints
+    this.backgroundImage = new BackgroundImage()
+      .setContainer(this.getBounds())
+      .setBackgroundImage(source)
+      .setBackgroundSize("cover")
+  }
+
+  public update(time: number): void {
+
+  }
+
+  public scale(scale: Point): void {
+    super.scale(scale)
+    this.backgroundImage.setContainer(this.getUnrotateShapeBounds())
+  }
+
+  public getUnrotateShapeBounds() {
+    const unrotate = Matrix3x3.aroundOrigin(this.getOriginPosition("rotate"), () => {
+      return Matrix3x3.rotate(-this.getCurrentAngle())
+    })
+
+    const matrix = Matrix3x3.compose(unrotate, this.localMatrix)
+
+    const points = this.initialPoints.map(matrix.applyToPoint.bind(matrix)) as Array<PointData>
+    const curved = Polygon.computeTensionedCurveExtrema(points, this.tension)
+    const bounds = Polygon.getBounds(points.concat(curved))
+
+    return bounds
+  }
+
+  public updateAfterTransform(): void {
+    super.updateAfterTransform()
+    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(this.pointsToTrace, this.tension)
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
-    let points = this.initialPoints
+    const points = this._getPointsByComputeBounds(params)
+    const curved = Polygon.computeTensionedCurveExtrema(points, this.tension)
 
-    if (params.skipTransform === false) {
-      const computed = params.skipWorldTransform
-        ? this.localMatrix
-        : Matrix3x3.compose(this.worldMatrix, this.localMatrix)
+    const bounds = Polygon.getBounds(points.concat(curved))
 
-      points = this.initialPoints.map((point) => computed.applyToPoint(point))
-    }
-
-    const curved = Polygon.prototype.computeTensionedCurveExtrema.call({ points }, this.tension)
-    const allPoints = points.concat(curved)
-
-    return Polygon.prototype.getBounds.call({ points: allPoints })
-  }
-
-  public render(context: CanvasRenderingContext2D): void {
-    context.save()
-    this.tracePath(context)
-    context.stroke()
-    context.closePath()
-
-    const bounds = this.getBounds({ skipTransform: false })
-    // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-
-    const selfRect = this.getBounds()
-    // context.strokeRect(selfRect.x, selfRect.y, selfRect.width, selfRect.height)
-
-    this.drawOrigins(context, this._worldMatrix)
+    return this.applyStylesToBounds(bounds)
   }
 
   public tracePath(context: CanvasRenderingContext2D): void {
@@ -54,6 +92,16 @@ export class PolygonShape extends Shape {
     if (this._shouldRenderStraightEdges()) this._traceLinearPath(context)
     else this._traceSplinePath(context)
     context.closePath()
+  }
+
+  private _getPointsByComputeBounds(params: GetBoundsParams) {
+    if (params.skipTransform) return this.initialPoints
+
+    const matrix = params.skipWorldTransform
+      ? this.localMatrix
+      : Matrix3x3.compose(this.worldMatrix, this.localMatrix)
+
+    return this.initialPoints.map(matrix.applyToPoint.bind(matrix))
   }
 
   private _shouldRenderStraightEdges(): boolean {
@@ -70,22 +118,12 @@ export class PolygonShape extends Shape {
 
     context.moveTo(this.pointsToTrace[0].x, this.pointsToTrace[0].y)
 
-    for (let i = 0; i < length; i++) {
-      const p0 = this.pointsToTrace[(i - 1 + length) % length]
+    for (let i = 1; i < length; i += 3) {
       const p1 = this.pointsToTrace[i]
-      const p2 = this.pointsToTrace[(i + 1) % length]
-      const p3 = this.pointsToTrace[(i + 2) % length]
+      const p2 = this.pointsToTrace[i + 1]
+      const p3 = this.pointsToTrace[i + 2]
 
-      const cp1x = p1.x + (p2.x - p0.x) * this.tension
-      const cp1y = p1.y + (p2.y - p0.y) * this.tension
-      const cp2x = p2.x - (p3.x - p1.x) * this.tension
-      const cp2y = p2.y - (p3.y - p1.y) * this.tension
-
-      context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y)
+      context.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y)
     }
-  }
-
-  public update(time: number): void {
-
   }
 }

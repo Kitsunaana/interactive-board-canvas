@@ -15,7 +15,13 @@ const stage = new Stage({
 const layer = new Layer()
 
 const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
-const points2 = [{ x: 400, y: 400 }, { x: 420, y: 300 }, { x: 440, y: 350 }, { x: 500, y: 300 }, { x: 500, y: 400 }]
+const points2 = [
+  { x: 400, y: 400 }, 
+  { x: 420, y: 300 }, 
+  { x: 440, y: 350 }, 
+  { x: 500, y: 300 }, 
+  { x: 500, y: 400 },
+]
 
 const points3 = [
   { x: 45, y: 90 },
@@ -38,6 +44,7 @@ const points3 = [
   { x: 60, y: 135 },
   { x: 45, y: 120 },
   { x: 45, y: 105 },
+  { x: 45, y: 90 },
 ]
 
 const points4 = [
@@ -49,7 +56,7 @@ const points4 = [
   { x: 135, y: 105 },
   { x: 90, y: 105 },
   { x: 90, y: 120 },
-
+  // { x: 60, y: 120 },
   // { x: 100, y: 200 }, { x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 200 }
 ]
 
@@ -59,8 +66,8 @@ const polygonShape1 = new PolygonShape(points2)
 const polygonShape2 = new PolygonShape(points4)
 
 const circleShape1 = new Ellipse(500, 600, 40, 60)
-circleShape1.rotate(0.5)
-circleShape1.scale(new Point(1, 1.5))
+// circleShape1.rotate(0.5)
+// circleShape1.scale(new Point(3, 3))
 // circleShape1.rotate(0.5)
 
 polygonShape1.scale(new Point(1, 1.9))
@@ -69,11 +76,13 @@ polygonShape1.rotate(0.5)
 groupSimObject.children(polygonShape1)
 groupSimObject.children(polygonShape2)
 
+// polygonShape2.scale(new Point(3, 3))
+
 groupSimObject.children(circleShape1)
 
-polygonShape1.rotate(0.5)
-groupSimObject.rotate(0.2)
-groupSimObject.scale(new Point(1, 1.0))
+// polygonShape1.rotate(0.5)
+// groupSimObject.rotate(0.2)
+// groupSimObject.scale(new Point(1, 1.0))
 
 groupSimObject.beginInteraction("rotate")
 let angle = 0.01

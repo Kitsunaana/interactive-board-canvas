@@ -61,7 +61,9 @@ export const drawSmoothWobblyLine = (context: CanvasRenderingContext2D, points: 
   context.stroke()
 }
 
-export const drawSketchShape = (context: CanvasRenderingContext2D, { hachureFill, hachureLines, layerOffsets, outlines, strokeColor }: SketchProperties) => {
+export const drawSketchShape = (context: CanvasRenderingContext2D, params: SketchProperties) => {
+  const { hachureFill, hachureLines, layerOffsets, outlines, strokeColor } = params
+  
   context.save()
 
   const mainOffset = layerOffsets[0]

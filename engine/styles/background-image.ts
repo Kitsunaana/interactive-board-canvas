@@ -1,4 +1,3 @@
-import { BaseShapeComponent } from "../components/base-shape-component"
 import { BackgroundSizeParser } from "../components/string-size-parser"
 import { Matrix3x3, Point, Rectangle, type PointData } from "../maths"
 
@@ -11,7 +10,6 @@ const iterate = (start: number, end: number, callback: (i: number) => void) => {
 export type BackgroundImageRepeat = "repeat" | "repeat-x" | "repeat-y" | "no-repeat"
 
 export class BackgroundImage {
-  private _component: BaseShapeComponent | null = null
   private _container: Rectangle = new Rectangle(0, 0, 1, 1)
   private _image: HTMLImageElement | null = null
   private _isLoaded: boolean = false
@@ -19,25 +17,21 @@ export class BackgroundImage {
   private _repeat: BackgroundImageRepeat = "no-repeat"
   private _position: Point = new Point(0, 0)
 
-  private _backgroundSizeParser: BackgroundSizeParser | null = null
+  private _backgroundSizeParser: BackgroundSizeParser = new BackgroundSizeParser()
   private _extractedBackgroundSize: Point | null = null
   private _needApplyBackgroundCssValue: string = "auto"
 
   public _pattern: CanvasPattern | null = null
   public _dirty: boolean = true
 
-  public get component() {
-    if (this._component === null) throw new Error("Компонента не определена")
-    return this._component
-  }
-
-  public setComponent(component: BaseShapeComponent): this {
-    this._component = component
-    return this
-  }
-
   public setContainer(container: Rectangle): this {
-    this._container = container
+    this._container.copyFrom(container)
+
+    this._backgroundSizeParser.containerBounds = container.clone()
+    this._extractedBackgroundSize = this._backgroundSizeParser.parse(this._needApplyBackgroundCssValue)
+    
+    this._markDirty()
+
     return this
   }
 
@@ -53,8 +47,8 @@ export class BackgroundImage {
   }
 
   public setBackgroundSize(cssValue: string): this {
-    if (this._backgroundSizeParser) this._extractedBackgroundSize = this._backgroundSizeParser.parse(cssValue)
-    else this._needApplyBackgroundCssValue = cssValue
+    this._needApplyBackgroundCssValue = cssValue
+    this._extractedBackgroundSize = this._backgroundSizeParser.parse(cssValue)
 
     return this
   }
@@ -69,6 +63,8 @@ export class BackgroundImage {
       this._pattern = this._computeImagePattern(context)
       this._dirty = false
     }
+
+    this._pattern = this._computeImagePattern(context)
 
     return this._pattern
   }
@@ -101,12 +97,6 @@ export class BackgroundImage {
       const start = this._position.div(size).floor().sub(Point.one())
       const end = this._position.add(Point.fromSize(shapeBounds)).div(size).ceil().add(Point.one());
 
-      const currentAngle = Math.atan2(this.component.transformMatrix.b, this.component.transformMatrix.a);
-      const matrix = Matrix3x3.aroundOrigin(Point.fromSize(shapeBounds).scale(0.5), () => Matrix3x3.rotate(currentAngle));
-
-      offContext.setTransform(matrix);
-      // matrix.applyToContext(offContext);
-
       ({
         "repeat-x": () => iterate(start.x, end.x, (col) => this._drawImage(offContext, col, 0)),
         "repeat-y": () => iterate(start.y, end.y, (row) => this._drawImage(offContext, 0, row)),
@@ -134,7 +124,8 @@ export class BackgroundImage {
 
       if (data.target instanceof HTMLImageElement) {
         this._image = data.target
-        this._backgroundSizeParser = new BackgroundSizeParser(this._image, this._container)
+        this._backgroundSizeParser._image = this._image
+        this._backgroundSizeParser.containerBounds = this._container
         this._extractedBackgroundSize = this._backgroundSizeParser.parse(this._needApplyBackgroundCssValue)
       }
     }
