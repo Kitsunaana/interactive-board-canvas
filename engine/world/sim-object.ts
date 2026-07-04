@@ -33,12 +33,12 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   }
 
   public set worldMatrix(matrix: Matrix3x3) {
-    this._worldMatrix = matrix
+    this._worldMatrix = matrix.clone()
     this.updateAfterTransform()
   }
 
   public set localMatrix(matrix: Matrix3x3) {
-    this._localMatrix = matrix
+    this._localMatrix = matrix.clone()
     this.updateAfterTransform()
   }
 
@@ -53,7 +53,8 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   }
 
   public getCurrentAngle(): number {
-    return Math.atan2(this.localMatrix.b, this.localMatrix.a)
+    const matrix = Matrix3x3.compose(this.worldMatrix, this.localMatrix)
+    return Math.atan2(Math.abs(matrix.b), Math.abs(matrix.a))
   }
 
   public children(): Array<SimObject>
@@ -63,6 +64,7 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
 
     list.forEach((child) => {
       this._children.push(child)
+      this.fire("addChild", { ...child })
       child.parent(this)
     })
   }
@@ -90,18 +92,6 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
       .getBounds()
       .getCorners()
       .map(matrix.applyToPoint.bind(matrix))
-  }
-
-  public computeWorldMatrix(): Matrix3x3 {
-    const parents = this.getAllParents()
-
-    return parents.reduce(
-      (accMatrix, object) => {
-        const matrix = object.computeMatrix()
-        return Matrix3x3.compose(accMatrix, matrix)
-      },
-      Matrix3x3.identity()
-    )
   }
 
   public getAllParents<T extends SimObject>(list: Array<T> = []): Array<T> {

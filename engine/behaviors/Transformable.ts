@@ -48,9 +48,9 @@ export const buildInitialOpearationsRecord = (): Record<TramsformOperation, Poin
 export abstract class Transformable {
   public abstract getBounds(params: GetBoundsParams): Rectangle
 
-  private _instructions: TransformInstruction[] = []
+  public _instructions: TransformInstruction[] = []
   private _cachedBaseMatrix: Matrix3x3 = Matrix3x3.identity()
-  
+
   public currentRelativeOrigins = buildInitialOpearationsRecord()
   public isInteracting: boolean = false
   public isShowOrigins: boolean = false
@@ -175,13 +175,14 @@ export abstract class Transformable {
 
   private _getOriginInOriginalSpace(instruction: TransformInstruction) {
     const originalBounds = Polygon.prototype.getBounds.call({ points: instruction.points })
-
     const propertyName = "relativeOrigin" as const
 
     if (propertyName in instruction) {
+      const relativeOrigin = instruction[propertyName]
+
       return {
-        x: originalBounds.x + originalBounds.width * instruction[propertyName].x,
-        y: originalBounds.y + originalBounds.height * instruction[propertyName].y,
+        x: originalBounds.x + originalBounds.width * relativeOrigin.x,
+        y: originalBounds.y + originalBounds.height * relativeOrigin.y,
       }
     }
 
@@ -193,7 +194,7 @@ export abstract class Transformable {
     accumulated: Matrix3x3,
   ): Matrix3x3 {
     const originInOriginalSpace = this._getOriginInOriginalSpace(instruction)
-    
+
     const absoluteOrigin = accumulated.applyToPoint(originInOriginalSpace)
     const currentAngle = Math.atan2(accumulated.b, accumulated.a)
 
@@ -211,10 +212,17 @@ export abstract class Transformable {
   public getOriginPosition(operation: TramsformOperation): PointData {
     const matrix = this.computeMatrix()
     const originalBounds = this.getBounds({ skipTransform: true })
+    const relativePoint = this.currentRelativeOrigins[operation]
+
+    const isFlippedX = false // matrix.a < 0
+    const isFlippedY = false // matrix.d < 0
+
+    const correctedRelativeX = isFlippedX ? 1 - relativePoint.x : relativePoint.x
+    const correctedRelativeY = isFlippedY ? 1 - relativePoint.y : relativePoint.y
 
     const originInOriginalSpace: PointData = {
-      x: originalBounds.x + originalBounds.width * this.currentRelativeOrigins[operation].x,
-      y: originalBounds.y + originalBounds.height * this.currentRelativeOrigins[operation].y,
+      x: originalBounds.x + originalBounds.width * correctedRelativeX,
+      y: originalBounds.y + originalBounds.height * correctedRelativeY,
     }
 
     return matrix.applyToPoint(originInOriginalSpace)

@@ -10,7 +10,7 @@ export class Group extends Node {
   public constructor() {
     super()
 
-    this.isShowOrigins = true
+    this.isShowOrigins = false
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
@@ -21,6 +21,20 @@ export class Group extends Node {
       })
       .getCorners()
     )
+
+    const points = this._children.flatMap((child) => {
+      const matrix = params.skipTransform
+        ? Matrix3x3.identity()
+        : Matrix3x3.compose(child.worldMatrix, child.localMatrix)
+
+      if (Shape.isShape(child)) {
+        return child.initialPoints.map(matrix.applyToPoint.bind(matrix))
+      }
+
+      return []
+    })
+
+    return Polygon.getBounds(points)
 
     return Polygon.getBounds(corners)
   }
@@ -44,3 +58,4 @@ export class Group extends Node {
     // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
   }
 }
+

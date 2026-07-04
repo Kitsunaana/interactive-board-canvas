@@ -1,6 +1,9 @@
 import { Bounds, Matrix3x3, Point, type PointData, Polygon, Rectangle } from "../maths";
+import { BackgroundImage } from "../styles/background-image";
 import { type GetBoundsParams } from "../world/sim-object";
 import { Shape } from "./Shape";
+
+const source = "https://i.pinimg.com/736x/78/ea/88/78ea88af3c4dec0b3231ff1a06c5de8b.jpg"
 
 export class Ellipse extends Shape {
   public initialPoints: Array<PointData>
@@ -13,6 +16,12 @@ export class Ellipse extends Shape {
 
     this.initialPoints = Ellipse.computePointsToTrace(x, y, rx, ry)
     this.pointsToTrace = this.initialPoints.map(point => ({ ...point }))
+
+    this.backgroundImage = new BackgroundImage()
+      .setSimObject(this)
+      .setContainer(this.getBounds())
+      .setBackgroundImage(source)
+      .setBackgroundSize("cover")
   }
 
   public static computePointsToTrace(cx: number, cy: number, rx: number, ry: number): Array<PointData> {
@@ -43,6 +52,27 @@ export class Ellipse extends Shape {
         ? Matrix3x3.compose(this.localMatrix)
         : Matrix3x3.compose(this.worldMatrix, this.localMatrix)
 
+    const center = matrix.applyToPoint(new Point(this.x, this.y))
+
+    const halfSize = new Point(
+      Math.sqrt(Math.pow(matrix.a * this.rx, 2) + Math.pow(matrix.c * this.ry, 2)),
+      Math.sqrt(Math.pow(matrix.b * this.rx, 2) + Math.pow(matrix.d * this.ry, 2))
+    )
+
+    const min = center.sub(halfSize)
+    const max = center.add(halfSize)
+
+    const bounds = new Bounds(...min.array(), ...max.array())
+
+    return this.applyStylesToBounds(bounds.rectangle)
+  }
+
+  public getUnrotateShapeBounds(): Rectangle {
+    const unrotate = Matrix3x3.aroundOrigin(this.getOriginPosition("rotate"), () => {
+      return Matrix3x3.rotate(-this.getCurrentAngle())
+    })
+
+    const matrix = Matrix3x3.compose(unrotate, this.worldMatrix, this.localMatrix)
     const center = matrix.applyToPoint(new Point(this.x, this.y))
 
     const halfSize = new Point(

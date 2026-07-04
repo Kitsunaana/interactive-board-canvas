@@ -34,29 +34,32 @@ export class PolygonShape extends Shape {
     }, [{ ...points[0] }] as Array<PointData>)
   }
 
-  public tension: number = 0.2
+  public tension: number = 0.0
   public pointsToTrace: Array<PointData> = []
-  public backgroundImage: BackgroundImage
 
   public constructor(public readonly initialPoints: Array<PointData>) {
     super()
 
-    this.isShowOrigins = false
+    this.isShowOrigins = true
     this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(initialPoints, this.tension)
 
     this.backgroundImage = new BackgroundImage()
+      .setSimObject(this)
       .setContainer(this.getBounds())
       .setBackgroundImage(source)
       .setBackgroundSize("cover")
+
+    this.backgroundImage = null
   }
 
   public update(time: number): void {
 
   }
 
-  public scale(scale: Point): void {
-    super.scale(scale)
-    this.backgroundImage.setContainer(this.getUnrotateShapeBounds())
+  public updateAfterTransform(): void {
+    super.updateAfterTransform()
+    
+    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(this.pointsToTrace, this.tension)
   }
 
   public getUnrotateShapeBounds() {
@@ -71,11 +74,7 @@ export class PolygonShape extends Shape {
     const bounds = Polygon.getBounds(points.concat(curved))
 
     return bounds
-  }
-
-  public updateAfterTransform(): void {
-    super.updateAfterTransform()
-    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(this.pointsToTrace, this.tension)
+    return this.applyStylesToBounds(bounds)
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
@@ -84,14 +83,37 @@ export class PolygonShape extends Shape {
 
     const bounds = Polygon.getBounds(points.concat(curved))
 
+    return bounds
+
     return this.applyStylesToBounds(bounds)
   }
 
   public tracePath(context: CanvasRenderingContext2D): void {
     context.beginPath()
-    if (this._shouldRenderStraightEdges()) this._traceLinearPath(context)
-    else this._traceSplinePath(context)
+    if (this._shouldRenderStraightEdges()) this.traceLinearPath(context)
+    else this.traceSplinePath(context)
     context.closePath()
+  }
+
+  public render(context: CanvasRenderingContext2D): void {
+    super.render(context)
+
+    const rotateOrigin = this.getOriginPosition("rotate")
+
+    context.save()
+    context.beginPath()
+
+    Matrix3x3
+      .aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(this.getCurrentAngle()))
+      .applyToContext(context)
+
+    const rect = this.getUnrotateShapeBounds()
+    // context.strokeRect(rect.x, rect.y, rect.width, rect.height)
+    // PolygonShape.prototype._traceLinearPath.call({ pointsToTrace: this.getUnrotateShapeBounds().getCorners() }, context)
+
+    context.closePath()
+    context.stroke()
+    context.restore()
   }
 
   private _getPointsByComputeBounds(params: GetBoundsParams) {
@@ -108,12 +130,12 @@ export class PolygonShape extends Shape {
     return this.pointsToTrace.length < 3 || this.tension === 0
   }
 
-  private _traceLinearPath(context: CanvasRenderingContext2D): void {
+  public traceLinearPath(context: CanvasRenderingContext2D): void {
     context.moveTo(this.pointsToTrace[0].x, this.pointsToTrace[0].y)
     this.pointsToTrace.forEach((point) => context.lineTo(point.x, point.y))
   }
 
-  private _traceSplinePath(context: CanvasRenderingContext2D): void {
+  public traceSplinePath(context: CanvasRenderingContext2D): void {
     const length = this.pointsToTrace.length
 
     context.moveTo(this.pointsToTrace[0].x, this.pointsToTrace[0].y)

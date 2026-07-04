@@ -5,6 +5,7 @@ import { Point } from "./maths";
 import { Ellipse } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
+import { Tranformer } from "./world/Transformer";
 
 const stage = new Stage({
   height: window.innerHeight,
@@ -64,34 +65,55 @@ const groupSimObject = new Group()
 
 const polygonShape1 = new PolygonShape(points2)
 const polygonShape2 = new PolygonShape(points4)
+const polygonShape3 = new PolygonShape(points2)
 
 const circleShape1 = new Ellipse(500, 600, 40, 60)
+circleShape1.isShowOrigins = true
 // circleShape1.rotate(0.5)
 // circleShape1.scale(new Point(3, 3))
 // circleShape1.rotate(0.5)
 
-polygonShape1.scale(new Point(1, 1.9))
-polygonShape1.rotate(0.5)
+// polygonShape1.scale(new Point(1.3, 2.9))
+// polygonShape1.rotate(0.5)
 
 groupSimObject.children(polygonShape1)
-groupSimObject.children(polygonShape2)
+
+const tranformer = new Tranformer()
+tranformer.children(polygonShape1)
+
+// groupSimObject.children(polygonShape3)
 
 // polygonShape2.scale(new Point(3, 3))
 
-groupSimObject.children(circleShape1)
+// groupSimObject.children(circleShape1)  
 
 // polygonShape1.rotate(0.5)
 // groupSimObject.rotate(0.2)
 // groupSimObject.scale(new Point(1, 1.0))
 
-groupSimObject.beginInteraction("rotate")
+// groupSimObject.scale(new Point(0.5, 0.5))
+
+// groupSimObject.beginInteraction("rotate")
+
+// polygonShape2.beginInteraction("scale")
+
 let angle = 0.01
+let scale = 0
+let frame = 0
 setInterval(() => {
-  angle += 0.01
+  frame++
+  angle += 0.03
+  scale = Math.sin(frame * 0.06) * 4
+
+  // polygonShape2.scale(new Point(scale, scale))
+
+  // groupSimObject.scale(new Point(scale, scale))
+
   // groupSimObject.rotate(angle)
 }, 16)
 
-layer.add(groupSimObject)
+// layer.add(groupSimObject)
+layer.add(tranformer)
 stage.add(layer)
 
 // console.log(groupSimObject.getParent())
