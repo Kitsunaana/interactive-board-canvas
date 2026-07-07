@@ -160,11 +160,19 @@ export class Layer extends SimObject {
   public add(...items: Array<SimObject>): void {
     items.forEach((child) => {
       this.children(child)
+
       child.layer(this)
+      child.fire("addToParent")
     })
   }
 
   private _createUniqueHitColor(): string {
+    const red = Math.floor(Math.random() * 255)
+    const green = Math.floor(Math.random() * 255)
+    const blue = Math.floor(Math.random() * 255)
+
+    return Layer._toHitColor(red, green, blue)
+
     while (this._lastHitColorId < 0xffffff) {
       this._lastHitColorId += 1
 

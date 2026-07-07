@@ -25,12 +25,13 @@ export abstract class Shape extends Node {
   public abstract getUnrotateShapeBounds(): Rectangle
 
   public lineWidth: number = 1
+  public hitLineWidth: number = 10
   public fillColor: string = "orange"
   public strokeColor: string = "black"
   public backgroundImage: BackgroundImage | null = null
   public backgroundGradient: BaseGradient | null = null
 
-  public sketchStyle: boolean = true
+  public sketchStyle: boolean = false
   public sketchFillStyle: SketchFillStyle = "zigzag"
 
   public static isShape(candidate: unknown): candidate is Shape {
@@ -86,12 +87,32 @@ export abstract class Shape extends Node {
     context.restore()
   }
 
+  public renderHit(context: CanvasRenderingContext2D): void {
+    this.tracePath(context)
+
+    context.save()
+    context.lineWidth = this.hitLineWidth
+
+    const hitColor = this.layer()!.getHitColor(this)
+
+    if (this.fillColor !== "none") {
+      context.fillStyle = hitColor
+      context.fill()
+    }
+
+    if (this.strokeColor !== "none") {
+      context.strokeStyle = hitColor
+      context.stroke()
+    }
+
+    context.restore()
+  }
+
   public render(context: CanvasRenderingContext2D): void {
     this.tracePath(context)
-    context.stroke()
 
     this._drawBackgroundImage(context)
-    // this._drawBackgroundGradient(context)
+    this._drawBackgroundGradient(context)
 
     if (this.sketchStyle) {
       this.layer()!.rc.path(Polygon.getSVGPath(this.pointsToTrace), {
@@ -99,6 +120,10 @@ export abstract class Shape extends Node {
         fill: this.backgroundImage ? "none" : this.fillColor,
         stroke: this.strokeColor,
         fillStyle: this.sketchFillStyle,
+        strokeWidth: this.lineWidth,
+        // hachureGap: 0.4,
+        fillWeight: 0.5,
+        hachureGap: 5
       })
 
       return
@@ -117,9 +142,6 @@ export abstract class Shape extends Node {
       context.stroke()
     }
 
-    // this._drawShapeBounds(context)
     context.restore()
-
-    // this.drawOrigins(context, this.worldMatrix)
   }
 }

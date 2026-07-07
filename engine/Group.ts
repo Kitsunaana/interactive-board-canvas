@@ -1,6 +1,6 @@
-import { Matrix3x3, Polygon, Rectangle } from "./maths"
+import { Matrix3x3, type PointData, Polygon, Rectangle } from "./maths"
 import { Node, Shape } from "./shapes/Shape"
-import { type GetBoundsParams } from "./world/sim-object"
+import { SimObject, type GetBoundsParams } from "./world/sim-object"
 
 export class Group extends Node {
   public static isGroup(candidate: unknown): candidate is Group {
@@ -13,6 +13,34 @@ export class Group extends Node {
     this.isShowOrigins = false
   }
 
+  private _getRecursiveTransformedPoints(container: SimObject): Array<PointData> {
+    const children = container.children()
+
+    return children.flatMap((child) => {
+      if (Shape.isShape(child)) {
+        return child.initialPoints.map((point) => child.localMatrix.applyToPoint(point))
+      }
+
+      return this._getRecursiveTransformedPoints(child)
+    })
+
+  }
+
+  public getUnrotateGroupBounds() {
+    const matrix = this.computeMatrix()
+    const currentAngle = this.getCurrentAngle()
+    const unrotate = Matrix3x3.aroundOrigin(this.getOriginPosition("rotate"), () => {
+      return Matrix3x3.rotate(-currentAngle)
+    })
+
+    const merged = Matrix3x3.compose(unrotate, matrix)
+
+    const allModifiedPoints = this._getRecursiveTransformedPoints(this)
+    const unrotateAllPoints = allModifiedPoints.map(merged.applyToPoint.bind(merged))
+
+    return Polygon.getBounds(unrotateAllPoints)
+  }
+
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     const corners = this._children.flatMap((child) => child
       .getBounds({
@@ -21,20 +49,6 @@ export class Group extends Node {
       })
       .getCorners()
     )
-
-    const points = this._children.flatMap((child) => {
-      const matrix = params.skipTransform
-        ? Matrix3x3.identity()
-        : Matrix3x3.compose(child.worldMatrix, child.localMatrix)
-
-      if (Shape.isShape(child)) {
-        return child.initialPoints.map(matrix.applyToPoint.bind(matrix))
-      }
-
-      return []
-    })
-
-    return Polygon.getBounds(points)
 
     return Polygon.getBounds(corners)
   }
@@ -52,7 +66,7 @@ export class Group extends Node {
   public render(context: CanvasRenderingContext2D): void {
     super.render(context)
 
-    this.drawOrigins(context)
+    // this.drawOrigins(context)
 
     const bounds = this.getBounds()
     // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)

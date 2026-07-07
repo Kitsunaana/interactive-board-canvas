@@ -71,7 +71,7 @@ export class CircleComponent extends Mixin(BaseShapeComponent, EventBehavior) {
   public render(context: CanvasRenderingContext2D): void {
     context.beginPath()
     context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false)
-    context.closePath()
+    // context.closePath()
 
     context.stroke()
     context.fill()
@@ -80,7 +80,7 @@ export class CircleComponent extends Mixin(BaseShapeComponent, EventBehavior) {
   public renderHit(context: CanvasRenderingContext2D): void {
     context.beginPath()
     context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false)
-    context.closePath()
+    // context.closePath()
 
     const layer = this.owner?.layer()
 

@@ -112,7 +112,12 @@ export class Stage extends SimObject {
   public renderHit(_context: CanvasRenderingContext2D): void { }
 
   public render() {
-    this.children().forEach((layer) => layer.render())
+    this.children().forEach((layer) => {
+      const t_layer = layer as Layer
+      
+      layer.render(t_layer.getContext())
+      layer.renderHit(t_layer.getHitContext())
+    })
 
     requestAnimationFrame(this.render.bind(this))
   }

@@ -6,22 +6,32 @@ import { Shape } from "./Shape";
 const source = "https://i.pinimg.com/736x/78/ea/88/78ea88af3c4dec0b3231ff1a06c5de8b.jpg"
 
 export class Ellipse extends Shape {
-  public initialPoints: Array<PointData>
-  public pointsToTrace: Array<PointData>
+  public initialPoints!: Array<PointData>
+  public pointsToTrace!: Array<PointData>
 
-  public constructor(private x: number, private y: number, private rx: number, private ry: number) {
+  public constructor(private _x: number, private _y: number, private _rx: number, private _ry: number) {
     super()
 
     this.isShowOrigins = false
 
-    this.initialPoints = Ellipse.computePointsToTrace(x, y, rx, ry)
-    this.pointsToTrace = this.initialPoints.map(point => ({ ...point }))
+    this.change(_x, _y, _rx, _ry)
+    // this.initialPoints = Ellipse.computePointsToTrace(_x, _y, _rx, _ry)
+    // this.pointsToTrace = this.initialPoints.map((point) => ({ ...point }))
 
-    this.backgroundImage = new BackgroundImage()
-      .setSimObject(this)
-      .setContainer(this.getBounds())
-      .setBackgroundImage(source)
-      .setBackgroundSize("cover")
+    // this.backgroundImage = new BackgroundImage()
+    //   .setSimObject(this)
+    //   .setContainer(this.getBounds())
+    //   .setBackgroundImage(source)
+    //   .setBackgroundSize("cover")
+  }
+
+  public change(x: number, y: number, rx: number, ry: number) {
+    this.initialPoints = Ellipse.computePointsToTrace(x, y, rx, ry)
+    this.pointsToTrace = this.initialPoints.map((point) => ({ ...point }))
+  }
+
+  public static isEllipse(candidate: unknown): candidate is Ellipse {
+    return candidate instanceof Ellipse
   }
 
   public static computePointsToTrace(cx: number, cy: number, rx: number, ry: number): Array<PointData> {
@@ -45,6 +55,12 @@ export class Ellipse extends Shape {
     ]
   }
 
+  public renderHit(context: CanvasRenderingContext2D): void {
+    super.renderHit(context)
+
+    // console.log(this.layer()?.getHitColor(this))
+  }
+
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     const matrix = params.skipTransform
       ? Matrix3x3.identity()
@@ -52,11 +68,11 @@ export class Ellipse extends Shape {
         ? Matrix3x3.compose(this.localMatrix)
         : Matrix3x3.compose(this.worldMatrix, this.localMatrix)
 
-    const center = matrix.applyToPoint(new Point(this.x, this.y))
+    const center = matrix.applyToPoint(new Point(this._x, this._y))
 
     const halfSize = new Point(
-      Math.sqrt(Math.pow(matrix.a * this.rx, 2) + Math.pow(matrix.c * this.ry, 2)),
-      Math.sqrt(Math.pow(matrix.b * this.rx, 2) + Math.pow(matrix.d * this.ry, 2))
+      Math.sqrt(Math.pow(matrix.a * this._rx, 2) + Math.pow(matrix.c * this._ry, 2)),
+      Math.sqrt(Math.pow(matrix.b * this._rx, 2) + Math.pow(matrix.d * this._ry, 2))
     )
 
     const min = center.sub(halfSize)
@@ -73,11 +89,11 @@ export class Ellipse extends Shape {
     })
 
     const matrix = Matrix3x3.compose(unrotate, this.worldMatrix, this.localMatrix)
-    const center = matrix.applyToPoint(new Point(this.x, this.y))
+    const center = matrix.applyToPoint(new Point(this._x, this._y))
 
     const halfSize = new Point(
-      Math.sqrt(Math.pow(matrix.a * this.rx, 2) + Math.pow(matrix.c * this.ry, 2)),
-      Math.sqrt(Math.pow(matrix.b * this.rx, 2) + Math.pow(matrix.d * this.ry, 2))
+      Math.sqrt(Math.pow(matrix.a * this._rx, 2) + Math.pow(matrix.c * this._ry, 2)),
+      Math.sqrt(Math.pow(matrix.b * this._rx, 2) + Math.pow(matrix.d * this._ry, 2))
     )
 
     const min = center.sub(halfSize)
@@ -91,6 +107,7 @@ export class Ellipse extends Shape {
   public tracePath(context: CanvasRenderingContext2D): void {
     const length = this.pointsToTrace.length
 
+    context.beginPath()
     context.moveTo(this.pointsToTrace[0].x, this.pointsToTrace[0].y)
 
     for (let i = 1; i < length; i += 3) {
@@ -100,5 +117,7 @@ export class Ellipse extends Shape {
 
       context.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y)
     }
+
+    context.closePath()
   }
 }

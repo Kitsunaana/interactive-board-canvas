@@ -6,10 +6,16 @@ import { Shape } from "./Shape"
 const source = "https://avatars.mds.yandex.net/i?id=2e34b2a2ac0026106cc76353e2797bf03b9e2551-5249431-images-thumbs&n=13"
 
 export class PolygonShape extends Shape {
-  public static computePointsToTraceWithTension(points: Array<PointData>, tension: number) {
+  public static isPolygon(candidate: unknown): candidate is PolygonShape {
+    return candidate instanceof PolygonShape
+  }
+  
+  public static computePointsToTraceWithTension(points: Array<PointData>, tension: number, closed: boolean) {
     const length = points.length
 
     return points.reduce((result, _, index, list) => {
+      if (!closed && index === list.length - 1) return result
+
       const p0 = list[(index - 1 + length) % length]
       const p1 = list[index]
       const p2 = list[(index + 1) % length]
@@ -35,13 +41,14 @@ export class PolygonShape extends Shape {
   }
 
   public tension: number = 0.0
+  public closed: boolean = true
   public pointsToTrace: Array<PointData> = []
 
   public constructor(public readonly initialPoints: Array<PointData>) {
     super()
 
     this.isShowOrigins = true
-    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(initialPoints, this.tension)
+    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(initialPoints, this.tension, this.closed)
 
     this.backgroundImage = new BackgroundImage()
       .setSimObject(this)
@@ -59,7 +66,7 @@ export class PolygonShape extends Shape {
   public updateAfterTransform(): void {
     super.updateAfterTransform()
     
-    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(this.pointsToTrace, this.tension)
+    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(this.pointsToTrace, this.tension, this.closed)
   }
 
   public getUnrotateShapeBounds() {
@@ -67,7 +74,7 @@ export class PolygonShape extends Shape {
       return Matrix3x3.rotate(-this.getCurrentAngle())
     })
 
-    const matrix = Matrix3x3.compose(unrotate, this.localMatrix)
+    const matrix = Matrix3x3.compose(unrotate, this.worldMatrix, this.localMatrix)
 
     const points = this.initialPoints.map(matrix.applyToPoint.bind(matrix)) as Array<PointData>
     const curved = Polygon.computeTensionedCurveExtrema(points, this.tension)
@@ -92,12 +99,16 @@ export class PolygonShape extends Shape {
     context.beginPath()
     if (this._shouldRenderStraightEdges()) this.traceLinearPath(context)
     else this.traceSplinePath(context)
-    context.closePath()
+    if(this.closed) context.closePath()
+  }
+
+  public renderHit(context: CanvasRenderingContext2D): void {
+    super.renderHit(context)
   }
 
   public render(context: CanvasRenderingContext2D): void {
     super.render(context)
-
+    
     const rotateOrigin = this.getOriginPosition("rotate")
 
     context.save()
@@ -111,7 +122,7 @@ export class PolygonShape extends Shape {
     // context.strokeRect(rect.x, rect.y, rect.width, rect.height)
     // PolygonShape.prototype._traceLinearPath.call({ pointsToTrace: this.getUnrotateShapeBounds().getCorners() }, context)
 
-    context.closePath()
+    // context.closePath()
     context.stroke()
     context.restore()
   }

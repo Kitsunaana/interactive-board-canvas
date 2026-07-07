@@ -65,7 +65,7 @@ const groupSimObject = new Group()
 
 const polygonShape1 = new PolygonShape(points2)
 const polygonShape2 = new PolygonShape(points4)
-const polygonShape3 = new PolygonShape(points2)
+const polygonShape3 = new PolygonShape(points1)
 
 const circleShape1 = new Ellipse(500, 600, 40, 60)
 circleShape1.isShowOrigins = true
@@ -76,18 +76,25 @@ circleShape1.isShowOrigins = true
 // polygonShape1.scale(new Point(1.3, 2.9))
 // polygonShape1.rotate(0.5)
 
-groupSimObject.children(polygonShape1)
+// groupSimObject.children(polygonShape1)
+
+polygonShape1.closed = false
 
 const tranformer = new Tranformer()
-tranformer.children(polygonShape1)
+tranformer.children(polygonShape1, polygonShape3)
+tranformer.rotate(0.5)
 
-// groupSimObject.children(polygonShape3)
+polygonShape3.on("pointerdown", () => {
+  console.log("click")
+})
+
+groupSimObject.children(polygonShape3)
 
 // polygonShape2.scale(new Point(3, 3))
 
 // groupSimObject.children(circleShape1)  
 
-// polygonShape1.rotate(0.5)
+polygonShape1.rotate(0.5)
 // groupSimObject.rotate(0.2)
 // groupSimObject.scale(new Point(1, 1.0))
 

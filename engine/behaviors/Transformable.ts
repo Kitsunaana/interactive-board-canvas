@@ -214,15 +214,9 @@ export abstract class Transformable {
     const originalBounds = this.getBounds({ skipTransform: true })
     const relativePoint = this.currentRelativeOrigins[operation]
 
-    const isFlippedX = false // matrix.a < 0
-    const isFlippedY = false // matrix.d < 0
-
-    const correctedRelativeX = isFlippedX ? 1 - relativePoint.x : relativePoint.x
-    const correctedRelativeY = isFlippedY ? 1 - relativePoint.y : relativePoint.y
-
     const originInOriginalSpace: PointData = {
-      x: originalBounds.x + originalBounds.width * correctedRelativeX,
-      y: originalBounds.y + originalBounds.height * correctedRelativeY,
+      x: originalBounds.x + originalBounds.width * relativePoint.x,
+      y: originalBounds.y + originalBounds.height * relativePoint.y,
     }
 
     return matrix.applyToPoint(originInOriginalSpace)

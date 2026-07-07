@@ -17,6 +17,8 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
 
   public id: string = nanoid()
 
+  public classList: Array<string> = []
+
   protected _children: Array<SimObject> = []
   protected _parent: SimObject | null = null
   protected _layer: Layer | null = null
@@ -50,6 +52,15 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   public scale(scale: Point): void {
     super.scale(scale)
     this.localMatrix = this.computeMatrix()
+  }
+
+  public addClassname(classname: string) {
+    if (this.includeClassname(classname)) return
+    this.classList.push(classname)
+  }
+
+  public includeClassname(classname: string): boolean {
+    return this.classList.includes(classname)
   }
 
   public getCurrentAngle(): number {

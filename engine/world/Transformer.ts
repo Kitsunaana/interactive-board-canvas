@@ -1,10 +1,12 @@
-import _, { first, isNil, times } from "lodash"
+import { isNil, mapKeys } from "lodash"
 import { Group } from "../Group"
 import { Matrix3x3, Point, type PointData, Polygon, Rectangle } from "../maths"
+import { Ellipse } from "../shapes/Ellipse"
 import { PolygonShape } from "../shapes/Polygon"
-import { pointFromEvent } from "../shared/point"
-import { drawOriginPoint, type TramsformOperation } from "../behaviors/Transformable"
 import { Shape } from "../shapes/Shape"
+import { pointFromEvent } from "../shared/point"
+import { SimObject } from "./sim-object"
+import { drawOriginPoint } from "../behaviors/Transformable"
 
 // n - Верхняя
 // e - Правая
@@ -17,6 +19,9 @@ import { Shape } from "../shapes/Shape"
 // sw - Нижняя левая
 export type ResizeHandler = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w"
 
+export type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right"
+export type Edge = "top" | "right" | "bottom" | "left"
+
 export class Tranformer extends Group {
   private readonly _initialOBB = new Rectangle()
   private readonly _obbWorldCenter = new Point()
@@ -24,127 +29,220 @@ export class Tranformer extends Group {
   private readonly _transformScale = new Point(1, 1)
   private readonly _pivotPosition = new Point()
   private readonly _worldPivot = new Point()
-  private readonly _padding = 0
 
-  public startTransform(side: ResizeHandler) {
+  private _pickedHandler: ResizeHandler | null = null
+  private _padding = 7
+
+  private readonly _trasnformHandlerShapes: Record<Edge | Corner, Shape> = {
+    bottom: new PolygonShape([]),
+    right: new PolygonShape([]),
+    left: new PolygonShape([]),
+    top: new PolygonShape([]),
+
+    "bottom-right": new Ellipse(0, 0, 5, 5),
+    "bottom-left": new Ellipse(0, 0, 5, 5),
+    "top-right": new Ellipse(0, 0, 5, 5),
+    "top-left": new Ellipse(0, 0, 5, 5),
+  }
+
+  private get _isSingle(): boolean {
+    return this.children().length === 1
+  }
+
+  private get _isMultiple(): boolean {
+    return this.children().length > 1
+  }
+
+  private get _child(): SimObject {
+    return this.children()[0]
+  }
+
+  private get _boxToApplyModify(): SimObject {
+    if (this._isSingle) return this._child
+    return this
+  }
+
+  public constructor() {
+    super()
+
+    this.on("addToParent", () => this._registerTransformHandlerShapes())
+
+    window.addEventListener("pointermove", (event) => this._processResize(event))
+    window.addEventListener("pointerup", () => this._finishResize())
+  }
+
+  public rotate(angle: number): void {
+    if (this._isSingle) this._child.rotate(angle)
+    else super.rotate(angle)
+  }
+
+  public scale(scale: Point): void {
+    if (this._isSingle) this._child.scale(scale)
+    else super.scale(scale)
+  }
+
+  private _startTransform() {
     this._setInitialState()
-    this._setPivotPosition(side)
-    this._setHandlePosition(side)
+    this._setPivotPosition(this._pickedHandler!)
+    this._setHandlePosition(this._pickedHandler!)
     this._setWorldPivot()
   }
 
-  public get child() {
-    return first(this.children())!
+  private _getHandler(handler: string): ResizeHandler {
+    const isFlippedX = this._boxToApplyModify.localMatrix.a < 0
+    const isFlippedY = this._boxToApplyModify.localMatrix.d < 0
+
+    return {
+      bottom: isFlippedY ? "n" : "s",
+      right: isFlippedX ? "w" : "e",
+      left: isFlippedX ? "e" : "w",
+      top: isFlippedY ? "s" : "n",
+
+      "bottom-right": [isFlippedY ? "n" : "s", isFlippedX ? "w" : "e"].join(""),
+      "bottom-left": [isFlippedY ? "n" : "s", isFlippedX ? "e" : "w"].join(""),
+      "top-right": [isFlippedY ? "s" : "n", isFlippedX ? "w" : "e"].join(""),
+      "top-left": [isFlippedY ? "s" : "n", isFlippedX ? "e" : "w"].join(""),
+    }[handler] as ResizeHandler
   }
 
-  constructor() {
-    super()
+  private _registerTransformHandlerShapes() {
+    const layer = this.layer()
+    if (isNil(layer)) return
 
-    let canMove = false
+    const boundaries = this._calculateTransformHandlerPositions()
 
-    const side: ResizeHandler = "n"
+    mapKeys(this._trasnformHandlerShapes, (shape, handler) => {
+      if (PolygonShape.isPolygon(shape)) {
+        shape.pointsToTrace = boundaries[handler as Edge]
+      }
 
-    window.addEventListener("pointerdown", (event) => {
-      this.startTransform(side)
+      if (Ellipse.isEllipse(shape)) {
+        const position = boundaries[handler as Corner]
+        shape.change(position.x, position.y, 5, 5)
+      }
 
-      this.child.setOrigin("scale", this._getRelativeOriginScale(side))
-      this.child.beginInteraction("scale")
+      shape.addClassname(handler)
+      shape.on("pointerdown", () => {
+        this._pickedHandler = this._getHandler(handler)
+        this._startTransform()
 
-      // console.log(this.child.computeMatrix(), this.child.getOriginPosition("scale"))
+        this._boxToApplyModify.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler))
+        this._boxToApplyModify.beginInteraction("scale")
+      })
 
-      canMove = true
+      layer.add(shape)
+    })
+  }
+
+  private _processResize(event: PointerEvent) {
+    if (isNil(this._pickedHandler)) return
+
+    this._setTransformScale(pointFromEvent(event), this._pickedHandler)
+    this._boxToApplyModify.updateInteraction(this._transformScale)
+
+    const layer = this.layer()
+
+    if (layer) {
+      const boundariesPositions = this._calculateTransformHandlerPositions()
+
+      for (const key in this._trasnformHandlerShapes) {
+        const shape = this._trasnformHandlerShapes[key as Edge]
+
+        if (PolygonShape.isPolygon(shape)) {
+          shape.pointsToTrace = boundariesPositions[key as Edge]
+        }
+
+        if (Ellipse.isEllipse(shape)) {
+          const position = boundariesPositions[key as Corner]
+          shape.change(position.x, position.y, 5, 5)
+        }
+      }
+    }
+  }
+
+  private _calculateTransformHandlerPositions() {
+    const matrix = this._boxToApplyModify.computeMatrix()
+    const bounds = this._boxToApplyModify.getBounds({ skipTransform: true })
+    const corners = bounds.getCorners().map(matrix.applyToPoint.bind(matrix))
+    const rotated = Matrix3x3.rotate(this._boxToApplyModify.getCurrentAngle())
+
+    const padding = [
+      { x: -this._padding, y: -this._padding },
+      { x: this._padding, y: -this._padding },
+      { x: this._padding, y: this._padding },
+      { x: -this._padding, y: this._padding },
+    ].map((value) => {
+      value.x *= matrix.a < 0 ? -1 : 1
+      value.y *= matrix.d < 0 ? -1 : 1
+
+      return value
     })
 
-    window.addEventListener("pointermove", (event) => {
-      if (canMove === false) return
+    const rotate = (index: number) => corners[index].add(rotated.applyToPoint(padding[index]))
 
-      this._setTransformScale(pointFromEvent(event), side)
-      this.child.updateInteraction(this._transformScale)
+    const mappedCorners = [rotate(0), rotate(1), rotate(2), rotate(3)]
 
-      console.log(this._transformScale)
-    })
+    return {
+      bottom: [mappedCorners[2], mappedCorners[3]],
+      right: [mappedCorners[1], mappedCorners[2]],
+      left: [mappedCorners[3], mappedCorners[0]],
+      top: [mappedCorners[0], mappedCorners[1]],
 
-    window.addEventListener("pointerup", () => {
-      canMove = false
+      "bottom-right": mappedCorners[2],
+      "bottom-left": mappedCorners[3],
+      "top-right": mappedCorners[1],
+      "top-left": mappedCorners[0],
+    } as Record<Edge, Array<PointData>> & Record<Corner, PointData>
+  }
 
-      this.child.endInteraction()
-      this.child.localMatrix = this.child.computeMatrix()
+  private _finishResize() {
+    this._boxToApplyModify.endInteraction()
 
-      this._transformScale.copyFrom(Point.one())
-    })
+    if (this._isSingle) {
+      this._child.localMatrix = this._boxToApplyModify.computeMatrix()
+    }
+
+    if (this._isMultiple) {
+      this.localMatrix = this.computeMatrix()
+
+      this.children().forEach((child) => {
+        child.worldMatrix = this.localMatrix
+      })
+    }
+
+    this._transformScale.copyFrom(Point.one())
+    this._pickedHandler = null
   }
 
   public updateAfterTransform(): void {
+    const matrix = this.computeMatrix()
+
+    this.children().forEach((child) => {
+      child.worldMatrix = matrix
+    })
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    // const cachedMatrix = this.computeMatrix()
-
-    const invert = Matrix3x3.invert(this.child.localMatrix)
-    if (isNil(invert)) return
-
-    const cachedMatrix = Matrix3x3.compose(this.child.computeMatrix(), invert)
-
-    // const cachedMatrix = this.child.computeMatrix()
-
-    const originScale = this.child.getOriginPosition("scale")
-    const originRotate = this.child.getOriginPosition("rotate")
-
-    // console.log(this._getCurrentAngleToTransform())
-
-    const originalBounds = this.child.getBounds({ skipTransform: true })
-
-    // context.strokeRect(originalBounds.x, originalBounds.y, originalBounds.width, originalBounds.height)
-
-    const childMatrix = this.child.computeMatrix()
-    const testPoints = originalBounds.getCorners().map(childMatrix.applyToPoint.bind(childMatrix))
-
-    // console.log(this.child._instructions[this.child._instructions.length - 1].points)
-
-    context.beginPath()
-    PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: testPoints }, context)
-    context.closePath()
-    context.stroke()
+    const invert = Matrix3x3.invert(this._boxToApplyModify.localMatrix) ?? Matrix3x3.identity()
+    const cachedMatrix = Matrix3x3.compose(this._boxToApplyModify.computeMatrix(), invert)
 
     context.save()
     cachedMatrix.applyToContext(context)
     super.render(context)
     context.restore()
 
-    drawOriginPoint(context, originScale, "originScale")
-    // drawOriginPoint(context, originRotate, "originRotate")
-
-    drawOriginPoint(context, this._obbWorldCenter, "_obbWorldCenter")
-    drawOriginPoint(context, this._pivotPosition, "_pivotPosition")
-    drawOriginPoint(context, this._worldPivot, "_worldPivot")
-
-    const bounds = Polygon.getBounds(
-      this
-        .getBounds()
-        .getCorners()
-        .map(cachedMatrix.applyToPoint.bind(cachedMatrix))
-    )
-
-    const corners = bounds
-      .padding(this._padding)
-      .getCorners()
-
-    context.beginPath()
-    // PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
-    context.closePath()
-    context.stroke()
-
     this.children().map((child) => {
       if (Shape.isShape(child)) {
-        const bounds = Polygon.getBounds(child.initialPoints)
+        const bounds = child.applyStylesToBounds(child.getBounds({ skipTransform: true }))
         const matrix = Matrix3x3.compose(cachedMatrix, child.worldMatrix, child.localMatrix)
 
         const corners = bounds
+          // .padding(this._padding)
           .getCorners()
           .map((point) => matrix.applyToPoint(point))
 
         context.beginPath()
-        PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
+        // PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
         context.closePath()
         context.stroke()
         context.restore()
@@ -153,27 +251,25 @@ export class Tranformer extends Group {
   }
 
   private _getRelativeOriginScale(side: ResizeHandler) {
-    let relativeOrigin: PointData
+    const relativeOrigin = new Point()
 
     switch (side) {
-      case "nw": relativeOrigin = { x: 1, y: 1 }; break
-      case "n": relativeOrigin = { x: 0, y: 1 }; break
-      case "ne": relativeOrigin = { x: 0, y: 1 }; break
-      case "e": relativeOrigin = { x: 0, y: 0 }; break
-      case "se": relativeOrigin = { x: 0, y: 0 }; break
-      case "s": relativeOrigin = { x: 1, y: 0 }; break
-      case "sw": relativeOrigin = { x: 1, y: 0 }; break
-      case "w": relativeOrigin = { x: 1, y: 0 }; break
+      case "n": relativeOrigin.set(0, 1); break
+      case "e": relativeOrigin.set(0, 0); break
+      case "s": relativeOrigin.set(1, 0); break
+      case "w": relativeOrigin.set(1, 0); break
+      case "nw": relativeOrigin.set(1, 1); break
+      case "ne": relativeOrigin.set(0, 1); break
+      case "se": relativeOrigin.set(0, 0); break
+      case "sw": relativeOrigin.set(1, 0); break
     }
 
-    const isFlippedX = this.child.localMatrix.a < 0
-    const isFlippedY = this.child.localMatrix.d < 0
+    const matrix = this._boxToApplyModify.localMatrix
 
-    const correctedRelativeX = isFlippedX ? 1 - relativeOrigin.x : relativeOrigin.x
-    const correctedRelativeY = isFlippedY ? 1 - relativeOrigin.y : relativeOrigin.y
-
-    relativeOrigin.x = correctedRelativeX
-    relativeOrigin.y = correctedRelativeY
+    relativeOrigin.set(
+      matrix.a < 0 ? 1 - relativeOrigin.x : relativeOrigin.x,
+      matrix.d < 0 ? 1 - relativeOrigin.y : relativeOrigin.y
+    )
 
     return relativeOrigin
   }
@@ -181,16 +277,23 @@ export class Tranformer extends Group {
   private _getPaddingToLocalCursor(side: ResizeHandler) {
     const padding = this._padding
 
+    let point: Point
+
     switch (side) {
-      case "nw": return new Point(padding, padding)
-      case "n": return new Point(padding, padding)
-      case "ne": return new Point(-padding, padding)
-      case "e": return new Point(-padding, padding)
-      case "se": return new Point(-padding, -padding)
-      case "s": return new Point(padding, -padding)
-      case "sw": return new Point(padding, -padding)
-      case "w": return new Point(padding, -padding)
+      case "nw": point = new Point(padding, padding); break
+      case "n": point = new Point(padding, padding); break
+      case "ne": point = new Point(-padding, padding); break
+      case "e": point = new Point(-padding, padding); break
+      case "se": point = new Point(-padding, -padding); break
+      case "s": point = new Point(padding, -padding); break
+      case "sw": point = new Point(padding, -padding); break
+      case "w": point = new Point(padding, -padding); break
     }
+
+    point.x *= Math.sign(this._boxToApplyModify.localMatrix.a)
+    point.y *= Math.sign(this._boxToApplyModify.localMatrix.a)
+
+    return point
   }
 
   private _computeDeadZoneAdjustedFactor(
@@ -217,29 +320,22 @@ export class Tranformer extends Group {
   }
 
   private _setInitialState(): void {
-    const children = this.children()
+    const bounds = new Rectangle(0, 0, 0, 0)
 
-    if (children.length === 1) {
-      const child = children[0]
-
-      if (this.child instanceof PolygonShape) {
-        const bounds = this.child.getUnrotateShapeBounds()
-        this._initialOBB.copyFrom(bounds)
-      } else {
-        const bounds = this.child.getBounds({ skipTransform: false })
-        this._initialOBB.copyFrom(bounds)
-      }
-
-    } else {
-      const bounds = this.getBounds()
-      this._initialOBB.copyFrom(bounds)
+    if (Shape.isShape(this._boxToApplyModify)) {
+      this._boxToApplyModify.getUnrotateShapeBounds().copyTo(bounds)
     }
 
+    if (Group.isGroup(this._boxToApplyModify)) {
+      this._boxToApplyModify.getUnrotateGroupBounds().copyTo(bounds)
+    }
+
+    this._initialOBB.copyFrom(bounds)
     this._obbWorldCenter.copyFrom(this._initialOBB.center)
   }
 
   private _getCurrentAngleToTransform(): number {
-    const cachedMatrix = this.child.localMatrix // this.child.computeMatrix()
+    const cachedMatrix = this._boxToApplyModify.localMatrix
     const currentAngle = Math.atan2(cachedMatrix.b, cachedMatrix.a)
 
     return currentAngle
@@ -248,8 +344,8 @@ export class Tranformer extends Group {
   private _setWorldPivot(): void {
     const pivotPosition = this._pivotPosition.clone()
 
-    pivotPosition.x *= Math.sign(this.child.localMatrix.a)
-    pivotPosition.y *= Math.sign(this.child.localMatrix.d)
+    pivotPosition.x *= Math.sign(this._boxToApplyModify.localMatrix.a)
+    pivotPosition.y *= Math.sign(this._boxToApplyModify.localMatrix.a)
 
     const rotated = Matrix3x3
       .rotate(this._getCurrentAngleToTransform())
@@ -269,13 +365,15 @@ export class Tranformer extends Group {
     const localMatrix = Matrix3x3.invert(worldMatrix)
     if (isNil(localMatrix)) return
 
-    const localCursor = localMatrix.applyToPoint(currentPointer).add(this._getPaddingToLocalCursor(side))
+    const localCursor = localMatrix
+      .applyToPoint(currentPointer)
+      .add(this._getPaddingToLocalCursor(side))
 
     const origVec = this._handlePosition.sub(this._pivotPosition)
     const cursorVec = localCursor.sub(this._pivotPosition)
 
     const scaleFactorX = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "x")
-    const scaleFactorY = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "y") 
+    const scaleFactorY = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "y")
 
     this._transformScale.set(scaleFactorX, scaleFactorY)
   }
@@ -322,8 +420,8 @@ export class Tranformer extends Group {
         break
     }
 
-    handleX *= Math.sign(this.child.localMatrix.a)
-    handleY *= Math.sign(this.child.localMatrix.d)
+    handleX *= Math.sign(this._boxToApplyModify.localMatrix.a)
+    handleY *= Math.sign(this._boxToApplyModify.localMatrix.a)
 
     this._handlePosition.set(handleX, handleY)
   }
@@ -370,8 +468,8 @@ export class Tranformer extends Group {
         break
     }
 
-    pivotX *= Math.sign(this.child.localMatrix.a)
-    pivotY *= Math.sign(this.child.localMatrix.d)
+    pivotX *= Math.sign(this._boxToApplyModify.localMatrix.a)
+    pivotY *= Math.sign(this._boxToApplyModify.localMatrix.a)
 
     this._pivotPosition.set(pivotX, pivotY)
   }
