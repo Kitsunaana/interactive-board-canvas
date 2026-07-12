@@ -18,7 +18,8 @@ export class Group extends Node {
 
     return children.flatMap((child) => {
       if (Shape.isShape(child)) {
-        return child.initialPoints.map((point) => child.localMatrix.applyToPoint(point))
+        return child.initialPoints
+        // return child.initialPoints.map((point) => child.localMatrix.applyToPoint(point))
       }
 
       return this._getRecursiveTransformedPoints(child)
@@ -41,6 +42,14 @@ export class Group extends Node {
     return Polygon.getBounds(unrotateAllPoints)
   }
 
+  public getFlatListShapes(node: SimObject): Array<Shape> {
+    return node.children().flatMap((child) => {
+      if (Group.isGroup(child)) return this.getFlatListShapes(child)
+
+      return child as Shape
+    })
+  }
+
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     const corners = this._children.flatMap((child) => child
       .getBounds({
@@ -50,11 +59,22 @@ export class Group extends Node {
       .getCorners()
     )
 
+    const allSpapes = this.getFlatListShapes(this)
+
+    const points = allSpapes.flatMap((shape) => {
+      const needApplyTransforms = !((shape.parent() === this) && (params.skipTransform || params.skipWorldTransform))
+      const matrix = needApplyTransforms ? Matrix3x3.compose(shape.worldMatrix, shape.localMatrix) : shape.localMatrix
+
+      return shape.initialPoints.map(matrix.applyToPoint.bind(matrix))
+    })
+
+    return Polygon.getBounds(points)
+
     return Polygon.getBounds(corners)
   }
 
   public updateAfterTransform(): void {
-    const matrix = Matrix3x3.compose(this._worldMatrix, this._localMatrix)
+    const matrix = Matrix3x3.compose(this.worldMatrix, this.localMatrix)
 
     this._children.forEach((child) => {
       if (Shape.isShape(child) || Group.isGroup(child)) {

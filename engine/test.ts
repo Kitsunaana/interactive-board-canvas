@@ -5,24 +5,28 @@ import { Point } from "./maths";
 import { Ellipse } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
-import { Tranformer } from "./world/Transformer";
+import { Transformer } from "./world/Transformer";
 
 const stage = new Stage({
   height: window.innerHeight,
   width: window.innerWidth,
   draggable: false,
-})
+});
 
-const layer = new Layer()
+const layer = new Layer();
 
-const points1 = [{ x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 120 }]
+const points1 = [
+  { x: 200, y: 200 },
+  { x: 300, y: 200 },
+  { x: 300, y: 120 },
+];
 const points2 = [
-  { x: 400, y: 400 }, 
-  { x: 420, y: 300 }, 
-  { x: 440, y: 350 }, 
-  { x: 500, y: 300 }, 
+  { x: 400, y: 400 },
+  { x: 420, y: 300 },
+  { x: 440, y: 350 },
+  { x: 500, y: 300 },
   { x: 500, y: 400 },
-]
+];
 
 const points3 = [
   { x: 45, y: 90 },
@@ -46,7 +50,7 @@ const points3 = [
   { x: 45, y: 120 },
   { x: 45, y: 105 },
   { x: 45, y: 90 },
-]
+];
 
 const points4 = [
   { x: 60, y: 120 },
@@ -59,16 +63,22 @@ const points4 = [
   { x: 90, y: 120 },
   // { x: 60, y: 120 },
   // { x: 100, y: 200 }, { x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 200 }
-]
+];
 
-const groupSimObject = new Group()
+const groupSimObject = new Group();
 
-const polygonShape1 = new PolygonShape(points2)
-const polygonShape2 = new PolygonShape(points4)
-const polygonShape3 = new PolygonShape(points1)
+const polygonShape1 = new PolygonShape({
+  initialPoints: points2,
+  sketchStyle: true,
+  lineWidth: 3,
+  tension: 0.0,
+});
 
-const circleShape1 = new Ellipse(500, 600, 40, 60)
-circleShape1.isShowOrigins = true
+const polygonShape2 = new PolygonShape({ initialPoints: points4 });
+const polygonShape3 = new PolygonShape({ initialPoints: points1 });
+
+const circleShape1 = new Ellipse(500, 600, 40, 60);
+circleShape1.isShowOrigins = true;
 // circleShape1.rotate(0.5)
 // circleShape1.scale(new Point(3, 3))
 // circleShape1.rotate(0.5)
@@ -78,23 +88,32 @@ circleShape1.isShowOrigins = true
 
 // groupSimObject.children(polygonShape1)
 
-polygonShape1.closed = false
+polygonShape1.closed = false;
 
-const tranformer = new Tranformer()
-tranformer.children(polygonShape1, polygonShape3)
-tranformer.rotate(0.5)
+const transformer = new Transformer();
+const testGroupToTransform = new Group()
+testGroupToTransform.children(polygonShape2, polygonShape3)
+
+transformer.children(polygonShape1, testGroupToTransform);
+// transformer.rotate(0.5);
+// polygonShape1.rotate(0.3);
+// polygonShape1.scale(new Point(1.9, 1));
+
+polygonShape1.isShowOrigins = true;
+
+// polygonShape3.lineWidth = 10;
+// polygonShape1.lineWidth = 10;
 
 polygonShape3.on("pointerdown", () => {
-  console.log("click")
-})
+  console.log("click");
+});
 
-groupSimObject.children(polygonShape3)
+groupSimObject.children(polygonShape3);
 
 // polygonShape2.scale(new Point(3, 3))
 
-// groupSimObject.children(circleShape1)  
+// groupSimObject.children(circleShape1)
 
-polygonShape1.rotate(0.5)
 // groupSimObject.rotate(0.2)
 // groupSimObject.scale(new Point(1, 1.0))
 
@@ -104,24 +123,24 @@ polygonShape1.rotate(0.5)
 
 // polygonShape2.beginInteraction("scale")
 
-let angle = 0.01
-let scale = 0
-let frame = 0
+let angle = 0.01;
+let scale = 0;
+let frame = 0;
 setInterval(() => {
-  frame++
-  angle += 0.03
-  scale = Math.sin(frame * 0.06) * 4
+  frame++;
+  angle += 0.03;
+  scale = Math.sin(frame * 0.06) * 4;
 
   // polygonShape2.scale(new Point(scale, scale))
 
   // groupSimObject.scale(new Point(scale, scale))
 
   // groupSimObject.rotate(angle)
-}, 16)
+}, 16);
 
 // layer.add(groupSimObject)
-layer.add(tranformer)
-stage.add(layer)
+layer.add(transformer);
+stage.add(layer);
 
 // console.log(groupSimObject.getParent())
 
@@ -129,7 +148,7 @@ stage.add(layer)
 // console.log(groupSimObject.computeMatrix())
 
 // polygonShape.on("pointerdown", () => {
-  // console.log("CLICK")  
+// console.log("CLICK")
 // })
 
 // const matrix2 = groupFigures.computeMatrix()

@@ -30,6 +30,7 @@ export type TransformTranslateInstruction = {
   type: "translate"
   value: Point
   points: Array<PointData>
+  relativeOrigin: PointData
 }
 
 export type TransformInstruction =
@@ -68,12 +69,19 @@ export abstract class Transformable {
   }
 
   public setOrigin(operation: TramsformOperation, relativeOrigin: PointData): void {
+    if (this.isInteracting) {
+      const lastInstruction = this._instructions[this._instructions.length - 1]
+      lastInstruction.relativeOrigin = new Point(relativeOrigin.x, relativeOrigin.y)
+      return
+    }
+
     this.currentRelativeOrigins[operation].set(relativeOrigin.x, relativeOrigin.y)
   }
 
   public translate(delta: Point): void {
     this._pushInstruction({
       points: this.getBounds({ skipTransform: true }).getCorners(),
+      relativeOrigin: new Point(0, 0),
       type: "translate",
       value: delta,
     })
