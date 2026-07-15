@@ -7,7 +7,6 @@ import type { Layer } from "../Layer";
 import { Matrix3x3, Point, type PointData, Rectangle } from "../maths";
 
 export type GetBoundsParams = {
-  skipWorldTransform?: boolean
   skipTransform?: boolean
 }
 
@@ -25,6 +24,10 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
 
   protected _localMatrix: Matrix3x3 = Matrix3x3.identity()
   protected _worldMatrix: Matrix3x3 = Matrix3x3.identity()
+
+  public get matrix(): Matrix3x3 {
+    return Matrix3x3.compose(this.worldMatrix, this.localMatrix)
+  }
 
   public get worldMatrix(): Matrix3x3 {
     return this._worldMatrix
@@ -63,9 +66,12 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
     return this.classList.includes(classname)
   }
 
+  public getCurrentAngleSign() {
+    return Math.sign(Math.atan2(this.localMatrix.b, this.localMatrix.a))
+  }
+
   public getCurrentAngle(): number {
-    const matrix = Matrix3x3.compose(this.worldMatrix, this.localMatrix)
-    return Math.atan2(Math.abs(matrix.b), Math.abs(matrix.a))
+    return Math.atan2((this.localMatrix.b), (this.localMatrix.a))
   }
 
   public children(): Array<SimObject>
@@ -75,7 +81,7 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
 
     list.forEach((child) => {
       this._children.push(child)
-      this.fire("addChild", { ...child })
+      this.fire("addChild", { child })
       child.parent(this)
     })
   }

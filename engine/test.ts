@@ -77,80 +77,49 @@ const polygonShape1 = new PolygonShape({
 const polygonShape2 = new PolygonShape({ initialPoints: points4 });
 const polygonShape3 = new PolygonShape({ initialPoints: points1 });
 
+// polygonShape1.rotate(0.3)
+// polygonShape1.scale(new Point(1.5, 1))
+
+const testGroupToTransform = new Group()
+// testGroupToTransform.children(polygonShape1)
+testGroupToTransform.children(polygonShape2, polygonShape3)
+
+// polygonShape2.rotate(0.3)
+polygonShape3.rotate(0.4)
+testGroupToTransform.scale(new Point(1.4, 1))
+
+// polygonShape3.scale(new Point(1.4, 1))
+// polygonShape2.scale(new Point(1, 1.6))
+
+// polygonShape3.beginInteraction("rotate")
+let angle = 0.01
+setInterval(() => {
+  angle += 0.01
+  // polygonShape3.rotate(angle)
+}, 10)
+
+// testGroupToTransform.rotate(0.5)
+// polygonShape3.scale(new Point(2.5, 1))
+// polygonShape3.rotate(0.4)
+// testGroupToTransform.rotate(0.2)
+// testGroupToTransform.scale(new Point(1.3, 1.2))
+// testGroupToTransform.rotate(0.1)
+
+// polygonShape1.rotate(0.2)
+polygonShape1.addClassname("test")
+// testGroupToTransform.children(polygonShape1)
+// polygonShape1.rotate(0.5)
+// polygonShape1.scale(new Point(1.5, 1))
+
+// testGroupToTransform.rotate(0.0)
+
+layer.add(testGroupToTransform)
+
 const circleShape1 = new Ellipse(500, 600, 40, 60);
 circleShape1.isShowOrigins = true;
-// circleShape1.rotate(0.5)
-// circleShape1.scale(new Point(3, 3))
-// circleShape1.rotate(0.5)
-
-// polygonShape1.scale(new Point(1.3, 2.9))
-// polygonShape1.rotate(0.5)
-
-// groupSimObject.children(polygonShape1)
 
 polygonShape1.closed = false;
 
 const transformer = new Transformer();
-const testGroupToTransform = new Group()
-testGroupToTransform.children(polygonShape2, polygonShape3)
 
-transformer.children(polygonShape1, testGroupToTransform);
-// transformer.rotate(0.5);
-// polygonShape1.rotate(0.3);
-// polygonShape1.scale(new Point(1.9, 1));
-
-polygonShape1.isShowOrigins = true;
-
-// polygonShape3.lineWidth = 10;
-// polygonShape1.lineWidth = 10;
-
-polygonShape3.on("pointerdown", () => {
-  console.log("click");
-});
-
-groupSimObject.children(polygonShape3);
-
-// polygonShape2.scale(new Point(3, 3))
-
-// groupSimObject.children(circleShape1)
-
-// groupSimObject.rotate(0.2)
-// groupSimObject.scale(new Point(1, 1.0))
-
-// groupSimObject.scale(new Point(0.5, 0.5))
-
-// groupSimObject.beginInteraction("rotate")
-
-// polygonShape2.beginInteraction("scale")
-
-let angle = 0.01;
-let scale = 0;
-let frame = 0;
-setInterval(() => {
-  frame++;
-  angle += 0.03;
-  scale = Math.sin(frame * 0.06) * 4;
-
-  // polygonShape2.scale(new Point(scale, scale))
-
-  // groupSimObject.scale(new Point(scale, scale))
-
-  // groupSimObject.rotate(angle)
-}, 16);
-
-// layer.add(groupSimObject)
-layer.add(transformer);
 stage.add(layer);
-
-// console.log(groupSimObject.getParent())
-
-// console.log(polygonShape1.computeMatrix())
-// console.log(groupSimObject.computeMatrix())
-
-// polygonShape.on("pointerdown", () => {
-// console.log("CLICK")
-// })
-
-// const matrix2 = groupFigures.computeMatrix()
-// const currentAngle = Math.atan2(matrix2.b, matrix2.a)
-// const matrix3 = Matrix3x3.aroundOrigin(groupFigures.currentRelativeOrigins.rotate, () => Matrix3x3.rotate(-currentAngle))

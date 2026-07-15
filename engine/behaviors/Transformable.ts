@@ -183,18 +183,12 @@ export abstract class Transformable {
 
   private _getOriginInOriginalSpace(instruction: TransformInstruction) {
     const originalBounds = Polygon.prototype.getBounds.call({ points: instruction.points })
-    const propertyName = "relativeOrigin" as const
+    const relativeOrigin = instruction.relativeOrigin
 
-    if (propertyName in instruction) {
-      const relativeOrigin = instruction[propertyName]
-
-      return {
-        x: originalBounds.x + originalBounds.width * relativeOrigin.x,
-        y: originalBounds.y + originalBounds.height * relativeOrigin.y,
-      }
+    return {
+      x: originalBounds.x + originalBounds.width * relativeOrigin.x,
+      y: originalBounds.y + originalBounds.height * relativeOrigin.y,
     }
-
-    return Point.zero()
   }
 
   private _buildStepForInstruction(
@@ -233,22 +227,6 @@ export abstract class Transformable {
   public bindTransformsToContext(context: CanvasRenderingContext2D): void {
     const matrix = this.computeMatrix()
     matrix.applyToContext(context)
-  }
-
-  public drawOrigins(context: CanvasRenderingContext2D, modifyMatrix: Matrix3x3 = Matrix3x3.identity()): void {
-    if (this.isShowOrigins) {
-      context.save()
-
-      const rotateOrigin = modifyMatrix.applyToPoint(this.getOriginPosition("rotate"))
-      const scaleOrigin = modifyMatrix.applyToPoint(this.getOriginPosition("scale"))
-      const skewOrigin = modifyMatrix.applyToPoint(this.getOriginPosition("skew"))
-
-      drawOriginPoint(context, rotateOrigin, "rotate")
-      drawOriginPoint(context, scaleOrigin, "scale")
-      drawOriginPoint(context, skewOrigin, "skew")
-
-      context.restore()
-    }
   }
 }
 

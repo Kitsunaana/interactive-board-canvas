@@ -66,7 +66,7 @@ export class Ellipse extends Shape {
       ? Matrix3x3.identity()
       : params.skipWorldTransform
         ? Matrix3x3.compose(this.localMatrix)
-        : Matrix3x3.compose(this.worldMatrix, this.localMatrix)
+        : Matrix3x3.compose(this.localMatrix)
 
     const center = matrix.applyToPoint(new Point(this._x, this._y))
 
@@ -83,12 +83,12 @@ export class Ellipse extends Shape {
     return this.applyStylesToBounds(bounds.rectangle)
   }
 
-  public getUnrotateShapeBounds(): Rectangle {
+  public getUnrotateBounds(): Rectangle {
     const unrotate = Matrix3x3.aroundOrigin(this.getOriginPosition("rotate"), () => {
       return Matrix3x3.rotate(-this.getCurrentAngle())
     })
 
-    const matrix = Matrix3x3.compose(unrotate, this.worldMatrix, this.localMatrix)
+    const matrix = Matrix3x3.compose(unrotate, this.localMatrix)
     const center = matrix.applyToPoint(new Point(this._x, this._y))
 
     const halfSize = new Point(

@@ -22,7 +22,7 @@ export abstract class Shape extends Node {
   public abstract initialPoints: Array<PointData>
 
   public abstract tracePath(context: CanvasRenderingContext2D): void
-  public abstract getUnrotateShapeBounds(): Rectangle
+  public abstract getUnrotateBounds(): Rectangle
 
   public lineWidth: number = 1
   public hitLineWidth: number = 10
@@ -50,10 +50,8 @@ export abstract class Shape extends Node {
   }
 
   public updateAfterTransform(): void {
-    const matrix = Matrix3x3.compose(this.worldMatrix, this.localMatrix)
-
-    this.pointsToTrace = this.initialPoints.map((point) => matrix.applyToPoint(point))
-    if (this.backgroundImage) this.backgroundImage.setContainer(this.getUnrotateShapeBounds())
+    this.pointsToTrace = this.initialPoints.map((point) => this.matrix.applyToPoint(point))
+    if (this.backgroundImage) this.backgroundImage.setContainer(this.getUnrotateBounds())
   }
 
   private _drawBackgroundImage(context: CanvasRenderingContext2D): void {
