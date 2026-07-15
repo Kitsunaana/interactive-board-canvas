@@ -50,8 +50,8 @@ export abstract class Shape extends Node {
   }
 
   public updateAfterTransform(): void {
-    this.pointsToTrace = this.initialPoints.map((point) => this.matrix.applyToPoint(point))
-    if (this.backgroundImage) this.backgroundImage.setContainer(this.getUnrotateBounds())
+    // this.pointsToTrace = this.initialPoints.map((point) => this.matrix.applyToPoint(point))
+    // if (this.backgroundImage) this.backgroundImage.setContainer(this.getUnrotateBounds())
   }
 
   private _drawBackgroundImage(context: CanvasRenderingContext2D): void {

@@ -1,7 +1,7 @@
 import { drawOriginPoint } from "./behaviors/Transformable"
-import { Matrix3x3, type PointData, Polygon } from "./maths"
+import { Matrix3x3, type PointData, Polygon, Rectangle } from "./maths"
 import { PolygonShape } from "./shapes/Polygon"
-import { Node, Shape } from "./shapes/Shape"
+import { Node } from "./shapes/Shape"
 import { type GetBoundsParams } from "./world/sim-object"
 
 export class Group extends Node {
@@ -9,55 +9,13 @@ export class Group extends Node {
     return candidate instanceof Group
   }
 
-  public constructor() {
-    super()
+  public updateAfterTransform(): void {}
 
-    this.isShowOrigins = false
-
-    this.on("addChild", (event) => {
-      if ("child" in event.evt && event.evt.child instanceof Shape) {
-        const child = event.evt.child
-
-        const p = this.computeMatrix()
-        const i = Matrix3x3.invert(p) ?? Matrix3x3.identity()
-        
-        // child.worldMatrix = p
-        if (child.includeClassname("test")) {
-          const t = Matrix3x3.rotate(0.1)
-          // child.worldMatrix = t
-        }
-
-        // child._cachedBaseMatrix = i
-        // child.worldMatrix = worldMatrix.clone()
-        // child.worldMatrix = p
-        // child.localMatrix = Matrix3x3.compose(i, child.computeMatrix())
-      }
-    })
-  }
-
-  public updateAfterTransform(): void {
-    this._children.forEach((child) => {
-      child.worldMatrix = this.computeMatrix()
-    })
-  }
-
-  public getBounds(params: GetBoundsParams = {}) {
+  public getBounds(params: GetBoundsParams = {}): Rectangle {
     const points = this.getPointsWithAppliedOwnTransforms()
     if (params.skipTransform) return Polygon.getBounds(points)
-
-    const transformedPoints = points.map(point => this.localMatrix.applyToPoint(point))
-
+    const transformedPoints = points.map(point => this.worldMatrix.applyToPoint(point))
     return Polygon.getBounds(transformedPoints)
-  }
-
-  private _getUnrotateAndRotateMatrix() {
-    const currentAngle = this.getCurrentAngle()
-    const currentAngleSign = this.getCurrentAngleSign()
-    const rotateOrigin = this.getOriginPosition("rotate")
-    const unrotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(-currentAngle))
-    const rotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(currentAngle))
-
-    return [unrotate, rotate]
   }
 
   public getPointsWithAppliedOwnTransforms(): Array<PointData> {
@@ -70,21 +28,9 @@ export class Group extends Node {
     return points
   }
 
-  public getUnrotateBounds() {
+  public getUnrotateBounds(): Rectangle {
     const [unrotate] = this._getUnrotateAndRotateMatrix()
     const composed = Matrix3x3.compose(unrotate, this.localMatrix)
-
-    /**
-    let allPoints = this.children().flatMap(child => {
-      const inverted = Matrix3x3.invert(this.localMatrix) ?? Matrix3x3.identity()
-      const matrix = Matrix3x3.compose(inverted, child.localMatrix)
-
-      return child
-        .getBounds({ skipTransform: true })
-        .getCorners()
-        .map(matrix.applyToPoint.bind(matrix))
-    })
-    */
 
     const allPoints = this.getPointsWithAppliedOwnTransforms()
 
@@ -94,7 +40,7 @@ export class Group extends Node {
     return unrotatedBounds;
   }
 
-  public getTransformedCorners() {
+  public getTransformedCorners(): Array<PointData> {
     const [_, rotate] = this._getUnrotateAndRotateMatrix()
 
     const unrotatedBounds = this.getUnrotateBounds()
@@ -106,13 +52,8 @@ export class Group extends Node {
   public render(context: CanvasRenderingContext2D): void {
     super.render(context)
 
-    const rotateOrigin = this.getOriginPosition("rotate");
-    const scaleOrigin = this.getOriginPosition("scale");
-
-    // const rotateOrigin = {
-    //   "x": 205,
-    //   "y": 137.5
-    // }
+    const scaleOrigin = this.getInWorldOriginPoisition("scale")
+    const rotateOrigin = this.getInWorldOriginPoisition("rotate")
 
     drawOriginPoint(context, rotateOrigin, "rotate")
     drawOriginPoint(context, scaleOrigin, "scale")
@@ -125,7 +66,17 @@ export class Group extends Node {
     context.stroke()
 
     const bounds = this.getBounds({ skipTransform: false })
-    // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+  }
+
+  private _getUnrotateAndRotateMatrix(): [Matrix3x3, Matrix3x3] {
+    const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
+
+    const rotateOrigin = this.getInLocalOriginPosition("rotate")
+    const unrotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(-currentAngle))
+    const rotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(currentAngle))
+
+    return [unrotate, rotate]
   }
 }
 

@@ -77,24 +77,29 @@ const polygonShape1 = new PolygonShape({
 const polygonShape2 = new PolygonShape({ initialPoints: points4 });
 const polygonShape3 = new PolygonShape({ initialPoints: points1 });
 
-// polygonShape1.rotate(0.3)
-// polygonShape1.scale(new Point(1.5, 1))
+polygonShape3.addClassname("test")
 
 const testGroupToTransform = new Group()
-// testGroupToTransform.children(polygonShape1)
 testGroupToTransform.children(polygonShape2, polygonShape3)
 
-// polygonShape2.rotate(0.3)
+// testGroupToTransform.rotate(0.5)
 polygonShape3.rotate(0.4)
-testGroupToTransform.scale(new Point(1.4, 1))
 
-// polygonShape3.scale(new Point(1.4, 1))
+// testGroupToTransform.scale({ x: 1.5, y: 1 })
+
+// testGroupToTransform.rotate(0.2)
+polygonShape3.scale(new Point(1.4, 1))
+testGroupToTransform.rotate(0.2)
+
+// polygonShape3.rotate(0.3)
+// testGroupToTransform.scale(new Point(1.9, 1))
+
 // polygonShape2.scale(new Point(1, 1.6))
 
 // polygonShape3.beginInteraction("rotate")
 let angle = 0.01
 setInterval(() => {
-  angle += 0.01
+  // angle += 0.01
   // polygonShape3.rotate(angle)
 }, 10)
 
@@ -106,7 +111,6 @@ setInterval(() => {
 // testGroupToTransform.rotate(0.1)
 
 // polygonShape1.rotate(0.2)
-polygonShape1.addClassname("test")
 // testGroupToTransform.children(polygonShape1)
 // polygonShape1.rotate(0.5)
 // polygonShape1.scale(new Point(1.5, 1))

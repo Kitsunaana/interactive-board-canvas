@@ -84,7 +84,7 @@ export class Ellipse extends Shape {
   }
 
   public getUnrotateBounds(): Rectangle {
-    const unrotate = Matrix3x3.aroundOrigin(this.getOriginPosition("rotate"), () => {
+    const unrotate = Matrix3x3.aroundOrigin(this.getInLocalOriginPosition("rotate"), () => {
       return Matrix3x3.rotate(-this.getCurrentAngle())
     })
 

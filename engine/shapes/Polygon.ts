@@ -73,7 +73,6 @@ export class PolygonShape extends Shape {
 
     Object.assign(this, cofing)
 
-    this.isShowOrigins = true;
     this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(
       this.initialPoints,
       this.tension,
@@ -89,31 +88,24 @@ export class PolygonShape extends Shape {
     this.backgroundImage = null;
   }
 
-  public update(time: number): void { }
+  public update(time: number): void {}
 
   public updateAfterTransform(): void {
-    super.updateAfterTransform();
-
-    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(
-      this.pointsToTrace,
-      this.tension,
-      this.closed,
-    );
+    this.pointsToTrace = this.initialPoints.map(p => this.worldMatrix.applyToPoint(p))
   }
 
-  private _getUnrotateAndRotateMatrix() {
-    const currentAngle = this.getCurrentAngle()
-    const currentAngleSign = this.getCurrentAngleSign()
-    const rotateOrigin = this.getOriginPosition("rotate")
+  private _getUnrotateAndRotateMatrix(): [Matrix3x3, Matrix3x3] {
+    const rotateOrigin = this.getInLocalOriginPosition("rotate")
+    const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
     const unrotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(-currentAngle))
     const rotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(currentAngle))
 
     return [unrotate, rotate]
   }
 
-  public getUnrotateBounds() {
+  public getUnrotateBounds(): Rectangle {
     const [unrotate] = this._getUnrotateAndRotateMatrix()
-    const composed = Matrix3x3.compose(unrotate, this.matrix)
+    const composed = Matrix3x3.compose(unrotate, this.worldMatrix)
 
     const transformedPoints = this.initialPoints.map(composed.applyToPoint.bind(composed))
     const unrotatedBounds = Polygon.getBounds(transformedPoints)
@@ -122,10 +114,24 @@ export class PolygonShape extends Shape {
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
-    const points = this._getPointsByComputeBounds(params);
-    const bounds = Polygon.getBounds(points);
+    const points = params.skipTransform
+      ? this.initialPoints
+      : this.initialPoints.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
 
-    return bounds;
+    return Polygon.getBounds(points)
+  }
+
+  public getPointsWithAppliedOwnTransforms(): Array<PointData> {
+    return this.initialPoints.map((point) => this.localMatrix.applyToPoint(point))
+  }
+
+  public getTransformedCorners(): Array<PointData> {
+    const [_, rotate] = this._getUnrotateAndRotateMatrix()
+
+    const unrotatedBounds = this.getUnrotateBounds()
+    const rotatedCorners = unrotatedBounds.getCorners().map(rotate.applyToPoint.bind(rotate))
+
+    return rotatedCorners
   }
 
   public tracePath(context: CanvasRenderingContext2D): void {
@@ -135,59 +141,24 @@ export class PolygonShape extends Shape {
     if (this.closed) context.closePath();
   }
 
-  public renderHit(context: CanvasRenderingContext2D): void {
-    super.renderHit(context);
-  }
-
-  public getPointsWithAppliedOwnTransforms() {
-    // TODO: Recursive group parent matrix
-    const parent = this.parent()
-    const parentMatrix = parent ? parent.matrix : Matrix3x3.identity()
-    const inverted = Matrix3x3.invert(parentMatrix) ?? Matrix3x3.identity() 
-    const matrix = Matrix3x3.compose(inverted, this.matrix)
-
-    return this.initialPoints.map((point) => {
-      return matrix.applyToPoint(point)
-    })
-  }
-
-  public getTransformedCorners() {
-    const [_, rotate] = this._getUnrotateAndRotateMatrix()
-
-    const unrotatedBounds = this.getUnrotateBounds()
-    const rotatedCorners = unrotatedBounds.getCorners().map(rotate.applyToPoint.bind(rotate))
-
-    return rotatedCorners
-  }
-
   public render(context: CanvasRenderingContext2D): void {
     super.render(context);
 
     const bounds = this.getBounds({ skipTransform: false })
     const corners = this.getTransformedCorners()
 
-    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
 
     context.beginPath()
     PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
     context.closePath()
     context.stroke()
 
-    const rotateOrigin = this.getOriginPosition("rotate");
-    const scaleOrigin = this.getOriginPosition("scale");
+    const rotateOrigin = this.getInWorldOriginPoisition("rotate")
+    const scaleOrigin = this.getInWorldOriginPoisition("scale")
 
-    // drawOriginPoint(context, rotateOrigin, "rotate")
-    // drawOriginPoint(context, scaleOrigin, "scale")
-  }
-
-  private _getPointsByComputeBounds(params: GetBoundsParams): Array<PointData> {
-    if (params.skipTransform) {
-
-      return this.initialPoints //.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
-      
-    };
-
-    return this.initialPoints.map(this.matrix.applyToPoint.bind(this.matrix));
+    drawOriginPoint(context, rotateOrigin, "rotate")
+    drawOriginPoint(context, scaleOrigin, "scale")
   }
 
   private _shouldRenderStraightEdges(): boolean {

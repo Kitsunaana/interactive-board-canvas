@@ -121,7 +121,7 @@ export class BackgroundImage {
       const pattern = context.createPattern(offscreen, 'no-repeat')
       if (!pattern) return null
 
-      const rotateOrigin = this.simObject.getOriginPosition("rotate")
+      const rotateOrigin = this.simObject.getInLocalOriginPosition("rotate")
 
       const rotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(this.simObject.getCurrentAngle()))
       const translate = Matrix3x3.translate(...shapeBounds.point().array())

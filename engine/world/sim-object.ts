@@ -4,15 +4,15 @@ import { Mixin } from "ts-mixer";
 import { EventBehavior } from "../behaviors/EventBehavior";
 import { Transformable } from "../behaviors/Transformable";
 import type { Layer } from "../Layer";
-import { Matrix3x3, Point, type PointData, Rectangle } from "../maths";
+import { Matrix3x3, type PointData, Rectangle } from "../maths";
 
 export type GetBoundsParams = {
   skipTransform?: boolean
 }
 
 export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
-  public abstract updateAfterTransform(): void
   public abstract getBounds(params?: GetBoundsParams): Rectangle
+  public abstract updateAfterTransform(): void
 
   public id: string = nanoid()
 
@@ -22,39 +22,23 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   protected _parent: SimObject | null = null
   protected _layer: Layer | null = null
 
-  protected _localMatrix: Matrix3x3 = Matrix3x3.identity()
-  protected _worldMatrix: Matrix3x3 = Matrix3x3.identity()
+  public localMatrix: Matrix3x3 = Matrix3x3.identity()
+  public worldMatrix: Matrix3x3 = Matrix3x3.identity()
 
-  public get matrix(): Matrix3x3 {
-    return Matrix3x3.compose(this.worldMatrix, this.localMatrix)
+  public applyDeltaTransform(deltaMatrix: Matrix3x3) {
+    this.localMatrix = Matrix3x3.multiply(deltaMatrix, this.localMatrix)
+    this.updateWorldTransform()
   }
 
-  public get worldMatrix(): Matrix3x3 {
-    return this._worldMatrix
-  }
+  public updateWorldTransform() {
+    const parent = this.parent()
+    const children = this.children()
 
-  public get localMatrix(): Matrix3x3 {
-    return this._localMatrix
-  }
+    if (parent) this.worldMatrix = Matrix3x3.multiply(parent.worldMatrix, this.localMatrix)
+    else this.worldMatrix = this.localMatrix.clone()
 
-  public set worldMatrix(matrix: Matrix3x3) {
-    this._worldMatrix = matrix.clone()
     this.updateAfterTransform()
-  }
-
-  public set localMatrix(matrix: Matrix3x3) {
-    this._localMatrix = matrix.clone()
-    this.updateAfterTransform()
-  }
-
-  public rotate(angle: number): void {
-    super.rotate(angle)
-    this.localMatrix = this.computeMatrix()
-  }
-
-  public scale(scale: Point): void {
-    super.scale(scale)
-    this.localMatrix = this.computeMatrix()
+    children.forEach((child) => child.updateWorldTransform())
   }
 
   public addClassname(classname: string) {
@@ -66,12 +50,9 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
     return this.classList.includes(classname)
   }
 
-  public getCurrentAngleSign() {
-    return Math.sign(Math.atan2(this.localMatrix.b, this.localMatrix.a))
-  }
-
   public getCurrentAngle(): number {
-    return Math.atan2((this.localMatrix.b), (this.localMatrix.a))
+    // TODO
+    return Math.atan2(this.localMatrix.b, this.localMatrix.a)
   }
 
   public children(): Array<SimObject>
@@ -103,7 +84,7 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   }
 
   public getCorners(): Array<PointData> {
-    const matrix = this.computeMatrix()
+    const matrix = this.worldMatrix
 
     return this
       .getBounds()

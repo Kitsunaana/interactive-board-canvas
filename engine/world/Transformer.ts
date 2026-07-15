@@ -182,7 +182,7 @@ export class Transformer extends Group {
 
   private _calculateTransformHandlerPositions() {
     const invert = Matrix3x3.invert(this.localMatrix) ?? Matrix3x3.identity()
-    const matrix = Matrix3x3.compose(this._boxToApplyModify.computeMatrix());
+    const matrix = Matrix3x3.compose(this._boxToApplyModify.worldMatrix);
     const bounds = this._boxToApplyModify.getBounds({ skipTransform: true });
 
     const corners = bounds.getCorners().map(matrix.applyToPoint.bind(matrix));
@@ -231,11 +231,11 @@ export class Transformer extends Group {
     this._boxToApplyModify.endInteraction();
 
     if (this._isSingle) {
-      this._child.worldMatrix = this._boxToApplyModify.computeMatrix();
+      this._child.worldMatrix = this._boxToApplyModify.worldMatrix;
     }
 
     if (this._isMultiple) {
-      this.worldMatrix = this.computeMatrix();
+      this.worldMatrix = this.worldMatrix;
 
       this.getFlatListShapes(this).forEach((child) => {
         // child.worldMatrix = Matrix3x3.compose(child.worldMatrix, this.localMatrix);
@@ -260,14 +260,14 @@ export class Transformer extends Group {
 
   public render(context: CanvasRenderingContext2D): void {
     const invert = Matrix3x3.invert(this._boxToApplyModify.localMatrix) ?? Matrix3x3.identity();
-    const cachedMatrix = Matrix3x3.compose(this._boxToApplyModify.computeMatrix(), invert);
+    const cachedMatrix = Matrix3x3.compose(this._boxToApplyModify.worldMatrix, invert);
 
     context.save();
     cachedMatrix.applyToContext(context);
     super.render(context);
     context.restore();
 
-    const originScale = this._boxToApplyModify.getOriginPosition("scale");
+    const originScale = this._boxToApplyModify.getInLocalOriginPosition("scale");
 
     drawOriginPoint(context, originScale, "scale");
     drawOriginPoint(context, this._obbWorldCenter, "_obbWorldCenter");
@@ -277,7 +277,7 @@ export class Transformer extends Group {
     // private readonly _worldPivot = new Point();
 
     {
-      const matrix = this._boxToApplyModify.computeMatrix();
+      const matrix = this._boxToApplyModify.worldMatrix;
       // const bounds = this._boxToApplyModify.getBounds({ skipTransform: false });
 
       // const bounds = this.getBounds({ skipWorldTransform: true })

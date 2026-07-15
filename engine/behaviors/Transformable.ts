@@ -1,4 +1,4 @@
-import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths"
+import { Matrix3x3, Point, Rectangle, type PointData } from "../maths"
 import type { GetBoundsParams } from "../world/sim-object"
 
 export type TramsformOperation = "scale" | "skew" | "rotate" | "translate"
@@ -48,13 +48,13 @@ export const buildInitialOpearationsRecord = (): Record<TramsformOperation, Poin
 
 export abstract class Transformable {
   public abstract getBounds(params: GetBoundsParams): Rectangle
-
-  public _instructions: TransformInstruction[] = []
-  private _cachedBaseMatrix: Matrix3x3 = Matrix3x3.identity()
+  public abstract applyDeltaTransform(deltaMatrix: Matrix3x3): void
 
   public currentRelativeOrigins = buildInitialOpearationsRecord()
   public isInteracting: boolean = false
-  public isShowOrigins: boolean = false
+
+  public abstract localMatrix: Matrix3x3
+  public abstract worldMatrix: Matrix3x3
 
   public constructor() {
     this.setInitialRelativeOrigins()
@@ -64,169 +64,71 @@ export abstract class Transformable {
     this.currentRelativeOrigins.rotate.set(0.5, 0.5)
     this.currentRelativeOrigins.scale.set(0.0, 0.0)
     this.currentRelativeOrigins.skew.set(1.0, 1.0)
-
-    this._instructions = []
   }
 
   public setOrigin(operation: TramsformOperation, relativeOrigin: PointData): void {
-    if (this.isInteracting) {
-      const lastInstruction = this._instructions[this._instructions.length - 1]
-      lastInstruction.relativeOrigin = new Point(relativeOrigin.x, relativeOrigin.y)
-      return
-    }
-
     this.currentRelativeOrigins[operation].set(relativeOrigin.x, relativeOrigin.y)
   }
 
   public translate(delta: Point): void {
-    this._pushInstruction({
-      points: this.getBounds({ skipTransform: true }).getCorners(),
-      relativeOrigin: new Point(0, 0),
-      type: "translate",
-      value: delta,
-    })
-  }
-
-  public rotate(angle: number): void {
-    this._pushInstruction({
-      relativeOrigin: this.currentRelativeOrigins.rotate.clone(),
-      points: this.getBounds({ skipTransform: true }).getCorners(),
-      type: "rotate",
-      value: new Point(angle, 0),
-    })
-  }
-
-  public scale(scale: Point): void {
-    this._pushInstruction({
-      relativeOrigin: this.currentRelativeOrigins.scale.clone(),
-      points: this.getBounds({ skipTransform: true }).getCorners(),
-      type: "scale",
-      value: scale,
-    })
+    // TODO    
   }
 
   public skew(skew: Point): void {
-    this._pushInstruction({
-      relativeOrigin: this.currentRelativeOrigins.skew.clone(),
-      points: this.getBounds({ skipTransform: true }).getCorners(),
-      type: "skew",
-      value: skew,
-    })
+    // TODO
   }
 
-  private _pushInstruction(instruction: TransformInstruction): void {
-    this._instructions.push(instruction)
+  public getInWorldOriginPoisition(operation: TramsformOperation) {
+    return this.worldMatrix.applyToPoint(this.getOriginInOriginalSpace(operation))
+  }
+
+  public getInLocalOriginPosition(operation: TramsformOperation) {
+    return this.localMatrix.applyToPoint(this.getOriginInOriginalSpace(operation))
+  }
+
+  public getOriginInOriginalSpace(operation: TramsformOperation) {
+    const bounds = this.getBounds({ skipTransform: true })
+    const relativeOrigin = this.currentRelativeOrigins[operation]
+
+    return {
+      x: bounds.x + bounds.width * relativeOrigin.x,
+      y: bounds.y + bounds.height * relativeOrigin.y
+    }
+  }
+
+  public rotate(angle: number) {
+    const rotateOrigin = this.getInLocalOriginPosition("rotate")
+    const delta = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(angle))
+
+    this.applyDeltaTransform(delta)
+  }
+
+  public scale(scale: PointData) {
+    const rotateOrigin = this.getInLocalOriginPosition("rotate")
+    const scaleOrigin = this.getInLocalOriginPosition("scale")
+    const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
+
+    const delta = Matrix3x3.aroundOrigin(scaleOrigin, () => {
+      const rotation = Matrix3x3.rotate(currentAngle)
+      const inverseRotation = Matrix3x3.rotate(-currentAngle)
+      const operation = Matrix3x3.scale(scale.x, scale.y)
+
+      return Matrix3x3.compose(rotation, operation, inverseRotation)
+    })
+
+    this.applyDeltaTransform(delta)
   }
 
   public beginInteraction(type: TramsformOperation): void {
-    const identityValue = ({
-      translate: () => Point.zero(),
-      rotate: () => Point.zero(),
-      scale: () => Point.one(),
-      skew: () => Point.zero(),
-    })[type]()
-
-    this._instructions.push({
-      type,
-      value: identityValue,
-      points: this.getBounds({ skipTransform: true }).getCorners(),
-      relativeOrigin: {
-        x: this.currentRelativeOrigins[type].x,
-        y: this.currentRelativeOrigins[type].y
-      },
-    })
-
-    this._cachedBaseMatrix = this._computeMatrixUpTo(this._instructions.length - 1)
     this.isInteracting = true
   }
 
   public updateInteraction(value: Point | PointData): void {
-    if (!this.isInteracting || this._instructions.length === 0) return
-
-    const last = this._instructions[this._instructions.length - 1]
-    last.value.copyFrom(value)
+    if (!this.isInteracting) return
   }
 
   public endInteraction(): void {
     this.isInteracting = false
-    this._cachedBaseMatrix = Matrix3x3.identity()
-  }
-
-  public computeMatrix(): Matrix3x3 {
-    if (this.isInteracting && this._cachedBaseMatrix) {
-      return this._computeLastStepFromCache()
-    }
-
-    return this._computeMatrixUpTo(this._instructions.length)
-  }
-
-  private _computeMatrixUpTo(count: number): Matrix3x3 {
-    let accumulated = this._cachedBaseMatrix
-
-    for (let i = 0; i < count; i++) {
-      const instruction = this._instructions[i]
-
-      const stepMatrix = this._buildStepForInstruction(instruction, accumulated)
-      accumulated = Matrix3x3.compose(stepMatrix, accumulated)
-    }
-
-    return accumulated
-  }
-
-  private _computeLastStepFromCache(): Matrix3x3 {
-    const base = this._cachedBaseMatrix!
-    const lastInstruction = this._instructions[this._instructions.length - 1]
-
-    const stepMatrix = this._buildStepForInstruction(lastInstruction, base)
-    return Matrix3x3.compose(stepMatrix, base)
-  }
-
-  private _getOriginInOriginalSpace(instruction: TransformInstruction) {
-    const originalBounds = Polygon.prototype.getBounds.call({ points: instruction.points })
-    const relativeOrigin = instruction.relativeOrigin
-
-    return {
-      x: originalBounds.x + originalBounds.width * relativeOrigin.x,
-      y: originalBounds.y + originalBounds.height * relativeOrigin.y,
-    }
-  }
-
-  private _buildStepForInstruction(
-    instruction: TransformInstruction,
-    accumulated: Matrix3x3,
-  ): Matrix3x3 {
-    const originInOriginalSpace = this._getOriginInOriginalSpace(instruction)
-
-    const absoluteOrigin = accumulated.applyToPoint(originInOriginalSpace)
-    const currentAngle = Math.atan2(accumulated.b, accumulated.a)
-
-    return Matrix3x3.aroundOrigin(absoluteOrigin, () => {
-      if (instruction.type === "rotate") return Matrix3x3.rotate(instruction.value.x)
-
-      const rotation = Matrix3x3.rotate(currentAngle)
-      const inverseRotation = Matrix3x3.rotate(-currentAngle)
-      const operation = Matrix3x3[instruction.type](instruction.value.x, instruction.value.y)
-
-      return Matrix3x3.compose(rotation, operation, inverseRotation)
-    })
-  }
-
-  public getOriginPosition(operation: TramsformOperation): PointData {
-    const matrix = this.computeMatrix()
-    const originalBounds = this.getBounds({ skipTransform: true })
-    const relativePoint = this.currentRelativeOrigins[operation]
-
-    const originInOriginalSpace: PointData = {
-      x: originalBounds.x + originalBounds.width * relativePoint.x,
-      y: originalBounds.y + originalBounds.height * relativePoint.y,
-    }
-
-    return matrix.applyToPoint(originInOriginalSpace)
-  }
-
-  public bindTransformsToContext(context: CanvasRenderingContext2D): void {
-    const matrix = this.computeMatrix()
-    matrix.applyToContext(context)
   }
 }
 
