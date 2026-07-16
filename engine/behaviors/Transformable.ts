@@ -1,3 +1,4 @@
+import { isNil } from "lodash"
 import { Matrix3x3, Point, Rectangle, type PointData } from "../maths"
 import type { GetBoundsParams } from "../world/sim-object"
 
@@ -49,12 +50,13 @@ export const buildInitialOpearationsRecord = (): Record<TramsformOperation, Poin
 export abstract class Transformable {
   public abstract getBounds(params: GetBoundsParams): Rectangle
   public abstract applyDeltaTransform(deltaMatrix: Matrix3x3): void
-
-  public currentRelativeOrigins = buildInitialOpearationsRecord()
-  public isInteracting: boolean = false
+  public abstract parent(): Transformable | null
 
   public abstract localMatrix: Matrix3x3
   public abstract worldMatrix: Matrix3x3
+
+  public currentRelativeOrigins = buildInitialOpearationsRecord()
+  public isInteracting: boolean = false
 
   public constructor() {
     this.setInitialRelativeOrigins()
@@ -68,14 +70,6 @@ export abstract class Transformable {
 
   public setOrigin(operation: TramsformOperation, relativeOrigin: PointData): void {
     this.currentRelativeOrigins[operation].set(relativeOrigin.x, relativeOrigin.y)
-  }
-
-  public translate(delta: Point): void {
-    // TODO    
-  }
-
-  public skew(skew: Point): void {
-    // TODO
   }
 
   public getInWorldOriginPoisition(operation: TramsformOperation) {
@@ -104,7 +98,6 @@ export abstract class Transformable {
   }
 
   public scale(scale: PointData) {
-    const rotateOrigin = this.getInLocalOriginPosition("rotate")
     const scaleOrigin = this.getInLocalOriginPosition("scale")
     const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
 
@@ -117,6 +110,21 @@ export abstract class Transformable {
     })
 
     this.applyDeltaTransform(delta)
+  }
+
+  public translate(distance: PointData): void {
+    const parent = this.parent()
+
+    const parentAngle = parent ? Math.atan2(parent.localMatrix.b, parent.localMatrix.a) : 0
+    const unrotate = Matrix3x3.rotate(-parentAngle)
+
+    const delta = Matrix3x3.translate(...unrotate.applyToPoint(distance).array())
+
+    this.applyDeltaTransform(delta)
+  }
+
+  public skew(skew: Point): void {
+    // TODO
   }
 
   public beginInteraction(type: TramsformOperation): void {

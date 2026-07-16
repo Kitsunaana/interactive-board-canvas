@@ -15,15 +15,14 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   public abstract updateAfterTransform(): void
 
   public id: string = nanoid()
-
   public classList: Array<string> = []
+
+  public localMatrix: Matrix3x3 = Matrix3x3.identity()
+  public worldMatrix: Matrix3x3 = Matrix3x3.identity()
 
   protected _children: Array<SimObject> = []
   protected _parent: SimObject | null = null
   protected _layer: Layer | null = null
-
-  public localMatrix: Matrix3x3 = Matrix3x3.identity()
-  public worldMatrix: Matrix3x3 = Matrix3x3.identity()
 
   public applyDeltaTransform(deltaMatrix: Matrix3x3) {
     this.localMatrix = Matrix3x3.multiply(deltaMatrix, this.localMatrix)

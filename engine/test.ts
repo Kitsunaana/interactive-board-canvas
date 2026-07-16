@@ -91,6 +91,9 @@ polygonShape3.rotate(0.4)
 polygonShape3.scale(new Point(1.4, 1))
 testGroupToTransform.rotate(0.2)
 
+polygonShape3.translate({ x: 100, y: 10 })
+testGroupToTransform.translate({ x: 0, y: 60 })
+
 // polygonShape3.rotate(0.3)
 // testGroupToTransform.scale(new Point(1.9, 1))
 
@@ -100,6 +103,8 @@ testGroupToTransform.rotate(0.2)
 let angle = 0.01
 setInterval(() => {
   // angle += 0.01
+// polygonShape3.translate({ x: 1, y: 0 })
+
   // polygonShape3.rotate(angle)
 }, 10)
 
