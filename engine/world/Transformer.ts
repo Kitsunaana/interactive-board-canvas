@@ -1,4 +1,5 @@
-import { isNil, isNull, isUndefined, mapKeys } from "lodash";
+import { isNil, isUndefined, mapKeys } from "lodash";
+import type { EventObject } from "../behaviors/EventBehavior";
 import { Group } from "../Group";
 import { Matrix3x3, Point, type PointData, Rectangle } from "../maths";
 import { Ellipse } from "../shapes/Ellipse";
@@ -6,8 +7,6 @@ import { PolygonShape } from "../shapes/Polygon";
 import { Shape } from "../shapes/Shape";
 import { pointFromEvent } from "../shared/point";
 import { SimObject } from "./sim-object";
-import { drawOriginPoint } from "../behaviors/Transformable";
-import type { EventObject } from "../behaviors/EventBehavior";
 
 // n - Верхняя
 // e - Правая
@@ -62,10 +61,6 @@ export class Transformer extends Group {
     return this.children().length === 1;
   }
 
-  private get _isMultiple(): boolean {
-    return this.children().length > 1;
-  }
-
   private get _child(): SimObject {
     return this.children()[0];
   }
@@ -102,10 +97,10 @@ export class Transformer extends Group {
   }
 
   private _getHandler(handler: string): ResizeHandler {
-    const isFlippedX = this._boxToApplyModify.localMatrix.a < 0;
-    const isFlippedY = this._boxToApplyModify.localMatrix.d < 0;
+    const isFlippedX = this._boxToApplyModify.worldMatrix.a < 0;
+    const isFlippedY = this._boxToApplyModify.worldMatrix.d < 0;
 
-    return {
+    const t = {
       bottom: isFlippedY ? "n" : "s",
       right: isFlippedX ? "w" : "e",
       left: isFlippedX ? "e" : "w",
@@ -116,6 +111,8 @@ export class Transformer extends Group {
       "top-right": [isFlippedY ? "s" : "n", isFlippedX ? "w" : "e"].join(""),
       "top-left": [isFlippedY ? "s" : "n", isFlippedX ? "e" : "w"].join(""),
     }[handler] as ResizeHandler;
+
+    return t
   }
 
   private _pointerDownTransformHandler(event: EventObject<Event>) {
@@ -181,12 +178,16 @@ export class Transformer extends Group {
   }
 
   private _calculateTransformHandlerPositions() {
-    const invert = Matrix3x3.invert(this.localMatrix) ?? Matrix3x3.identity()
-    const matrix = Matrix3x3.compose(this._boxToApplyModify.worldMatrix);
+    const matrix = this._boxToApplyModify.isInteracting
+      ? Matrix3x3.compose(this._boxToApplyModify.cachedMatrix, this._boxToApplyModify.worldMatrix)
+      : this._boxToApplyModify.worldMatrix
+
     const bounds = this._boxToApplyModify.getBounds({ skipTransform: true });
 
+    const angle = Math.atan2(Math.abs(matrix.b), Math.abs(matrix.a))
+
     const corners = bounds.getCorners().map(matrix.applyToPoint.bind(matrix));
-    const rotated = Matrix3x3.rotate(this._boxToApplyModify.getCurrentAngle());
+    const rotated = Matrix3x3.rotate(angle);
 
     const padding = [
       { x: -this._padding, y: -this._padding },
@@ -204,16 +205,7 @@ export class Transformer extends Group {
 
     const mappedCorners = [rotate(0), rotate(1), rotate(2), rotate(3)];
 
-    const _t = Point.zero()
-
     return {
-      /**
-       bottom: [_t, _t], // [mappedCorners[2], mappedCorners[3]],
-       right: [_t, _t], // [mappedCorners[1], mappedCorners[2]],
-       left: [_t, _t], // [mappedCorners[3], mappedCorners[0]],
-       top: [_t, _t], // [mappedCorners[0], mappedCorners[1]],
-       */
-
       bottom: [mappedCorners[2], mappedCorners[3]],
       right: [mappedCorners[1], mappedCorners[2]],
       left: [mappedCorners[3], mappedCorners[0]],
@@ -229,82 +221,27 @@ export class Transformer extends Group {
 
   private _finishResize() {
     this._boxToApplyModify.endInteraction();
-
-    if (this._isSingle) {
-      this._child.worldMatrix = this._boxToApplyModify.worldMatrix;
-    }
-
-    if (this._isMultiple) {
-      this.worldMatrix = this.worldMatrix;
-
-      this.getFlatListShapes(this).forEach((child) => {
-        // child.worldMatrix = Matrix3x3.compose(child.worldMatrix, this.localMatrix);
-      })
-
-      this.children().forEach((child) => {
-        child.worldMatrix = this.localMatrix;
-      });
-    }
-
     this._transformScale.copyFrom(Point.one());
     this._pickedHandler = null;
   }
 
-  // public updateAfterTransform(): void {
-  //   const matrix = this.computeMatrix();
-
-  //   this.children().forEach((child) => {
-  //     child.worldMatrix = matrix;
-  //   });
-  // }
-
   public render(context: CanvasRenderingContext2D): void {
-    const invert = Matrix3x3.invert(this._boxToApplyModify.localMatrix) ?? Matrix3x3.identity();
-    const cachedMatrix = Matrix3x3.compose(this._boxToApplyModify.worldMatrix, invert);
+    const cachedMatrix = this._boxToApplyModify.cachedMatrix
 
     context.save();
     cachedMatrix.applyToContext(context);
     super.render(context);
     context.restore();
 
-    const originScale = this._boxToApplyModify.getInLocalOriginPosition("scale");
-
-    drawOriginPoint(context, originScale, "scale");
-    drawOriginPoint(context, this._obbWorldCenter, "_obbWorldCenter");
-    drawOriginPoint(context, this._worldPivot, "_worldPivot");
-
-    // private readonly _pivotPosition = new Point();
-    // private readonly _worldPivot = new Point();
-
-    {
-      const matrix = this._boxToApplyModify.worldMatrix;
-      // const bounds = this._boxToApplyModify.getBounds({ skipTransform: false });
-
-      // const bounds = this.getBounds({ skipWorldTransform: true })
-
-      const bounds = this._boxToApplyModify.getUnrotateGroupBounds()
-
-      const corners = bounds.getCorners().map(matrix.applyToPoint.bind(matrix));
-
-      context.beginPath();
-      context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-
-      // PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
-      context.closePath();
-      context.stroke();
-    }
-
-
     this.children().map((child) => {
       const bounds = child.getBounds({ skipTransform: true });
-      const matrix = Matrix3x3.compose(child.worldMatrix, child.localMatrix, cachedMatrix);
+      const matrix = Matrix3x3.compose(cachedMatrix, child.worldMatrix);
 
       const corners = bounds.getCorners().map(matrix.applyToPoint.bind(matrix));
 
       context.beginPath();
-      // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
 
-      // PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
+      PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
       context.closePath();
       context.stroke();
       context.restore();
@@ -346,7 +283,7 @@ export class Transformer extends Group {
         break;
     }
 
-    const matrix = this._boxToApplyModify.localMatrix;
+    const matrix = this._boxToApplyModify.worldMatrix;
 
     relativeOrigin.set(
       matrix.a < 0 ? 1 - relativeOrigin.x : relativeOrigin.x,
@@ -388,8 +325,8 @@ export class Transformer extends Group {
         break;
     }
 
-    point.x *= Math.sign(this._boxToApplyModify.localMatrix.a);
-    point.y *= Math.sign(this._boxToApplyModify.localMatrix.a);
+    point.x *= Math.sign(this._boxToApplyModify.worldMatrix.a);
+    point.y *= Math.sign(this._boxToApplyModify.worldMatrix.a);
 
     return point;
   }
@@ -427,7 +364,7 @@ export class Transformer extends Group {
     }
 
     if (Group.isGroup(this._boxToApplyModify)) {
-      this._boxToApplyModify.getUnrotateGroupBounds().copyTo(bounds);
+      this._boxToApplyModify.getUnrotateBounds().copyTo(bounds);
     }
 
     this._initialOBB.copyFrom(bounds);
@@ -435,7 +372,7 @@ export class Transformer extends Group {
   }
 
   private _getCurrentAngleToTransform(): number {
-    const cachedMatrix = this._boxToApplyModify.localMatrix;
+    const cachedMatrix = this._boxToApplyModify.worldMatrix;
     const currentAngle = Math.atan2(cachedMatrix.b, cachedMatrix.a);
 
     return currentAngle;
@@ -444,8 +381,8 @@ export class Transformer extends Group {
   private _setWorldPivot(): void {
     const pivotPosition = this._pivotPosition.clone();
 
-    pivotPosition.x *= Math.sign(this._boxToApplyModify.localMatrix.a);
-    pivotPosition.y *= Math.sign(this._boxToApplyModify.localMatrix.a);
+    pivotPosition.x *= Math.sign(this._boxToApplyModify.worldMatrix.a);
+    pivotPosition.y *= Math.sign(this._boxToApplyModify.worldMatrix.a);
 
     const rotated = Matrix3x3.rotate(this._getCurrentAngleToTransform()).applyToPoint(pivotPosition);
 
@@ -539,8 +476,8 @@ export class Transformer extends Group {
         break;
     }
 
-    handleX *= Math.sign(this._boxToApplyModify.localMatrix.a);
-    handleY *= Math.sign(this._boxToApplyModify.localMatrix.a);
+    handleX *= Math.sign(this._boxToApplyModify.worldMatrix.a);
+    handleY *= Math.sign(this._boxToApplyModify.worldMatrix.a);
 
     this._handlePosition.set(handleX, handleY);
   }
@@ -590,8 +527,8 @@ export class Transformer extends Group {
     // pivotX = 0
     // pivotY = 0
 
-    pivotX *= Math.sign(this._boxToApplyModify.localMatrix.a);
-    pivotY *= Math.sign(this._boxToApplyModify.localMatrix.a);
+    pivotX *= Math.sign(this._boxToApplyModify.worldMatrix.a);
+    pivotY *= Math.sign(this._boxToApplyModify.worldMatrix.a);
 
     this._pivotPosition.set(pivotX, pivotY);
   }

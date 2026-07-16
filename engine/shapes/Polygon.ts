@@ -88,10 +88,15 @@ export class PolygonShape extends Shape {
     this.backgroundImage = null;
   }
 
-  public update(time: number): void {}
+  public update(time: number): void { }
 
   public updateAfterTransform(): void {
-    this.pointsToTrace = this.initialPoints.map(p => this.worldMatrix.applyToPoint(p))
+    if (!this.isInteracting) {
+      const m = Matrix3x3.compose(this.cachedMatrix, this.worldMatrix)
+      // this.pointsToTrace = this.initialPoints.map(p => m.applyToPoint(p))
+
+      this.pointsToTrace = this.initialPoints.map(p => this.worldMatrix.applyToPoint(p))
+    }
   }
 
   private _getUnrotateAndRotateMatrix(): [Matrix3x3, Matrix3x3] {
@@ -150,15 +155,15 @@ export class PolygonShape extends Shape {
     // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
 
     context.beginPath()
-    PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
+    // PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
     context.closePath()
     context.stroke()
 
     const rotateOrigin = this.getInWorldOriginPoisition("rotate")
     const scaleOrigin = this.getInWorldOriginPoisition("scale")
 
-    drawOriginPoint(context, rotateOrigin, "rotate")
-    drawOriginPoint(context, scaleOrigin, "scale")
+    // drawOriginPoint(context, rotateOrigin, "rotate")
+    // drawOriginPoint(context, scaleOrigin, "scale")
   }
 
   private _shouldRenderStraightEdges(): boolean {

@@ -133,10 +133,16 @@ export abstract class Transformable {
 
   public updateInteraction(value: Point | PointData): void {
     if (!this.isInteracting) return
+
+    this.scale(value)
   }
 
   public endInteraction(): void {
     this.isInteracting = false
+    this.localMatrix = Matrix3x3.multiply(this.cachedMatrix, this.localMatrix)
+    this.cachedMatrix = Matrix3x3.identity()
+
+    this.updateWorldTransform()
   }
 }
 

@@ -55,18 +55,18 @@ export class Group extends Node {
     const scaleOrigin = this.getInWorldOriginPoisition("scale")
     const rotateOrigin = this.getInWorldOriginPoisition("rotate")
 
-    drawOriginPoint(context, rotateOrigin, "rotate")
-    drawOriginPoint(context, scaleOrigin, "scale")
+    // drawOriginPoint(context, rotateOrigin, "rotate")
+    // drawOriginPoint(context, scaleOrigin, "scale")
 
     const corners = this.getTransformedCorners()
 
     context.beginPath()
-    PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
+    // PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
     context.closePath()
     context.stroke()
 
     const bounds = this.getBounds({ skipTransform: false })
-    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
   }
 
   private _getUnrotateAndRotateMatrix(): [Matrix3x3, Matrix3x3] {

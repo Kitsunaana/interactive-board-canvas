@@ -65,34 +65,42 @@ const points4 = [
   // { x: 100, y: 200 }, { x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 200 }
 ];
 
-const groupSimObject = new Group();
-
 const polygonShape1 = new PolygonShape({
   initialPoints: points2,
-  sketchStyle: true,
+  sketchStyle: false,
   lineWidth: 3,
   tension: 0.0,
 });
 
-const polygonShape2 = new PolygonShape({ initialPoints: points4 });
+const polygonShape2 = new PolygonShape({ initialPoints: points4, lineWidth: 1 });
 const polygonShape3 = new PolygonShape({ initialPoints: points1 });
 
 polygonShape3.addClassname("test")
 
-const testGroupToTransform = new Group()
-testGroupToTransform.children(polygonShape2, polygonShape3)
+const transformer = new Transformer()
+const group = new Group()
+group.children(polygonShape1, polygonShape3)
+transformer.children(group, polygonShape2)
+
+transformer.rotate(0.3)
+polygonShape2.rotate(0.4)
+polygonShape2.scale({ x: 1.67, y: 1.3 })
+polygonShape2.translate({ x: 0, y: 100 })
+
+// const testGroupToTransform = new Group()
+// testGroupToTransform.children(polygonShape2, polygonShape3)
 
 // testGroupToTransform.rotate(0.5)
-polygonShape3.rotate(0.4)
+// polygonShape3.rotate(0.4)
 
 // testGroupToTransform.scale({ x: 1.5, y: 1 })
 
 // testGroupToTransform.rotate(0.2)
-polygonShape3.scale(new Point(1.4, 1))
-testGroupToTransform.rotate(0.2)
+// polygonShape3.scale(new Point(1.4, 1))
+// testGroupToTransform.rotate(0.2)
 
-polygonShape3.translate({ x: 100, y: 10 })
-testGroupToTransform.translate({ x: 0, y: 60 })
+// polygonShape3.translate({ x: 100, y: 10 })
+// testGroupToTransform.translate({ x: 0, y: 60 })
 
 // polygonShape3.rotate(0.3)
 // testGroupToTransform.scale(new Point(1.9, 1))
@@ -103,7 +111,7 @@ testGroupToTransform.translate({ x: 0, y: 60 })
 let angle = 0.01
 setInterval(() => {
   // angle += 0.01
-// polygonShape3.translate({ x: 1, y: 0 })
+  // polygonShape3.translate({ x: 1, y: 0 })
 
   // polygonShape3.rotate(angle)
 }, 10)
@@ -122,13 +130,12 @@ setInterval(() => {
 
 // testGroupToTransform.rotate(0.0)
 
-layer.add(testGroupToTransform)
+// layer.add(testGroupToTransform)
 
 const circleShape1 = new Ellipse(500, 600, 40, 60);
 circleShape1.isShowOrigins = true;
 
 polygonShape1.closed = false;
 
-const transformer = new Transformer();
-
+layer.add(transformer)
 stage.add(layer);

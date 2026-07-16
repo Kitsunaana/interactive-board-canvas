@@ -17,6 +17,8 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   public id: string = nanoid()
   public classList: Array<string> = []
 
+  public cachedMatrix: Matrix3x3 = Matrix3x3.identity()
+
   public localMatrix: Matrix3x3 = Matrix3x3.identity()
   public worldMatrix: Matrix3x3 = Matrix3x3.identity()
 
@@ -25,7 +27,12 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   protected _layer: Layer | null = null
 
   public applyDeltaTransform(deltaMatrix: Matrix3x3) {
-    this.localMatrix = Matrix3x3.multiply(deltaMatrix, this.localMatrix)
+    if (this.isInteracting) {
+      this.cachedMatrix = deltaMatrix
+    } else {
+      this.localMatrix = Matrix3x3.multiply(deltaMatrix, this.localMatrix)
+    }
+
     this.updateWorldTransform()
   }
 
@@ -51,7 +58,9 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
 
   public getCurrentAngle(): number {
     // TODO
-    return Math.atan2(this.localMatrix.b, this.localMatrix.a)
+    // return Math.atan2((this.worldMatrix.b), (this.worldMatrix.a))
+
+    return Math.atan2(Math.abs(this.worldMatrix.b), Math.abs(this.worldMatrix.a))
   }
 
   public children(): Array<SimObject>
