@@ -7,6 +7,7 @@ import { PolygonShape } from "../shapes/Polygon";
 import { Shape } from "../shapes/Shape";
 import { pointFromEvent } from "../shared/point";
 import { SimObject } from "./sim-object";
+import { drawOriginPoint } from "../behaviors/Transformable";
 
 // n - Верхняя
 // e - Правая
@@ -77,6 +78,11 @@ export class Transformer extends Group {
 
     window.addEventListener("pointermove", this._processResize.bind(this));
     window.addEventListener("pointerup", this._finishResize.bind(this));
+  }
+
+  public updateAfterTransform(): void {
+    super.updateAfterTransform()
+    this.updateTransformHandlerShapes()
   }
 
   public rotate(angle: number): void {
@@ -158,6 +164,14 @@ export class Transformer extends Group {
     }
   }
 
+  public updateTransformHandlerShapes() {
+    const boundariesPositions = this._calculateTransformHandlerPositions();
+
+    mapKeys(this._transformHandlerShapes, (shape, handler) => {
+      this._moveTransformHandlerShape(shape, handler, boundariesPositions)
+    })
+  }
+
   private _processResize(event: PointerEvent) {
     if (isNil(this._pickedHandler)) return;
 
@@ -170,23 +184,19 @@ export class Transformer extends Group {
     const layer = this.layer();
     if (isNil(layer)) return
 
-    const boundariesPositions = this._calculateTransformHandlerPositions();
-
-    mapKeys(this._transformHandlerShapes, (shape, handler) => {
-      this._moveTransformHandlerShape(shape, handler, boundariesPositions)
-    })
+    this.updateTransformHandlerShapes()
   }
 
   private _calculateTransformHandlerPositions() {
     const matrix = this._boxToApplyModify.isInteracting
-      ? Matrix3x3.compose(this._boxToApplyModify.cachedMatrix, this._boxToApplyModify.worldMatrix)
+      ? Matrix3x3.compose(this._boxToApplyModify.cachedMatrix, this._boxToApplyModify.localMatrix)
       : this._boxToApplyModify.worldMatrix
 
     const bounds = this._boxToApplyModify.getBounds({ skipTransform: true });
-
     const angle = Math.atan2(Math.abs(matrix.b), Math.abs(matrix.a))
 
-    const corners = bounds.getCorners().map(matrix.applyToPoint.bind(matrix));
+    const corners = bounds.getCorners().map((point) =>  matrix.applyToPoint(point));
+
     const rotated = Matrix3x3.rotate(angle);
 
     const padding = [
@@ -210,8 +220,7 @@ export class Transformer extends Group {
       right: [mappedCorners[1], mappedCorners[2]],
       left: [mappedCorners[3], mappedCorners[0]],
       top: [mappedCorners[0], mappedCorners[1]],
-
-
+      
       "bottom-right": mappedCorners[2],
       "bottom-left": mappedCorners[3],
       "top-right": mappedCorners[1],
@@ -223,6 +232,8 @@ export class Transformer extends Group {
     this._boxToApplyModify.endInteraction();
     this._transformScale.copyFrom(Point.one());
     this._pickedHandler = null;
+
+    this.updateTransformHandlerShapes()
   }
 
   public render(context: CanvasRenderingContext2D): void {
@@ -240,7 +251,6 @@ export class Transformer extends Group {
       const corners = bounds.getCorners().map(matrix.applyToPoint.bind(matrix));
 
       context.beginPath();
-
       PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
       context.closePath();
       context.stroke();

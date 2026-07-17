@@ -12,6 +12,7 @@ export type GetBoundsParams = {
 
 export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   public abstract getBounds(params?: GetBoundsParams): Rectangle
+  public abstract getUnrotateBounds(): Rectangle
   public abstract updateAfterTransform(): void
 
   public id: string = nanoid()
@@ -27,11 +28,8 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   protected _layer: Layer | null = null
 
   public applyDeltaTransform(deltaMatrix: Matrix3x3) {
-    if (this.isInteracting) {
-      this.cachedMatrix = deltaMatrix
-    } else {
-      this.localMatrix = Matrix3x3.multiply(deltaMatrix, this.localMatrix)
-    }
+    if (this.isInteracting) this.cachedMatrix = deltaMatrix
+    else this.localMatrix = Matrix3x3.multiply(deltaMatrix, this.localMatrix)
 
     this.updateWorldTransform()
   }
@@ -57,9 +55,6 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   }
 
   public getCurrentAngle(): number {
-    // TODO
-    // return Math.atan2((this.worldMatrix.b), (this.worldMatrix.a))
-
     return Math.atan2(Math.abs(this.worldMatrix.b), Math.abs(this.worldMatrix.a))
   }
 
@@ -91,13 +86,11 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
     this._children.forEach((child) => child.layer(layer))
   }
 
-  public getCorners(): Array<PointData> {
+  public getTransformedCorners(): Array<PointData> {
+    const bounds = this.getBounds({ skipTransform: true })
     const matrix = this.worldMatrix
 
-    return this
-      .getBounds()
-      .getCorners()
-      .map(matrix.applyToPoint.bind(matrix))
+    return bounds.getCorners().map(matrix.applyToPoint.bind(matrix))
   }
 
   public getAllParents<T extends SimObject>(list: Array<T> = []): Array<T> {

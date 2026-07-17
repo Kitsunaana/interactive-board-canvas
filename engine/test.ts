@@ -1,7 +1,6 @@
-import { Group } from "./Group";
+; import { Group } from "./Group";
 import "./index.css";
 import { Layer } from "./Layer";
-import { Point } from "./maths";
 import { Ellipse } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
@@ -67,25 +66,30 @@ const points4 = [
 
 const polygonShape1 = new PolygonShape({
   initialPoints: points2,
-  sketchStyle: false,
+  sketchStyle: true,
   lineWidth: 3,
   tension: 0.0,
 });
 
-const polygonShape2 = new PolygonShape({ initialPoints: points4, lineWidth: 1 });
-const polygonShape3 = new PolygonShape({ initialPoints: points1 });
 
-polygonShape3.addClassname("test")
+const polygonShape2 = new PolygonShape({ initialPoints: points4, lineWidth: 1 });
+const polygonShape3 = new PolygonShape({ initialPoints: points1, tension: 0.0 });
+
+polygonShape1.addClassname("test")
 
 const transformer = new Transformer()
 const group = new Group()
-group.children(polygonShape1, polygonShape3)
-transformer.children(group, polygonShape2)
+group.children(polygonShape1, polygonShape2)
+transformer.children(group, polygonShape3)
+
+polygonShape1.scale({ x: 2, y: 2 })
+
+polygonShape1.rotate(0.4)
 
 transformer.rotate(0.3)
 polygonShape2.rotate(0.4)
 polygonShape2.scale({ x: 1.67, y: 1.3 })
-polygonShape2.translate({ x: 0, y: 100 })
+polygonShape2.translate({ x: 0, y: 200 })
 
 // const testGroupToTransform = new Group()
 // testGroupToTransform.children(polygonShape2, polygonShape3)
@@ -109,11 +113,21 @@ polygonShape2.translate({ x: 0, y: 100 })
 
 // polygonShape3.beginInteraction("rotate")
 let angle = 0.01
-setInterval(() => {
-  // angle += 0.01
-  // polygonShape3.translate({ x: 1, y: 0 })
 
-  // polygonShape3.rotate(angle)
+group.rotate(0.1)
+group.rotate(0.1)
+group.rotate(0.1)
+
+
+
+const run = () => {
+  transformer.rotate(angle)
+  group.rotate(angle)
+  polygonShape1.rotate(angle)
+}
+
+setInterval(() => {
+  // run()
 }, 10)
 
 // testGroupToTransform.rotate(0.5)
@@ -135,7 +149,6 @@ setInterval(() => {
 const circleShape1 = new Ellipse(500, 600, 40, 60);
 circleShape1.isShowOrigins = true;
 
-polygonShape1.closed = false;
-
 layer.add(transformer)
 stage.add(layer);
+

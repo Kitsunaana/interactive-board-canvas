@@ -1,82 +1,101 @@
 import { drawOriginPoint } from "./behaviors/Transformable"
-import { Matrix3x3, type PointData, Polygon, Rectangle } from "./maths"
+import { Matrix3x3, Polygon, Rectangle } from "./maths"
 import { PolygonShape } from "./shapes/Polygon"
-import { Node } from "./shapes/Shape"
-import { type GetBoundsParams } from "./world/sim-object"
+import { Shape } from "./shapes/Shape"
+import { SimObject, type GetBoundsParams } from "./world/sim-object"
 
-export class Group extends Node {
+export class Group extends SimObject {
   public static isGroup(candidate: unknown): candidate is Group {
     return candidate instanceof Group
   }
 
-  public updateAfterTransform(): void {}
+  public isDrawOriginPosition: boolean = false
+  public isDrawCorners: boolean = false
+  public isDrawBounds: boolean = false
 
-  public getBounds(params: GetBoundsParams = {}): Rectangle {
-    const points = this.getPointsWithAppliedOwnTransforms()
-    if (params.skipTransform) return Polygon.getBounds(points)
-    const transformedPoints = points.map(point => this.worldMatrix.applyToPoint(point))
-    return Polygon.getBounds(transformedPoints)
+  public constructor() {
+    super()
   }
 
-  public getPointsWithAppliedOwnTransforms(): Array<PointData> {
-    const points = this.children().flatMap((child) => {
-      if (PolygonShape.isPolygon(child)) return child.getPointsWithAppliedOwnTransforms()
-      if (Group.isGroup(child)) return child.getPointsWithAppliedOwnTransforms()
-      return []
-    })
+  public updateAfterTransform(): void { }
 
-    return points
+  public getBounds(params: GetBoundsParams = {}): Rectangle {
+    const points = this
+      .getFlatListChildren()
+      .flatMap((child) => {
+        const matrix = this._getMatrixToChildForComputeBounds(params, child)
+
+        return child
+          .getPoints()
+          .map(matrix.applyToPoint.bind(matrix))
+
+      })
+
+    return Polygon.getBounds(points)
+  }
+
+  public getFlatListChildren(): Array<Shape> {
+    const children = this.children()
+
+    return children.flatMap(child => {
+      if (Shape.isShape(child)) return child
+      return this.getFlatListChildren.call(child)
+    })
   }
 
   public getUnrotateBounds(): Rectangle {
-    const [unrotate] = this._getUnrotateAndRotateMatrix()
-    const composed = Matrix3x3.compose(unrotate, this.localMatrix)
+    const unrotate = Matrix3x3.aroundOrigin(this.getInLocalOriginPosition("rotate"), () => {
+      return Matrix3x3.rotate(-this.getCurrentAngle())
+    })
 
-    const allPoints = this.getPointsWithAppliedOwnTransforms()
+    const points = this.getFlatListChildren().flatMap((shape) => {
+      const matrix = Matrix3x3.compose(unrotate, shape.worldMatrix)
+      return shape.initialPoints.map((point) => matrix.applyToPoint(point))
+    })
 
-    const transformedPoints = allPoints.map(composed.applyToPoint.bind(composed))
-    const unrotatedBounds = Polygon.getBounds(transformedPoints)
-
-    return unrotatedBounds;
-  }
-
-  public getTransformedCorners(): Array<PointData> {
-    const [_, rotate] = this._getUnrotateAndRotateMatrix()
-
-    const unrotatedBounds = this.getUnrotateBounds()
-    const rotatedCorners = unrotatedBounds.getCorners().map(rotate.applyToPoint.bind(rotate))
-
-    return rotatedCorners
+    return Polygon.getBounds(points)
   }
 
   public render(context: CanvasRenderingContext2D): void {
     super.render(context)
 
-    const scaleOrigin = this.getInWorldOriginPoisition("scale")
-    const rotateOrigin = this.getInWorldOriginPoisition("rotate")
+    if (this.isDrawOriginPosition) this._drawOriginPositions(context)
+    if (this.isDrawCorners) this._drawCorners(context)
+    if (this.isDrawBounds) this._drawBounds(context)
+  }
 
-    // drawOriginPoint(context, rotateOrigin, "rotate")
-    // drawOriginPoint(context, scaleOrigin, "scale")
+  private _getMatrixToChildForComputeBounds(params: GetBoundsParams, child: Shape): Matrix3x3 {
+    if (params.skipTransform) {
+      const invertParent = Matrix3x3.invert(this.localMatrix) ?? Matrix3x3.identity()
 
+      return child.parent() === this
+        ? child.localMatrix
+        : Matrix3x3.compose(invertParent, child.worldMatrix)
+    }
+
+    return child.worldMatrix
+  }
+
+  private _drawCorners(context: CanvasRenderingContext2D): void {
     const corners = this.getTransformedCorners()
 
     context.beginPath()
-    // PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
+    PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
     context.closePath()
     context.stroke()
-
-    const bounds = this.getBounds({ skipTransform: false })
-    // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
   }
 
-  private _getUnrotateAndRotateMatrix(): [Matrix3x3, Matrix3x3] {
-    const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
+  private _drawBounds(context: CanvasRenderingContext2D): void {
+    const bounds = this.getBounds({ skipTransform: false })
+    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+  }
 
-    const rotateOrigin = this.getInLocalOriginPosition("rotate")
-    const unrotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(-currentAngle))
-    const rotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(currentAngle))
+  private _drawOriginPositions(context: CanvasRenderingContext2D): void {
+    const scaleOrigin = this.getInWorldOriginPoisition("scale")
+    const rotateOrigin = this.getInWorldOriginPoisition("rotate")
 
-    return [unrotate, rotate]
+    drawOriginPoint(context, rotateOrigin, "rotate")
+    drawOriginPoint(context, scaleOrigin, "scale")
   }
 }
 

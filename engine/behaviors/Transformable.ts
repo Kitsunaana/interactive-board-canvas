@@ -1,4 +1,3 @@
-import { isNil } from "lodash"
 import { Matrix3x3, Point, Rectangle, type PointData } from "../maths"
 import type { GetBoundsParams } from "../world/sim-object"
 
@@ -115,9 +114,11 @@ export abstract class Transformable {
   public translate(distance: PointData): void {
     const parent = this.parent()
 
-    const parentAngle = parent ? Math.atan2(parent.localMatrix.b, parent.localMatrix.a) : 0
-    const unrotate = Matrix3x3.rotate(-parentAngle)
+    const parentAngle = parent
+      ? Math.atan2(Math.abs(parent.worldMatrix.b), Math.abs(parent.worldMatrix.a))
+      : 0
 
+    const unrotate = Matrix3x3.rotate(-parentAngle)
     const delta = Matrix3x3.translate(...unrotate.applyToPoint(distance).array())
 
     this.applyDeltaTransform(delta)

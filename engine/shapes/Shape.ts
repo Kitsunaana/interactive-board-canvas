@@ -4,10 +4,6 @@ import { BackgroundImage } from "../styles/background-image";
 import { BaseGradient } from "../styles/gradient";
 import { SimObject } from "../world/sim-object";
 
-export abstract class Node extends SimObject {
-
-}
-
 export type SketchFillStyle =
   | "hachure"
   | "solid"
@@ -17,10 +13,11 @@ export type SketchFillStyle =
   | "dashed"
   | "zigzag-line"
 
-export abstract class Shape extends Node {
+export abstract class Shape extends SimObject {
   public abstract pointsToTrace: Array<PointData>
   public abstract initialPoints: Array<PointData>
-
+  
+  public abstract getPoints(): Array<PointData>
   public abstract tracePath(context: CanvasRenderingContext2D): void
   public abstract getUnrotateBounds(): Rectangle
 
@@ -49,11 +46,6 @@ export abstract class Shape extends Node {
     return bounds
   }
 
-  public updateAfterTransform(): void {
-    // this.pointsToTrace = this.initialPoints.map((point) => this.matrix.applyToPoint(point))
-    // if (this.backgroundImage) this.backgroundImage.setContainer(this.getUnrotateBounds())
-  }
-
   private _drawBackgroundImage(context: CanvasRenderingContext2D): void {
     const pattern = this.backgroundImage && this.backgroundImage.getImagePattern(context)
     if (isNil(pattern)) return
@@ -68,20 +60,9 @@ export abstract class Shape extends Node {
     const gradient = this.backgroundGradient && this.backgroundGradient.getGradient(context)
     if (isNil(gradient)) return
 
-    // this.tracePath(context)
-
     context.save()
     context.fillStyle = gradient
     context.fill()
-    context.restore()
-  }
-
-  private _drawShapeBounds(context: CanvasRenderingContext2D): void {
-    const bounds = this.getBounds({ skipTransform: false })
-
-    context.save()
-    context.lineWidth = 1
-    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
     context.restore()
   }
 
@@ -119,7 +100,6 @@ export abstract class Shape extends Node {
         stroke: this.strokeColor,
         fillStyle: this.sketchFillStyle,
         strokeWidth: this.lineWidth,
-        // hachureGap: 0.4,
         fillWeight: 0.5,
         hachureGap: 5
       })

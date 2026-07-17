@@ -20,8 +20,8 @@ const mergeConfigWithDefaultValues = (config: PolygonConfig): Required<PolygonCo
   return {
     ...config,
     sketchStyle: config.sketchStyle ?? false,
-    strokeColor: config.strokeColor ?? "#000",
-    fillColor: config.fillColor ?? "orange",
+    strokeColor: config.strokeColor ?? "black",
+    fillColor: config.fillColor ?? "skyblue",
     lineWidth: config.lineWidth ?? 1,
     tension: config.tension ?? 0,
   }
@@ -32,37 +32,13 @@ export class PolygonShape extends Shape {
     return candidate instanceof PolygonShape;
   }
 
-  public static computePointsToTraceWithTension(
-    points: Array<PointData>,
-    tension: number,
-    closed: boolean,
-  ) {
-    const length = points.length;
-
-    return points.reduce(
-      (result, _, index, list) => {
-        if (!closed && index === list.length - 1) return result;
-
-        const p0 = list[(index - 1 + length) % length];
-        const p1 = list[index];
-        const p2 = list[(index + 1) % length];
-        const p3 = list[(index + 2) % length];
-
-        const cp1 = Point.fromData(p2).sub(p0).scale(tension).add(p1);
-
-        const cp2 = Point.fromData(p2).sub(
-          Point.fromData(p3).sub(p1).scale(tension),
-        );
-
-        return result.concat([cp1, cp2, p2]);
-      },
-      [{ ...points[0] }] as Array<PointData>,
-    );
-  }
-
   public tension: number = 0.0;
   public closed: boolean = true;
   public pointsToTrace: Array<PointData> = [];
+
+  public isDrawOriginPosition: boolean = false
+  public isDrawCorners: boolean = false
+  public isDrawBounds: boolean = false
 
   public readonly initialPoints!: Array<PointData>
 
@@ -73,11 +49,7 @@ export class PolygonShape extends Shape {
 
     Object.assign(this, cofing)
 
-    this.pointsToTrace = PolygonShape.computePointsToTraceWithTension(
-      this.initialPoints,
-      this.tension,
-      this.closed,
-    );
+    this.pointsToTrace = this.computePointsToTraceWithTension(this.initialPoints);
 
     this.backgroundImage = new BackgroundImage()
       .setSimObject(this)
@@ -92,30 +64,51 @@ export class PolygonShape extends Shape {
 
   public updateAfterTransform(): void {
     if (!this.isInteracting) {
-      const m = Matrix3x3.compose(this.cachedMatrix, this.worldMatrix)
-      // this.pointsToTrace = this.initialPoints.map(p => m.applyToPoint(p))
-
-      this.pointsToTrace = this.initialPoints.map(p => this.worldMatrix.applyToPoint(p))
+      const transformedPoints = this.initialPoints.map((point) => this.worldMatrix.applyToPoint(point))
+      this.pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
     }
   }
 
-  private _getUnrotateAndRotateMatrix(): [Matrix3x3, Matrix3x3] {
-    const rotateOrigin = this.getInLocalOriginPosition("rotate")
-    const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
-    const unrotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(-currentAngle))
-    const rotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(currentAngle))
+  public getPoints(): Array<PointData> {
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(this.initialPoints, this.tension)
+    const allPoints = this.initialPoints.concat(curveExtrema)
 
-    return [unrotate, rotate]
+    return allPoints
+  }
+
+  public computePointsToTraceWithTension(points: Array<PointData>): Array<PointData> {
+    const length = points.length;
+
+    return points.reduce((result, _, index, list) => {
+      if (!this.closed && index === list.length - 1) return result;
+
+      const p0 = list[(index - 1 + length) % length];
+      const p1 = list[index];
+      const p2 = list[(index + 1) % length];
+      const p3 = list[(index + 2) % length];
+
+      const cp1 = Point.fromData(p2).sub(p0).scale(this.tension).add(p1);
+
+      const cp2 = Point.fromData(p2).sub(
+        Point.fromData(p3).sub(p1).scale(this.tension),
+      );
+
+      return result.concat([cp1, cp2, p2]);
+    }, [{ ...points[0] }] as Array<PointData>);
   }
 
   public getUnrotateBounds(): Rectangle {
-    const [unrotate] = this._getUnrotateAndRotateMatrix()
+    const unrotate = Matrix3x3.aroundOrigin(
+      this.getInLocalOriginPosition("rotate"),
+      () => Matrix3x3.rotate(-Math.atan2(this.worldMatrix.b, this.worldMatrix.a))
+    )
+
     const composed = Matrix3x3.compose(unrotate, this.worldMatrix)
 
     const transformedPoints = this.initialPoints.map(composed.applyToPoint.bind(composed))
-    const unrotatedBounds = Polygon.getBounds(transformedPoints)
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(transformedPoints, this.tension)
 
-    return unrotatedBounds;
+    return Polygon.getBounds(curveExtrema.concat(transformedPoints))
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
@@ -123,20 +116,17 @@ export class PolygonShape extends Shape {
       ? this.initialPoints
       : this.initialPoints.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
 
-    return Polygon.getBounds(points)
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension)
+    const allPoints = points.concat(curveExtrema)
+
+    return Polygon.getBounds(allPoints)
   }
 
   public getPointsWithAppliedOwnTransforms(): Array<PointData> {
-    return this.initialPoints.map((point) => this.localMatrix.applyToPoint(point))
-  }
+    const points = this.initialPoints.map((point) => this.localMatrix.applyToPoint(point))
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension)
 
-  public getTransformedCorners(): Array<PointData> {
-    const [_, rotate] = this._getUnrotateAndRotateMatrix()
-
-    const unrotatedBounds = this.getUnrotateBounds()
-    const rotatedCorners = unrotatedBounds.getCorners().map(rotate.applyToPoint.bind(rotate))
-
-    return rotatedCorners
+    return curveExtrema.concat(points)
   }
 
   public tracePath(context: CanvasRenderingContext2D): void {
@@ -149,25 +139,9 @@ export class PolygonShape extends Shape {
   public render(context: CanvasRenderingContext2D): void {
     super.render(context);
 
-    const bounds = this.getBounds({ skipTransform: false })
-    const corners = this.getTransformedCorners()
-
-    // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-
-    context.beginPath()
-    // PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
-    context.closePath()
-    context.stroke()
-
-    const rotateOrigin = this.getInWorldOriginPoisition("rotate")
-    const scaleOrigin = this.getInWorldOriginPoisition("scale")
-
-    // drawOriginPoint(context, rotateOrigin, "rotate")
-    // drawOriginPoint(context, scaleOrigin, "scale")
-  }
-
-  private _shouldRenderStraightEdges(): boolean {
-    return this.pointsToTrace.length < 3 || this.tension === 0;
+    if (this.isDrawOriginPosition) this._drawOriginPositions(context)
+    if (this.isDrawCorners) this._drawCorners(context)
+    if (this.isDrawBounds) this._drawBounds(context)
   }
 
   public traceLinearPath(context: CanvasRenderingContext2D): void {
@@ -187,5 +161,31 @@ export class PolygonShape extends Shape {
 
       context.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
     }
+  }
+
+  private _drawBounds(context: CanvasRenderingContext2D): void {
+    const bounds = this.getBounds({ skipTransform: false })
+    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+  }
+
+  private _drawCorners(context: CanvasRenderingContext2D): void {
+    const corners = this.getTransformedCorners()
+
+    context.beginPath()
+    PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
+    context.closePath()
+    context.stroke()
+  }
+
+  private _drawOriginPositions(context: CanvasRenderingContext2D): void {
+    const rotateOrigin = this.getInWorldOriginPoisition("rotate")
+    const scaleOrigin = this.getInWorldOriginPoisition("scale")
+
+    drawOriginPoint(context, rotateOrigin, "rotate")
+    drawOriginPoint(context, scaleOrigin, "scale")
+  }
+
+  private _shouldRenderStraightEdges(): boolean {
+    return this.pointsToTrace.length < 3 || this.tension === 0;
   }
 }
