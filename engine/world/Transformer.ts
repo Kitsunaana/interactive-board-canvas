@@ -1,6 +1,6 @@
 import {isNil, mapKeys} from "lodash";
 import {Group} from "../Group";
-import {Matrix3x3, Point, type PointData, Rectangle} from "../maths";
+import {Matrix3x3, Point, type PointData, Polygon, Rectangle} from "../maths";
 import {EllipseShape} from "../shapes/Ellipse";
 import {PolygonShape} from "../shapes/Polygon";
 import {Shape} from "../shapes/Shape";
@@ -146,6 +146,14 @@ export class Transformer extends Group {
     this._setTransformScale(cursorPos.sub(this._deltaBetweenCursorAndHandler), this._pickedHandler);
     this._boxToApplyModify.updateInteraction(this._transformScale);
 
+    console.log(this.__isDeadZone.x)
+    
+    const isDeadZone = Object.values(this.__isDeadZone).some(Boolean)
+    if (isDeadZone) return;
+
+    
+    this._pickedHandler = this._getHandlerAfterTransforms(this._pickedHandler);
+
     this.updateTransformHandlerShapes()
   }
 
@@ -160,7 +168,7 @@ export class Transformer extends Group {
 
   private _calculateTransformHandlerPositions() {
     const matrix = this._boxToApplyModify.isInteracting
-      ? Matrix3x3.compose(this._boxToApplyModify.cachedMatrix, this._boxToApplyModify.localMatrix)
+      ? Matrix3x3.compose(this._boxToApplyModify.cachedMatrix, this._boxToApplyModify.worldMatrix)
       : this._boxToApplyModify.worldMatrix
 
     const bounds = this._boxToApplyModify.getBounds({skipTransform: true});
@@ -170,14 +178,29 @@ export class Transformer extends Group {
 
     const rotated = Matrix3x3.rotate(angle);
 
+    const unrotated = Matrix3x3.rotate(-angle)
+    const te = corners.map((corner) => unrotated.applyToPoint(corner))
+    const bond = Polygon.getBounds(te)
+    const isDeadZone = bond.width < 14
+
+    // console.log(bond.width)
+    
     const padding = [
       {x: -this._padding, y: -this._padding},
       {x: this._padding, y: -this._padding},
       {x: this._padding, y: this._padding},
       {x: -this._padding, y: this._padding},
     ].map((value) => {
-      value.x *= matrix.a < 0 ? -1 : 1;
-      value.y *= matrix.d < 0 ? -1 : 1;
+      
+      if (isDeadZone) {
+        // return {
+        //   x: 0,
+        //   y: 0,
+        // }
+      } else {
+        value.x *= matrix.a < 0 ? -1 : 1;
+        value.y *= matrix.d < 0 ? -1 : 1;
+      }
 
       return value;
     });
@@ -240,11 +263,12 @@ export class Transformer extends Group {
     pivotPosition.y *= Math.sign(this._boxToApplyModify.worldMatrix.a);
 
     const rotated = Matrix3x3.rotate(this._getCurrentAngleToTransform()).applyToPoint(pivotPosition);
-
     const world = this._obbWorldCenter.add(rotated);
 
     this._worldPivot.copyFrom(world);
   }
+  
+  __isDeadZone: Record<string, boolean> = {x: false, y: false};
 
   private _computeDeadZoneAdjustedFactor(
     referenceScale: Point,
@@ -252,12 +276,15 @@ export class Transformer extends Group {
     axis: keyof PointData,
   ): number {
     const deadZoneThreshold: number = this._padding * 2;
+    this.__isDeadZone[axis] = false;
 
     if (referenceScale[axis] !== 0) {
       const initialRatio = pointerOffset[axis] / referenceScale[axis];
-
       if (initialRatio > 0) return Math.max(0.01, initialRatio);
-      else if (Math.abs(pointerOffset[axis]) <= deadZoneThreshold) return 0;
+      else if (Math.abs(pointerOffset[axis]) <= deadZoneThreshold) {
+        this.__isDeadZone[axis] = true;
+        return 0
+      }
       else {
         const deadZoneAdjustedValue = pointerOffset[axis] + Math.sign(referenceScale[axis]) * deadZoneThreshold;
         const adjustedRatio = deadZoneAdjustedValue / referenceScale[axis];
@@ -285,7 +312,7 @@ export class Transformer extends Group {
 
     const origVec = this._handlePosition.sub(this._pivotPosition);
     const cursorVec = localCursor.sub(this._pivotPosition);
-
+    
     const scaleFactorX = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "x");
     const scaleFactorY = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "y");
 
