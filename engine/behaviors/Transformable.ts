@@ -1,45 +1,11 @@
-import { Matrix3x3, Point, Rectangle, type PointData } from "../maths"
-import type { GetBoundsParams } from "../world/sim-object"
+import {isNumber, isObject} from "lodash"
+import {Matrix3x3, Point, type PointData, Rectangle} from "../maths"
+import type {GetBoundsParams} from "../world/sim-object"
 
-export type TramsformOperation = "scale" | "skew" | "rotate" | "translate"
+export type TransformOperation = "scale" | "skew" | "rotate" | "translate"
 
-export const TRANSFORM_OPERATIONS = ["rotate", "skew", "scale", "translate"] as Array<TramsformOperation>
 
-export type TransformScaleInstruction = {
-  type: "scale"
-  value: Point
-  points: Array<PointData>
-  relativeOrigin: PointData
-}
-
-export type TransformSkewInstruction = {
-  type: "skew"
-  value: Point
-  points: Array<PointData>
-  relativeOrigin: PointData
-}
-
-export type TransformRotateInstruction = {
-  type: "rotate"
-  value: Point
-  points: Array<PointData>
-  relativeOrigin: PointData
-}
-
-export type TransformTranslateInstruction = {
-  type: "translate"
-  value: Point
-  points: Array<PointData>
-  relativeOrigin: PointData
-}
-
-export type TransformInstruction =
-  | TransformScaleInstruction
-  | TransformSkewInstruction
-  | TransformRotateInstruction
-  | TransformTranslateInstruction
-
-export const buildInitialOpearationsRecord = (): Record<TramsformOperation, Point> => ({
+export const buildInitialOperationsRecord = (): Record<TransformOperation, Point> => ({
   translate: new Point(),
   rotate: new Point(),
   scale: new Point(),
@@ -49,12 +15,17 @@ export const buildInitialOpearationsRecord = (): Record<TramsformOperation, Poin
 export abstract class Transformable {
   public abstract getBounds(params: GetBoundsParams): Rectangle
   public abstract applyDeltaTransform(deltaMatrix: Matrix3x3): void
+  public abstract updateWorldTransform(): void
   public abstract parent(): Transformable | null
 
   public abstract localMatrix: Matrix3x3
   public abstract worldMatrix: Matrix3x3
+  public abstract cachedMatrix: Matrix3x3
 
-  public currentRelativeOrigins = buildInitialOpearationsRecord()
+
+  public currentRelativeOrigins = buildInitialOperationsRecord()
+
+  public interactionOperation: TransformOperation | null = null
   public isInteracting: boolean = false
 
   public constructor() {
@@ -67,19 +38,19 @@ export abstract class Transformable {
     this.currentRelativeOrigins.skew.set(1.0, 1.0)
   }
 
-  public setOrigin(operation: TramsformOperation, relativeOrigin: PointData): void {
+  public setOrigin(operation: TransformOperation, relativeOrigin: PointData): void {
     this.currentRelativeOrigins[operation].set(relativeOrigin.x, relativeOrigin.y)
   }
 
-  public getInWorldOriginPoisition(operation: TramsformOperation) {
+  public getInWorldOriginPoisition(operation: TransformOperation) {
     return this.worldMatrix.applyToPoint(this.getOriginInOriginalSpace(operation))
   }
 
-  public getInLocalOriginPosition(operation: TramsformOperation) {
+  public getInLocalOriginPosition(operation: TransformOperation) {
     return this.localMatrix.applyToPoint(this.getOriginInOriginalSpace(operation))
   }
 
-  public getOriginInOriginalSpace(operation: TramsformOperation) {
+  public getOriginInOriginalSpace(operation: TransformOperation) {
     const bounds = this.getBounds({ skipTransform: true })
     const relativeOrigin = this.currentRelativeOrigins[operation]
 
@@ -112,34 +83,47 @@ export abstract class Transformable {
   }
 
   public translate(distance: PointData): void {
-    const parent = this.parent()
+    const parent = this.parent();
 
-    const parentAngle = parent
-      ? Math.atan2(Math.abs(parent.worldMatrix.b), Math.abs(parent.worldMatrix.a))
-      : 0
+    if (parent) {
+      const worldTranslate = Matrix3x3.translate(distance.x, distance.y);
 
-    const unrotate = Matrix3x3.rotate(-parentAngle)
-    const delta = Matrix3x3.translate(...unrotate.applyToPoint(distance).array())
+      const parentWorldInverse = Matrix3x3.invert(parent.worldMatrix) ?? Matrix3x3.identity();
+      const delta = Matrix3x3.multiply(parentWorldInverse, Matrix3x3.multiply(worldTranslate, parent.worldMatrix));
 
-    this.applyDeltaTransform(delta)
+      this.applyDeltaTransform(delta);
+    } else {
+      const delta = Matrix3x3.translate(distance.x, distance.y);
+      this.applyDeltaTransform(delta);
+    }
   }
 
-  public skew(skew: Point): void {
+
+  public skew(_skew: PointData): void {
     // TODO
   }
 
-  public beginInteraction(type: TramsformOperation): void {
+  public beginInteraction(type: TransformOperation): void {
     this.isInteracting = true
+    this.interactionOperation = type
   }
 
-  public updateInteraction(value: Point | PointData): void {
-    if (!this.isInteracting) return
+  public updateInteraction(value: PointData | number): false | void {
+    if (!this.isInteracting) return false
 
-    this.scale(value)
+    switch (this.interactionOperation) {
+      case "rotate": return isNumber(value) && this.rotate(value)
+
+      case "skew":
+      case "scale":
+      case "translate":
+        return isObject(value) && this[this.interactionOperation](value)
+    }
   }
 
   public endInteraction(): void {
     this.isInteracting = false
+
     this.localMatrix = Matrix3x3.multiply(this.cachedMatrix, this.localMatrix)
     this.cachedMatrix = Matrix3x3.identity()
 

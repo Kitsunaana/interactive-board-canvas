@@ -50,7 +50,7 @@ export class Group extends SimObject {
 
     const points = this.getFlatListChildren().flatMap((shape) => {
       const matrix = Matrix3x3.compose(unrotate, shape.worldMatrix)
-      return shape.initialPoints.map((point) => matrix.applyToPoint(point))
+      return shape._initialPoints.map((point) => matrix.applyToPoint(point))
     })
 
     return Polygon.getBounds(points)
@@ -80,7 +80,7 @@ export class Group extends SimObject {
     const corners = this.getTransformedCorners()
 
     context.beginPath()
-    PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
+    PolygonShape.prototype._traceLinearPath.call({ _pointsToTrace: corners }, context)
     context.closePath()
     context.stroke()
   }

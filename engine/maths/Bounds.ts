@@ -173,7 +173,7 @@ export class Bounds {
     return false
   }
 
-  public toPoint(): Point {
+  public point(): Point {
     return new Point(this.x, this.y)
   }
 }

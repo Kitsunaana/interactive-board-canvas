@@ -1,40 +1,23 @@
-import { isNil, isUndefined, mapKeys } from "lodash";
-import type { EventObject } from "../behaviors/EventBehavior";
-import { Group } from "../Group";
-import { Matrix3x3, Point, type PointData, Rectangle } from "../maths";
-import { Ellipse } from "../shapes/Ellipse";
-import { PolygonShape } from "../shapes/Polygon";
-import { Shape } from "../shapes/Shape";
-import { pointFromEvent } from "../shared/point";
-import { SimObject } from "./sim-object";
-import { drawOriginPoint } from "../behaviors/Transformable";
-
-// n - Верхняя
-// e - Правая
-// s - Нижняя
-// w - Левая
-
-// nw - Верхняя левая
-// ne - Верхняя правая
-// se - Нижняя правая
-// sw - Нижняя левая
-export type ResizeHandler = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
+import {isNil, mapKeys} from "lodash";
+import {Group} from "../Group";
+import {Matrix3x3, Point, type PointData, Rectangle} from "../maths";
+import {EllipseShape} from "../shapes/Ellipse";
+import {PolygonShape} from "../shapes/Polygon";
+import {Shape} from "../shapes/Shape";
+import {getPointFromEvent, pointFromEvent} from "../shared/point";
+import {SimObject} from "./sim-object";
+import type {EventObject} from "../behaviors/EventBehavior";
 
 export type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type Edge = "top" | "right" | "bottom" | "left";
 
-const RESIZE_HANDLER_CLASSNAMES = [
-  "bottom-right",
-  "bottom-left",
-  "top-right",
-  "top-left",
-  "bottom",
-  "right",
-  "left",
-  "top"
-]
+const r = 7
 
 export class Transformer extends Group {
+  public static isTransformer(candidate: unknown): candidate is Transformer {
+    return candidate instanceof Transformer
+  }
+
   private readonly _initialOBB = new Rectangle();
   private readonly _obbWorldCenter = new Point();
   private readonly _handlePosition = new Point();
@@ -42,20 +25,22 @@ export class Transformer extends Group {
   private readonly _pivotPosition = new Point();
   private readonly _worldPivot = new Point();
 
-  private _pickedHandler: ResizeHandler | null = null;
+  private _deltaBetweenCursorAndHandler: Point = new Point()
+  
+  private _pickedHandler: Corner | Edge | null = null;
   private _proportional: boolean = false
   private _padding = 7;
 
   private readonly _transformHandlerShapes: Record<Edge | Corner, Shape> = {
-    bottom: new PolygonShape({ initialPoints: [] }),
-    right: new PolygonShape({ initialPoints: [] }),
-    left: new PolygonShape({ initialPoints: [] }),
-    top: new PolygonShape({ initialPoints: [] }),
+    bottom: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
+    right: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
+    left: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
+    top: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
 
-    "bottom-right": new Ellipse(0, 0, 5, 5),
-    "bottom-left": new Ellipse(0, 0, 5, 5),
-    "top-right": new Ellipse(0, 0, 5, 5),
-    "top-left": new Ellipse(0, 0, 5, 5),
+    "bottom-right": new EllipseShape(0, 0, r, r),
+    "bottom-left": new EllipseShape(0, 0, r, r),
+    "top-right": new EllipseShape(0, 0, r, r),
+    "top-left": new EllipseShape(0, 0, r, r),
   };
 
   private get _isSingle(): boolean {
@@ -95,96 +80,82 @@ export class Transformer extends Group {
     else super.scale(scale);
   }
 
-  private _startTransform() {
-    this._setInitialState();
-    this._setPivotPosition(this._pickedHandler!);
-    this._setHandlePosition(this._pickedHandler!);
-    this._setWorldPivot();
-  }
-
-  private _getHandler(handler: string): ResizeHandler {
+  private _getHandlerAfterTransforms(handler: string): Edge | Corner {
     const isFlippedX = this._boxToApplyModify.worldMatrix.a < 0;
     const isFlippedY = this._boxToApplyModify.worldMatrix.d < 0;
 
-    const t = {
-      bottom: isFlippedY ? "n" : "s",
-      right: isFlippedX ? "w" : "e",
-      left: isFlippedX ? "e" : "w",
-      top: isFlippedY ? "s" : "n",
+    return {
+      bottom: isFlippedY ? "top" : "bottom",
+      right: isFlippedX ? "left" : "right",
+      left: isFlippedX ? "right" : "left",
+      top: isFlippedY ? "bottom" : "top",
 
-      "bottom-right": [isFlippedY ? "n" : "s", isFlippedX ? "w" : "e"].join(""),
-      "bottom-left": [isFlippedY ? "n" : "s", isFlippedX ? "e" : "w"].join(""),
-      "top-right": [isFlippedY ? "s" : "n", isFlippedX ? "w" : "e"].join(""),
-      "top-left": [isFlippedY ? "s" : "n", isFlippedX ? "e" : "w"].join(""),
-    }[handler] as ResizeHandler;
-
-    return t
-  }
-
-  private _pointerDownTransformHandler(event: EventObject<Event>) {
-    const include = RESIZE_HANDLER_CLASSNAMES.includes.bind(event.target.classList)
-    const handler = event.target.classList.find(include)
-    if (isUndefined(handler)) return
-
-    if (event.evt instanceof PointerEvent) {
-      this._proportional = event.evt.shiftKey
-    }
-
-    this._pickedHandler = this._getHandler(handler);
-    this._startTransform();
-
-    this._boxToApplyModify.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
-    this._boxToApplyModify.beginInteraction("scale");
-  }
-
-  private _registerTransformHandlerShapes() {
-    const layer = this.layer();
-    if (isNil(layer)) return;
-
-    const boundaries = this._calculateTransformHandlerPositions();
-
-    mapKeys(this._transformHandlerShapes, (shape, handler) => {
-      this._moveTransformHandlerShape(shape, handler, boundaries)
-
-      shape.addClassname(handler);
-      shape.on("pointerdown", this._pointerDownTransformHandler.bind(this));
-
-      layer.add(shape);
-    });
-  }
-
-  private _moveTransformHandlerShape(shape: SimObject, handler: string, boundaries: ReturnType<typeof this._calculateTransformHandlerPositions>) {
-    if (PolygonShape.isPolygon(shape)) {
-      shape.pointsToTrace = boundaries[handler as Edge];
-    }
-
-    if (Ellipse.isEllipse(shape)) {
-      const position = boundaries[handler as Corner];
-      shape.change(position.x, position.y, 5, 5);
-    }
+      "bottom-right": [isFlippedY ? "top" : "bottom", isFlippedX ? "left" : "right"].join("-"),
+      "bottom-left": [isFlippedY ? "top" : "bottom", isFlippedX ? "right" : "left"].join("-"),
+      "top-right": [isFlippedY ? "bottom" : "top", isFlippedX ? "left" : "right"].join("-"),
+      "top-left": [isFlippedY ? "bottom" : "top", isFlippedX ? "right" : "left"].join("-"),
+    }[handler] as Edge | Corner;
   }
 
   public updateTransformHandlerShapes() {
     const boundariesPositions = this._calculateTransformHandlerPositions();
 
     mapKeys(this._transformHandlerShapes, (shape, handler) => {
-      this._moveTransformHandlerShape(shape, handler, boundariesPositions)
+      if (EllipseShape.isEllipse(shape)) shape.position(boundariesPositions[handler as Corner])
+      if (PolygonShape.isPolygon(shape)) shape.initialPoints = boundariesPositions[handler as Edge]
     })
+  }
+
+  private _registerTransformHandlerShapes() {
+    const layer = this.layer();
+    if (isNil(layer)) return;
+
+    mapKeys(this._transformHandlerShapes, (shape, handler) => {
+      shape.on("pointerdown", this._startResize.bind(this, handler as unknown as Corner | Edge))
+      layer.add(shape);
+    });
+
+    this.updateTransformHandlerShapes()
+  }
+  
+  private _startResize(handler: Corner | Edge, event: EventObject) {
+    this._pickedHandler = this._getHandlerAfterTransforms(handler);
+
+    this._setInitialState();
+    this._setPivotPosition(this._pickedHandler);
+    this._setHandlePosition(this._pickedHandler);
+    this._setWorldPivot();
+
+    this._boxToApplyModify.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
+    this._boxToApplyModify.beginInteraction("scale");
+
+    const handlerCenter = this._transformHandlerShapes[handler].getBounds().center
+    const currentPointer = Point.fromData(getPointFromEvent(event.evt as PointerEvent))
+
+    this._deltaBetweenCursorAndHandler = currentPointer.sub(handlerCenter)
   }
 
   private _processResize(event: PointerEvent) {
     if (isNil(this._pickedHandler)) return;
 
     this._proportional = event.shiftKey
-
     this._boxToApplyModify.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
-    this._setTransformScale(pointFromEvent(event), this._pickedHandler);
+
+    const cursorPos = pointFromEvent(event)
+
+    this._setTransformScale(cursorPos.sub(this._deltaBetweenCursorAndHandler), this._pickedHandler);
     this._boxToApplyModify.updateInteraction(this._transformScale);
 
-    const layer = this.layer();
-    if (isNil(layer)) return
-
     this.updateTransformHandlerShapes()
+  }
+
+  private _finishResize() {
+    this._boxToApplyModify.endInteraction();
+    this.updateTransformHandlerShapes()
+
+    this._transformScale.copyFrom(Point.one());
+    this._deltaBetweenCursorAndHandler = Point.zero()
+    this._pickedHandler = null;
   }
 
   private _calculateTransformHandlerPositions() {
@@ -192,18 +163,18 @@ export class Transformer extends Group {
       ? Matrix3x3.compose(this._boxToApplyModify.cachedMatrix, this._boxToApplyModify.localMatrix)
       : this._boxToApplyModify.worldMatrix
 
-    const bounds = this._boxToApplyModify.getBounds({ skipTransform: true });
+    const bounds = this._boxToApplyModify.getBounds({skipTransform: true});
     const angle = Math.atan2(Math.abs(matrix.b), Math.abs(matrix.a))
 
-    const corners = bounds.getCorners().map((point) =>  matrix.applyToPoint(point));
+    const corners = bounds.getCorners().map((point) => matrix.applyToPoint(point));
 
     const rotated = Matrix3x3.rotate(angle);
 
     const padding = [
-      { x: -this._padding, y: -this._padding },
-      { x: this._padding, y: -this._padding },
-      { x: this._padding, y: this._padding },
-      { x: -this._padding, y: this._padding },
+      {x: -this._padding, y: -this._padding},
+      {x: this._padding, y: -this._padding},
+      {x: this._padding, y: this._padding},
+      {x: -this._padding, y: this._padding},
     ].map((value) => {
       value.x *= matrix.a < 0 ? -1 : 1;
       value.y *= matrix.d < 0 ? -1 : 1;
@@ -220,20 +191,12 @@ export class Transformer extends Group {
       right: [mappedCorners[1], mappedCorners[2]],
       left: [mappedCorners[3], mappedCorners[0]],
       top: [mappedCorners[0], mappedCorners[1]],
-      
+
       "bottom-right": mappedCorners[2],
       "bottom-left": mappedCorners[3],
       "top-right": mappedCorners[1],
       "top-left": mappedCorners[0],
-    } as Record<Edge, Array<PointData>> & Record<Corner, PointData>;
-  }
-
-  private _finishResize() {
-    this._boxToApplyModify.endInteraction();
-    this._transformScale.copyFrom(Point.one());
-    this._pickedHandler = null;
-
-    this.updateTransformHandlerShapes()
+    } as Record<Edge, Array<Point>> & Record<Corner, Point>;
   }
 
   public render(context: CanvasRenderingContext2D): void {
@@ -245,100 +208,42 @@ export class Transformer extends Group {
     context.restore();
 
     this.children().map((child) => {
-      const bounds = child.getBounds({ skipTransform: true });
+      const bounds = child.getBounds({skipTransform: true});
       const matrix = Matrix3x3.compose(cachedMatrix, child.worldMatrix);
 
       const corners = bounds.getCorners().map(matrix.applyToPoint.bind(matrix));
 
       context.beginPath();
-      PolygonShape.prototype.traceLinearPath.call({ pointsToTrace: corners }, context)
+      PolygonShape.tracePath({ pointsToTrace: corners, closed: false, tension: 0, context })
       context.closePath();
       context.stroke();
       context.restore();
     });
   }
 
-  private _getRelativeOriginScale(side: ResizeHandler) {
-    const relativeOrigin = new Point();
+  private _setInitialState(): void {
+    const bounds = this._boxToApplyModify.getUnrotateBounds()
 
-    switch (side) {
-      case "n":
-        if (this._proportional) relativeOrigin.set(0.5, 1);
-        else relativeOrigin.set(0, 1);
-        break;
-      case "e":
-        if (this._proportional) relativeOrigin.set(0, 0.5);
-        else relativeOrigin.set(0, 0);
-        // relativeOrigin.set(0.5, 0.5)
-        break;
-      case "s":
-        if (this._proportional) relativeOrigin.set(0.5, 0);
-        else relativeOrigin.set(1, 0);
-        break;
-      case "w":
-        if (this._proportional) relativeOrigin.set(1, 0.5);
-        else relativeOrigin.set(1, 0);
-        break;
-      case "nw":
-        relativeOrigin.set(1, 1);
-        break;
-      case "ne":
-        relativeOrigin.set(0, 1);
-        break;
-      case "se":
-        relativeOrigin.set(0, 0)
-        break;
-      case "sw":
-        relativeOrigin.set(1, 0);
-        break;
-    }
-
-    const matrix = this._boxToApplyModify.worldMatrix;
-
-    relativeOrigin.set(
-      matrix.a < 0 ? 1 - relativeOrigin.x : relativeOrigin.x,
-      matrix.d < 0 ? 1 - relativeOrigin.y : relativeOrigin.y,
-    );
-
-    return relativeOrigin;
+    this._initialOBB.copyFrom(bounds);
+    this._obbWorldCenter.copyFrom(this._initialOBB.center);
   }
 
-  private _getPaddingToLocalCursor(side: ResizeHandler) {
-    const padding = this._padding;
+  private _getCurrentAngleToTransform(): number {
+    const cachedMatrix = this._boxToApplyModify.worldMatrix;
+    return Math.atan2(cachedMatrix.b, cachedMatrix.a);
+  }
 
-    let point: Point;
+  private _setWorldPivot(): void {
+    const pivotPosition = this._pivotPosition.clone();
 
-    switch (side) {
-      case "nw":
-        point = new Point(padding, padding);
-        break;
-      case "n":
-        point = new Point(padding, padding);
-        break;
-      case "ne":
-        point = new Point(-padding, padding);
-        break;
-      case "e":
-        point = new Point(-padding, padding);
-        break;
-      case "se":
-        point = new Point(-padding, -padding);
-        break;
-      case "s":
-        point = new Point(padding, -padding);
-        break;
-      case "sw":
-        point = new Point(padding, -padding);
-        break;
-      case "w":
-        point = new Point(padding, -padding);
-        break;
-    }
+    pivotPosition.x *= Math.sign(this._boxToApplyModify.worldMatrix.a);
+    pivotPosition.y *= Math.sign(this._boxToApplyModify.worldMatrix.a);
 
-    point.x *= Math.sign(this._boxToApplyModify.worldMatrix.a);
-    point.y *= Math.sign(this._boxToApplyModify.worldMatrix.a);
+    const rotated = Matrix3x3.rotate(this._getCurrentAngleToTransform()).applyToPoint(pivotPosition);
 
-    return point;
+    const world = this._obbWorldCenter.add(rotated);
+
+    this._worldPivot.copyFrom(world);
   }
 
   private _computeDeadZoneAdjustedFactor(
@@ -366,43 +271,7 @@ export class Transformer extends Group {
     return 1;
   }
 
-  private _setInitialState(): void {
-    const bounds = new Rectangle(0, 0, 0, 0);
-
-    if (Shape.isShape(this._boxToApplyModify)) {
-      this._boxToApplyModify.getUnrotateBounds().copyTo(bounds);
-    }
-
-    if (Group.isGroup(this._boxToApplyModify)) {
-      this._boxToApplyModify.getUnrotateBounds().copyTo(bounds);
-    }
-
-    this._initialOBB.copyFrom(bounds);
-    this._obbWorldCenter.copyFrom(this._initialOBB.center);
-  }
-
-  private _getCurrentAngleToTransform(): number {
-    const cachedMatrix = this._boxToApplyModify.worldMatrix;
-    const currentAngle = Math.atan2(cachedMatrix.b, cachedMatrix.a);
-
-    return currentAngle;
-  }
-
-  private _setWorldPivot(): void {
-    const pivotPosition = this._pivotPosition.clone();
-
-    pivotPosition.x *= Math.sign(this._boxToApplyModify.worldMatrix.a);
-    pivotPosition.y *= Math.sign(this._boxToApplyModify.worldMatrix.a);
-
-    const rotated = Matrix3x3.rotate(this._getCurrentAngleToTransform()).applyToPoint(pivotPosition);
-
-    const world = this._obbWorldCenter.add(rotated);
-
-    this._worldPivot.copyFrom(world);
-  }
-
-  private _setTransformScale(currentPointer: Point, side: ResizeHandler): void {
-
+  private _setTransformScale(currentPointer: Point, side: Edge | Corner): void {
     const worldMatrix = Matrix3x3.compose(
       Matrix3x3.translate(this._obbWorldCenter.x, this._obbWorldCenter.y),
       Matrix3x3.rotate(this._getCurrentAngleToTransform()),
@@ -425,14 +294,22 @@ export class Transformer extends Group {
       return
     }
 
-    const isTakeEdge = this._pickedHandler!.length === 1
+    const isTakeEdge = this._pickedHandler!.split("-").length === 1
     const isTakeCorner = isTakeEdge === false
 
     if (isTakeEdge) {
-      const isAxisX = this._pickedHandler!.split("").some((v) => ["e", "w"].includes(v))
+      const isAxisX = this._pickedHandler!
+        .split("-")
+        .some((v) => ["left", "right"]
+        .includes(v))
+      
       if (isAxisX) this._transformScale.set(scaleFactorX, scaleFactorX)
 
-      const isAxisY = this._pickedHandler!.split("").some((v) => ["s", "n"].includes(v))
+      const isAxisY = this._pickedHandler!
+        .split("-")
+        .some((v) => ["top", "bottom"]
+        .includes(v))
+      
       if (isAxisY) this._transformScale.set(scaleFactorY, scaleFactorY)
     }
 
@@ -444,7 +321,90 @@ export class Transformer extends Group {
     }
   }
 
-  private _setHandlePosition(side: ResizeHandler): void {
+  private _getRelativeOriginScale(side: Corner | Edge) {
+    const relativeOrigin = new Point();
+
+    switch (side) {
+      case "top":
+        if (this._proportional) relativeOrigin.set(0.5, 1);
+        else relativeOrigin.set(0, 1);
+        break;
+      case "right":
+        if (this._proportional) relativeOrigin.set(0, 0.5);
+        else relativeOrigin.set(0, 0);
+        // relativeOrigin.set(0.5, 0.5)
+        break;
+      case "bottom":
+        if (this._proportional) relativeOrigin.set(0.5, 0);
+        else relativeOrigin.set(1, 0);
+        break;
+      case "left":
+        if (this._proportional) relativeOrigin.set(1, 0.5);
+        else relativeOrigin.set(1, 0);
+        break;
+      case "top-left":
+        relativeOrigin.set(1, 1);
+        break;
+      case "top-right":
+        relativeOrigin.set(0, 1);
+        break;
+      case "bottom-right":
+        relativeOrigin.set(0, 0)
+        break;
+      case "bottom-left":
+        relativeOrigin.set(1, 0);
+        break;
+    }
+
+    const matrix = this._boxToApplyModify.worldMatrix;
+
+    relativeOrigin.set(
+      matrix.a < 0 ? 1 - relativeOrigin.x : relativeOrigin.x,
+      matrix.d < 0 ? 1 - relativeOrigin.y : relativeOrigin.y,
+    );
+
+    return relativeOrigin;
+  }
+
+  private _getPaddingToLocalCursor(side: Corner | Edge) {
+    const padding = this._padding;
+
+    let point: Point;
+
+    switch (side) {
+      case "top-left":
+        point = new Point(padding, padding);
+        break;
+      case "top":
+        point = new Point(padding, padding);
+        break;
+      case "top-right":
+        point = new Point(-padding, padding);
+        break;
+      case "right":
+        point = new Point(-padding, padding);
+        break;
+      case "bottom-right":
+        point = new Point(-padding, -padding);
+        break;
+      case "bottom":
+        point = new Point(padding, -padding);
+        break;
+      case "bottom-left":
+        point = new Point(padding, -padding);
+        break;
+      case "left":
+        point = new Point(padding, -padding);
+        break;
+    }
+
+    point.x *= Math.sign(this._boxToApplyModify.worldMatrix.a);
+    point.y *= Math.sign(this._boxToApplyModify.worldMatrix.a);
+
+    return point;
+  }
+
+  private _setHandlePosition(side: Edge | Corner): void {
     const halfW = this._initialOBB.width / 2;
     const halfH = this._initialOBB.height / 2;
 
@@ -452,35 +412,35 @@ export class Transformer extends Group {
     let handleY = 0;
 
     switch (side) {
-      case "nw":
+      case "top-left":
         handleX = -halfW;
         handleY = -halfH;
         break;
-      case "n":
+      case "top":
         handleX = 0;
         handleY = -halfH;
         break;
-      case "ne":
+      case "top-right":
         handleX = halfW;
         handleY = -halfH;
         break;
-      case "e":
+      case "right":
         handleX = halfW;
         handleY = 0;
         break;
-      case "se":
+      case "bottom-right":
         handleX = halfW;
         handleY = halfH;
         break;
-      case "s":
+      case "bottom":
         handleX = 0;
         handleY = halfH;
         break;
-      case "sw":
+      case "bottom-left":
         handleX = -halfW;
         handleY = halfH;
         break;
-      case "w":
+      case "left":
         handleX = -halfW;
         handleY = 0;
         break;
@@ -492,7 +452,7 @@ export class Transformer extends Group {
     this._handlePosition.set(handleX, handleY);
   }
 
-  private _setPivotPosition(side: ResizeHandler): void {
+  private _setPivotPosition(side: Edge | Corner): void {
     const halfW = this._initialOBB.width / 2;
     const halfH = this._initialOBB.height / 2;
 
@@ -500,35 +460,35 @@ export class Transformer extends Group {
     let pivotY = 0;
 
     switch (side) {
-      case "nw":
+      case "top-left":
         pivotX = halfW;
         pivotY = halfH;
         break;
-      case "n":
+      case "top":
         pivotX = 0;
         pivotY = halfH;
         break;
-      case "ne":
+      case "top-right":
         pivotX = -halfW;
         pivotY = halfH;
         break;
-      case "e":
+      case "right":
         pivotX = -halfW;
         pivotY = 0;
         break;
-      case "se":
+      case "bottom-right":
         pivotX = -halfW;
         pivotY = -halfH;
         break;
-      case "s":
+      case "bottom":
         pivotX = 0;
         pivotY = -halfH;
         break;
-      case "sw":
+      case "bottom-left":
         pivotX = halfW;
         pivotY = -halfH;
         break;
-      case "w":
+      case "left":
         pivotX = halfW;
         pivotY = 0;
         break;

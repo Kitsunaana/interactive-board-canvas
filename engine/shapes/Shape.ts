@@ -1,5 +1,5 @@
 import { isNil } from "lodash";
-import { Matrix3x3, Polygon, Rectangle, type PointData } from "../maths";
+import { Polygon, Rectangle, type PointData } from "../maths";
 import { BackgroundImage } from "../styles/background-image";
 import { BaseGradient } from "../styles/gradient";
 import { SimObject } from "../world/sim-object";
@@ -14,9 +14,9 @@ export type SketchFillStyle =
   | "zigzag-line"
 
 export abstract class Shape extends SimObject {
-  public abstract pointsToTrace: Array<PointData>
-  public abstract initialPoints: Array<PointData>
-  
+  protected abstract _pointsToTrace: Array<PointData>
+  protected abstract _initialPoints: Array<PointData>
+
   public abstract getPoints(): Array<PointData>
   public abstract tracePath(context: CanvasRenderingContext2D): void
   public abstract getUnrotateBounds(): Rectangle
@@ -49,6 +49,8 @@ export abstract class Shape extends SimObject {
   private _drawBackgroundImage(context: CanvasRenderingContext2D): void {
     const pattern = this.backgroundImage && this.backgroundImage.getImagePattern(context)
     if (isNil(pattern)) return
+
+    this.tracePath(context)
 
     context.save()
     context.fillStyle = pattern
@@ -87,14 +89,12 @@ export abstract class Shape extends SimObject {
     context.restore()
   }
 
-  public render(context: CanvasRenderingContext2D): void {
-    this.tracePath(context)
-
+  public fillStrokeSpahe(context: CanvasRenderingContext2D) {
     this._drawBackgroundImage(context)
     this._drawBackgroundGradient(context)
 
     if (this.sketchStyle) {
-      this.layer()!.rc.path(Polygon.getSVGPath(this.pointsToTrace), {
+      this.layer()!.rc.path(Polygon.getSVGPath(this._pointsToTrace), {
         seed: 3,
         fill: this.backgroundImage ? "none" : this.fillColor,
         stroke: this.strokeColor,
@@ -121,5 +121,10 @@ export abstract class Shape extends SimObject {
     }
 
     context.restore()
+  }
+
+  public render(context: CanvasRenderingContext2D): void {
+    this.tracePath(context)
+    this.fillStrokeSpahe(context)
   }
 }

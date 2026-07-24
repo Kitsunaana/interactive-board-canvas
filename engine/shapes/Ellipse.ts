@@ -1,37 +1,11 @@
-import { Bounds, Matrix3x3, Point, type PointData, Polygon, Rectangle } from "../maths";
-import { BackgroundImage } from "../styles/background-image";
+import { Matrix3x3, type PointData, Rectangle } from "../maths";
+import { Ellipse } from "../maths/Ellipse";
 import { type GetBoundsParams } from "../world/sim-object";
 import { Shape } from "./Shape";
 
-const source = "https://i.pinimg.com/736x/78/ea/88/78ea88af3c4dec0b3231ff1a06c5de8b.jpg"
-
-export class Ellipse extends Shape {
-  public initialPoints!: Array<PointData>
-  public pointsToTrace!: Array<PointData>
-
-  public constructor(private _x: number, private _y: number, private _rx: number, private _ry: number) {
-    super()
-
-    this.isShowOrigins = false
-
-    this.change(_x, _y, _rx, _ry)
-    // this.initialPoints = Ellipse.computePointsToTrace(_x, _y, _rx, _ry)
-    // this.pointsToTrace = this.initialPoints.map((point) => ({ ...point }))
-
-    // this.backgroundImage = new BackgroundImage()
-    //   .setSimObject(this)
-    //   .setContainer(this.getBounds())
-    //   .setBackgroundImage(source)
-    //   .setBackgroundSize("cover")
-  }
-
-  public change(x: number, y: number, rx: number, ry: number) {
-    this.initialPoints = Ellipse.computePointsToTrace(x, y, rx, ry)
-    this.pointsToTrace = this.initialPoints.map((point) => ({ ...point }))
-  }
-
-  public static isEllipse(candidate: unknown): candidate is Ellipse {
-    return candidate instanceof Ellipse
+export class EllipseShape extends Shape {
+  public static isEllipse(candidate: unknown): candidate is EllipseShape {
+    return candidate instanceof EllipseShape
   }
 
   public static computePointsToTrace(cx: number, cy: number, rx: number, ry: number): Array<PointData> {
@@ -55,65 +29,66 @@ export class Ellipse extends Shape {
     ]
   }
 
-  public renderHit(context: CanvasRenderingContext2D): void {
-    super.renderHit(context)
+  public _initialPoints!: Array<PointData>
+  public _pointsToTrace!: Array<PointData>
 
-    // console.log(this.layer()?.getHitColor(this))
+  public constructor(private _x: number, private _y: number, private _rx: number, private _ry: number) {
+    super()
+
+    this._initialPoints = EllipseShape.computePointsToTrace(this._x, this._y, this._rx, this._ry)
+    this._pointsToTrace = this._initialPoints
+
+    this.bindEvents()
+  }
+
+  public getPoints(): Array<PointData> {
+    return this._initialPoints
+  }
+
+  public updateAfterTransform(): void {
+    if (!this.isInteracting) {
+      this._pointsToTrace = this._initialPoints.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
+    }
+  }
+  
+  public position(nextPos: PointData) {
+    this._x = nextPos.x
+    this._y = nextPos.y
+    this._initialPoints = EllipseShape.computePointsToTrace(this._x, this._y, this._rx, this._ry)
+    this.updateAfterTransform()
+  }
+
+  public render(context: CanvasRenderingContext2D): void {
+    context.save()
+    if (this.isInteracting) context.translate(...this._translate.array())
+    super.render(context)
+    context.restore()
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
-    const matrix = params.skipTransform
-      ? Matrix3x3.identity()
-      : params.skipWorldTransform
-        ? Matrix3x3.compose(this.localMatrix)
-        : Matrix3x3.compose(this.localMatrix)
+    const matrix = params.skipTransform ? this.localMatrix : this.worldMatrix
 
-    const center = matrix.applyToPoint(new Point(this._x, this._y))
-
-    const halfSize = new Point(
-      Math.sqrt(Math.pow(matrix.a * this._rx, 2) + Math.pow(matrix.c * this._ry, 2)),
-      Math.sqrt(Math.pow(matrix.b * this._rx, 2) + Math.pow(matrix.d * this._ry, 2))
-    )
-
-    const min = center.sub(halfSize)
-    const max = center.add(halfSize)
-
-    const bounds = new Bounds(...min.array(), ...max.array())
-
-    return this.applyStylesToBounds(bounds.rectangle)
+    return Ellipse.getBounds(this._x, this._y, this._rx, this._ry, matrix)
   }
 
   public getUnrotateBounds(): Rectangle {
-    const unrotate = Matrix3x3.aroundOrigin(this.getInLocalOriginPosition("rotate"), () => {
-      return Matrix3x3.rotate(-this.getCurrentAngle())
-    })
+    const rotateOrigin = this.getInWorldOriginPoisition("rotate")
+    const unrotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(-this.getCurrentAngle()))
+    const matrix = Matrix3x3.compose(unrotate, this.worldMatrix)
 
-    const matrix = Matrix3x3.compose(unrotate, this.localMatrix)
-    const center = matrix.applyToPoint(new Point(this._x, this._y))
-
-    const halfSize = new Point(
-      Math.sqrt(Math.pow(matrix.a * this._rx, 2) + Math.pow(matrix.c * this._ry, 2)),
-      Math.sqrt(Math.pow(matrix.b * this._rx, 2) + Math.pow(matrix.d * this._ry, 2))
-    )
-
-    const min = center.sub(halfSize)
-    const max = center.add(halfSize)
-
-    const bounds = new Bounds(...min.array(), ...max.array())
-
-    return this.applyStylesToBounds(bounds.rectangle)
+    return Ellipse.getBounds(this._x, this._y, this._rx, this._ry, matrix)
   }
 
   public tracePath(context: CanvasRenderingContext2D): void {
-    const length = this.pointsToTrace.length
+    const length = this._pointsToTrace.length
 
     context.beginPath()
-    context.moveTo(this.pointsToTrace[0].x, this.pointsToTrace[0].y)
+    context.moveTo(this._pointsToTrace[0].x, this._pointsToTrace[0].y)
 
     for (let i = 1; i < length; i += 3) {
-      const p1 = this.pointsToTrace[i]
-      const p2 = this.pointsToTrace[(i + 1) % length]
-      const p3 = this.pointsToTrace[(i + 2) % length]
+      const p1 = this._pointsToTrace[i]
+      const p2 = this._pointsToTrace[(i + 1) % length]
+      const p3 = this._pointsToTrace[(i + 2) % length]
 
       context.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y)
     }

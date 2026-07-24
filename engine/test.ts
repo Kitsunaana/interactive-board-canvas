@@ -1,7 +1,8 @@
 ; import { Group } from "./Group";
 import "./index.css";
 import { Layer } from "./Layer";
-import { Ellipse } from "./shapes/Ellipse";
+import { Point } from "./maths";
+import { EllipseShape } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
 import { Transformer } from "./world/Transformer";
@@ -66,30 +67,59 @@ const points4 = [
 
 const polygonShape1 = new PolygonShape({
   initialPoints: points2,
-  sketchStyle: true,
+  sketchStyle: false,
   lineWidth: 3,
   tension: 0.0,
+  draggable: true
 });
 
+// polygonShape1.scale({ x: 2, y: 1 })
+// polygonShape1.rotate(0.3)
+
+polygonShape1.cache({
+  drawBorder: true,
+  offset: 10,
+})
+
+polygonShape1.canDragging(true)
 
 const polygonShape2 = new PolygonShape({ initialPoints: points4, lineWidth: 1 });
 const polygonShape3 = new PolygonShape({ initialPoints: points1, tension: 0.0 });
 
+polygonShape3.canDragging(true)
+
+polygonShape2.closed(false)
 polygonShape1.addClassname("test")
+polygonShape2.tension(0.2)
 
 const transformer = new Transformer()
 const group = new Group()
-group.children(polygonShape1, polygonShape2)
-transformer.children(group, polygonShape3)
 
-polygonShape1.scale({ x: 2, y: 2 })
+const ellipseTest = new EllipseShape(600, 300, 40, 20)
 
-polygonShape1.rotate(0.4)
+group.children(polygonShape2, polygonShape3)
+transformer.children(polygonShape1, group, ellipseTest)
 
+// transformer.scale(new Point(0.5, 1))
 transformer.rotate(0.3)
-polygonShape2.rotate(0.4)
-polygonShape2.scale({ x: 1.67, y: 1.3 })
-polygonShape2.translate({ x: 0, y: 200 })
+
+ellipseTest.canDragging(true)
+
+// polygonShape1.translate({ x: 100, y: 0 })
+
+// polygonShape1.translate({ x: 140, y: 140 })
+
+// polygonShape1.scale({ x: 2, y: 2 })
+
+// polygonShape1.rotate(0.4)
+
+// group.rotate(0.6)
+// transformer.rotate(0.3)
+// polygonShape2.rotate(0.4)
+// polygonShape2.scale({ x: 1.6, y: 1.3 })
+// polygonShape2.translate({ x: 0, y: 200 })
+
+// transformer.translate({ x: 100, y: 0 })
 
 // const testGroupToTransform = new Group()
 // testGroupToTransform.children(polygonShape2, polygonShape3)
@@ -112,23 +142,28 @@ polygonShape2.translate({ x: 0, y: 200 })
 // polygonShape2.scale(new Point(1, 1.6))
 
 // polygonShape3.beginInteraction("rotate")
-let angle = 0.01
+let angle = 0.005
 
-group.rotate(0.1)
-group.rotate(0.1)
-group.rotate(0.1)
+// group.rotate(0.1)
+// group.rotate(0.1)
+// group.rotate(0.1)
 
 
 
 const run = () => {
-  transformer.rotate(angle)
-  group.rotate(angle)
-  polygonShape1.rotate(angle)
+  // transformer.rotate(angle)
+  // group.rotate(angle)
+  // polygonShape1.rotate(angle)
+  // polygonShape1.invalidateCache()
 }
 
 setInterval(() => {
-  // run()
+  run()
 }, 10)
+
+polygonShape1.clearCache()
+setTimeout(() => {
+}, 2000)
 
 // testGroupToTransform.rotate(0.5)
 // polygonShape3.scale(new Point(2.5, 1))
@@ -146,8 +181,7 @@ setInterval(() => {
 
 // layer.add(testGroupToTransform)
 
-const circleShape1 = new Ellipse(500, 600, 40, 60);
-circleShape1.isShowOrigins = true;
+const circleShape1 = new EllipseShape(500, 600, 40, 60);
 
 layer.add(transformer)
 stage.add(layer);

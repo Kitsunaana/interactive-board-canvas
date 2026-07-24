@@ -1,6 +1,6 @@
 import { isNil } from "lodash"
 import { BackgroundSizeParser } from "../components/string-size-parser"
-import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths"
+import { Bounds, Matrix3x3, Point, Rectangle, type PointData } from "../maths"
 import type { SimObject } from "../world/sim-object"
 
 const iterate = (start: number, end: number, callback: (i: number) => void) => {
@@ -96,7 +96,13 @@ export class BackgroundImage {
 
   private _computeImagePattern(context: CanvasRenderingContext2D): CanvasPattern | null {
     if (this._isLoaded && this._image) {
-      const shapeBounds = this._container
+      const shapeBounds = new Bounds()
+      shapeBounds.x = this._container.x
+      shapeBounds.y = this._container.y
+      shapeBounds.width = this._container.width
+      shapeBounds.height = this._container.height
+
+      if (!shapeBounds.isValid) return null
 
       const offscreen = new OffscreenCanvas(shapeBounds.width, shapeBounds.height)
       const offContext = offscreen.getContext('2d', { alpha: true })

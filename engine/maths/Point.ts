@@ -16,6 +16,10 @@ export interface PointLike {
 }
 
 export class Point implements PointLike {
+  public static isPoint(candidate: unknown): candidate is Point {
+    return candidate instanceof Point
+  }
+
   public static zero(): Point {
     return new Point(0, 0)
   }

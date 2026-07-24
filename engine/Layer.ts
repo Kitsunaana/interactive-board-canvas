@@ -171,7 +171,7 @@ export class Layer extends SimObject {
     const green = Math.floor(Math.random() * 255)
     const blue = Math.floor(Math.random() * 255)
 
-    // return Layer._toHitColor(red, green, blue)
+    return Layer._toHitColor(red, green, blue)
 
     while (this._lastHitColorId < 0xffffff) {
       this._lastHitColorId += 1
