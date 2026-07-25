@@ -279,8 +279,8 @@ export class PolygonShape extends Shape {
   }
 
   private _drawOriginPositions(context: CanvasRenderingContext2D): void {
-    const rotateOrigin = this.getInWorldOriginPoisition("rotate")
-    const scaleOrigin = this.getInWorldOriginPoisition("scale")
+    const rotateOrigin = this.getInWorldOriginPosition("rotate")
+    const scaleOrigin = this.getInWorldOriginPosition("scale")
 
     drawOriginPoint(context, rotateOrigin, "rotate")
     drawOriginPoint(context, scaleOrigin, "scale")

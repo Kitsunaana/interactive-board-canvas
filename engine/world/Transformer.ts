@@ -1,6 +1,6 @@
 import {isNil, mapKeys} from "lodash";
 import {Group} from "../Group";
-import {Matrix3x3, Point, type PointData, Polygon, Rectangle} from "../maths";
+import {Matrix3x3, Point, type PointData, Rectangle} from "../maths";
 import {EllipseShape} from "../shapes/Ellipse";
 import {PolygonShape} from "../shapes/Polygon";
 import {Shape} from "../shapes/Shape";
@@ -11,7 +11,7 @@ import type {EventObject} from "../behaviors/EventBehavior";
 export type Corner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type Edge = "top" | "right" | "bottom" | "left";
 
-const r = 7
+const r = 5
 
 export class Transformer extends Group {
   public static isTransformer(candidate: unknown): candidate is Transformer {
@@ -125,7 +125,7 @@ export class Transformer extends Group {
     this._setPivotPosition(this._pickedHandler);
     this._setHandlePosition(this._pickedHandler);
     this._setWorldPivot();
-
+ 
     this._boxToApplyModify.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
     this._boxToApplyModify.beginInteraction("scale");
 
@@ -134,10 +134,10 @@ export class Transformer extends Group {
 
     this._deltaBetweenCursorAndHandler = currentPointer.sub(handlerCenter)
   }
-
+ 
   private _processResize(event: PointerEvent) {
     if (isNil(this._pickedHandler)) return;
-
+    
     this._proportional = event.shiftKey
     this._boxToApplyModify.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
 
@@ -146,18 +146,24 @@ export class Transformer extends Group {
     this._setTransformScale(cursorPos.sub(this._deltaBetweenCursorAndHandler), this._pickedHandler);
     this._boxToApplyModify.updateInteraction(this._transformScale);
 
-    console.log(this.__isDeadZone.x)
-    
-    const isDeadZone = Object.values(this.__isDeadZone).some(Boolean)
-    if (isDeadZone) return;
-
-    
-    this._pickedHandler = this._getHandlerAfterTransforms(this._pickedHandler);
-
     this.updateTransformHandlerShapes()
   }
 
   private _finishResize() {
+    let needUpdate = false
+    
+    if (this._transformScale.x === 0) {
+      this._transformScale.x = 0.001
+      needUpdate = true
+    }
+    
+    if (this._transformScale.y === 0) {
+      this._transformScale.y = 0.001
+      needUpdate = true
+    }
+    
+    if (needUpdate) this._boxToApplyModify.updateInteraction(this._transformScale)
+    
     this._boxToApplyModify.endInteraction();
     this.updateTransformHandlerShapes()
 
@@ -172,18 +178,13 @@ export class Transformer extends Group {
       : this._boxToApplyModify.worldMatrix
 
     const bounds = this._boxToApplyModify.getBounds({skipTransform: true});
-    const angle = Math.atan2(Math.abs(matrix.b), Math.abs(matrix.a))
 
-    const corners = bounds.getCorners().map((point) => matrix.applyToPoint(point));
+    const angle = Math.atan2(Math.abs(this.worldMatrix.b), Math.abs(this.worldMatrix.a))
+    const corners = bounds
+      .getCorners()
+      .map((point) => matrix.applyToPoint(point));
 
     const rotated = Matrix3x3.rotate(angle);
-
-    const unrotated = Matrix3x3.rotate(-angle)
-    const te = corners.map((corner) => unrotated.applyToPoint(corner))
-    const bond = Polygon.getBounds(te)
-    const isDeadZone = bond.width < 14
-
-    // console.log(bond.width)
     
     const padding = [
       {x: -this._padding, y: -this._padding},
@@ -191,16 +192,8 @@ export class Transformer extends Group {
       {x: this._padding, y: this._padding},
       {x: -this._padding, y: this._padding},
     ].map((value) => {
-      
-      if (isDeadZone) {
-        // return {
-        //   x: 0,
-        //   y: 0,
-        // }
-      } else {
-        value.x *= matrix.a < 0 ? -1 : 1;
-        value.y *= matrix.d < 0 ? -1 : 1;
-      }
+      value.x *= matrix.a < 0 ? -1 : 1;
+      value.y *= matrix.d < 0 ? -1 : 1;
 
       return value;
     });
@@ -253,7 +246,7 @@ export class Transformer extends Group {
 
   private _getCurrentAngleToTransform(): number {
     const cachedMatrix = this._boxToApplyModify.worldMatrix;
-    return Math.atan2(cachedMatrix.b, cachedMatrix.a);
+    return Math.atan2((cachedMatrix.b), (cachedMatrix.a));
   }
 
   private _setWorldPivot(): void {
@@ -268,23 +261,17 @@ export class Transformer extends Group {
     this._worldPivot.copyFrom(world);
   }
   
-  __isDeadZone: Record<string, boolean> = {x: false, y: false};
-
   private _computeDeadZoneAdjustedFactor(
     referenceScale: Point,
     pointerOffset: Point,
     axis: keyof PointData,
   ): number {
     const deadZoneThreshold: number = this._padding * 2;
-    this.__isDeadZone[axis] = false;
 
     if (referenceScale[axis] !== 0) {
       const initialRatio = pointerOffset[axis] / referenceScale[axis];
       if (initialRatio > 0) return Math.max(0.01, initialRatio);
-      else if (Math.abs(pointerOffset[axis]) <= deadZoneThreshold) {
-        this.__isDeadZone[axis] = true;
-        return 0
-      }
+      else if (Math.abs(pointerOffset[axis]) <= deadZoneThreshold) return 0
       else {
         const deadZoneAdjustedValue = pointerOffset[axis] + Math.sign(referenceScale[axis]) * deadZoneThreshold;
         const adjustedRatio = deadZoneAdjustedValue / referenceScale[axis];

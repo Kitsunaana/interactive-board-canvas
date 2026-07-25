@@ -91,8 +91,8 @@ export class Group extends SimObject {
   }
 
   private _drawOriginPositions(context: CanvasRenderingContext2D): void {
-    const scaleOrigin = this.getInWorldOriginPoisition("scale")
-    const rotateOrigin = this.getInWorldOriginPoisition("rotate")
+    const scaleOrigin = this.getInWorldOriginPosition("scale")
+    const rotateOrigin = this.getInWorldOriginPosition("rotate")
 
     drawOriginPoint(context, rotateOrigin, "rotate")
     drawOriginPoint(context, scaleOrigin, "scale")

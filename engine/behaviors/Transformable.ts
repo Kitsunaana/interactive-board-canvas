@@ -42,7 +42,7 @@ export abstract class Transformable {
     this.currentRelativeOrigins[operation].set(relativeOrigin.x, relativeOrigin.y)
   }
 
-  public getInWorldOriginPoisition(operation: TransformOperation) {
+  public getInWorldOriginPosition(operation: TransformOperation) {
     return this.worldMatrix.applyToPoint(this.getOriginInOriginalSpace(operation))
   }
 
