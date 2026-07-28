@@ -74,7 +74,7 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   }
 
   public getCurrentAngle(): number {
-    return Math.atan2(Math.abs(this.worldMatrix.b), Math.abs(this.worldMatrix.a))
+    return Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
   }
 
   public children(): Array<SimObject>
@@ -143,7 +143,6 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
       context.restore()
     })
   }
-  
 
   public onStart(_event: PointerEvent): void {
     this.beginInteraction("translate")

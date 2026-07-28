@@ -190,6 +190,16 @@ export class Layer extends SimObject {
     throw new Error("Закончились уникальные hit-цвета для слоя")
   }
 
+  public removeNode(object: SimObject) {
+    const foundIndex = this._children.indexOf(object)
+    if (foundIndex === -1) return
+
+    const prev = this._children.splice(0, foundIndex)
+    const next = this._children.splice(foundIndex - 1, this._children.length) 
+
+    this._children = prev.concat(next)
+  }
+
   private static _toHitColor(red: number, green: number, blue: number): string {
     return `rgb(${red},${green},${blue})`
   }

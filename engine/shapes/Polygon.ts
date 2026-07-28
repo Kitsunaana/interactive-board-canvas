@@ -205,7 +205,7 @@ export class PolygonShape extends Shape {
       context,
     })
 
-    this.fillStrokeSpahe(context)
+    this.fillStrokeShape(context)
   }
 
   private _shouldDrawFromCache() {

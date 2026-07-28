@@ -101,7 +101,8 @@ group.children(polygonShape2, polygonShape3)
 transformer.children(polygonShape1, group, ellipseTest)
 
 // transformer.scale(new Point(0.5, 1))
-transformer.rotate(0.3)
+// transformer.rotate(-0.3)
+transformer.translate({ x: 100, y: 100 })
 
 ellipseTest.canDragging(true)
 

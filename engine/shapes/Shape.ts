@@ -89,7 +89,7 @@ export abstract class Shape extends SimObject {
     context.restore()
   }
 
-  public fillStrokeSpahe(context: CanvasRenderingContext2D) {
+  public fillStrokeShape(context: CanvasRenderingContext2D) {
     this._drawBackgroundImage(context)
     this._drawBackgroundGradient(context)
 
@@ -125,6 +125,6 @@ export abstract class Shape extends SimObject {
 
   public render(context: CanvasRenderingContext2D): void {
     this.tracePath(context)
-    this.fillStrokeSpahe(context)
+    this.fillStrokeShape(context)
   }
 }

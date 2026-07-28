@@ -44,13 +44,14 @@ export class Group extends SimObject {
   }
 
   public getUnrotateBounds(): Rectangle {
+    const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
     const unrotate = Matrix3x3.aroundOrigin(this.getInLocalOriginPosition("rotate"), () => {
-      return Matrix3x3.rotate(-this.getCurrentAngle())
+      return Matrix3x3.rotate(-currentAngle)
     })
 
     const points = this.getFlatListChildren().flatMap((shape) => {
       const matrix = Matrix3x3.compose(unrotate, shape.worldMatrix)
-      return shape._initialPoints.map((point) => matrix.applyToPoint(point))
+      return shape.getPoints().map((point) => matrix.applyToPoint(point))
     })
 
     return Polygon.getBounds(points)

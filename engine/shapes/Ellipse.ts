@@ -66,8 +66,7 @@ export class EllipseShape extends Shape {
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
-    const matrix = params.skipTransform ? this.localMatrix : this.worldMatrix
-
+    const matrix = params.skipTransform ? Matrix3x3.identity() : this.worldMatrix
     return Ellipse.getBounds(this._x, this._y, this._rx, this._ry, matrix)
   }
 
