@@ -121,27 +121,15 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    this._children.forEach((child) => {
-      context.save()
-      child.render(context)
-      context.restore()
-    })
+    this._children.forEach((child) => child.render(context))
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {
-    this._children.forEach((child) => {
-      context.save()
-      child.renderHit(context)
-      context.restore()
-    })
+    this._children.forEach((child) => child.renderHit(context))
   }
 
   public drawInOffscreen(context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D) {
-    this._children.forEach((child) => {
-      context.save()
-      child.drawInOffscreen(context)
-      context.restore()
-    })
+    this._children.forEach((child) => child.drawInOffscreen(context))
   }
 
   public onStart(_event: PointerEvent): void {

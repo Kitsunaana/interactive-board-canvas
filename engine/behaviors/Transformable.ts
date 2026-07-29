@@ -79,6 +79,8 @@ export abstract class Transformable {
       return Matrix3x3.compose(rotation, operation, inverseRotation)
     })
 
+    // console.log(delta)
+
     this.applyDeltaTransform(delta)
   }
 

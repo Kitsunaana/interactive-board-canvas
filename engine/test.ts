@@ -6,6 +6,7 @@ import { EllipseShape } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
 import { Transformer } from "./world/Transformer";
+import { TransformerV2 } from "./world/TransformerV2";
 
 const stage = new Stage({
   height: window.innerHeight,
@@ -92,7 +93,8 @@ polygonShape2.closed(false)
 polygonShape1.addClassname("test")
 polygonShape2.tension(0.2)
 
-const transformer = new Transformer()
+// const transformer = new Transformer()
+const transformer = new TransformerV2()
 const group = new Group()
 
 const ellipseTest = new EllipseShape(600, 300, 40, 20)
