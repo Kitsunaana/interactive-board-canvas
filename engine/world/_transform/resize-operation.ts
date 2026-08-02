@@ -1,20 +1,18 @@
 import { isNil } from "lodash";
 import type { EventObject } from "../../behaviors/EventBehavior";
-import { Layer } from "../../Layer";
 import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
-import { EllipseShape } from "../../shapes/Ellipse";
-import { PolygonShape } from "../../shapes/Polygon";
-import { Shape } from "../../shapes/Shape";
 import { pointFromEvent } from "../../shared/point";
-import { mapKeys } from "../../utils";
-import { BaseTransformOperation } from "./base-transform-operation";
-import type { Corner, Edge, TransformOperationModel } from "./transform-operation.interface";
+import { SimObject } from "../sim-object";
+import { TransformerV2 } from "../TransformerV2";
+import type { Corner, Edge } from "./transform-operation.interface";
+import { drawOriginPoint } from "../../behaviors/Transformable";
+import { Shape } from "../../shapes/Shape";
 
 type ResizeHandler = Corner | Edge
 
 const r = 5
 
-export class ResizeTransformOpearation extends BaseTransformOperation implements TransformOperationModel {
+export class ResizeTransformOpearation {
   private readonly _initialOBB = new Rectangle();
   private readonly _obbWorldCenter = new Point();
   private readonly _handlePosition = new Point();
@@ -28,43 +26,24 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
   private _proportional: boolean = false
   private _padding = 7;
 
-  private readonly _transformHandlerShapes: Record<ResizeHandler, Shape> = {
-    bottom: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
-    right: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
-    left: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
-    top: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
+  public constructor(public context: TransformerV2, public node: SimObject) { }
 
-    bottomRight: new EllipseShape(0, 0, r, r),
-    bottomLeft: new EllipseShape(0, 0, r, r),
-    topRight: new EllipseShape(0, 0, r, r),
-    topLeft: new EllipseShape(0, 0, r, r),
-  };
+  public drawDebug(context: CanvasRenderingContext2D) {
+    context.save()
 
-  public addHandlersToLayer(layer: Layer) {
-    mapKeys(this._transformHandlerShapes, (handler, shape) => {
-      shape.on("pointerdown", this.startTransform.bind(this))
-      shape.addClassname(handler)
-      layer.add(shape);
-    });
+    const originScale = this.node.getInWorldOriginPosition("scale")
 
-    this.updateHandlersPosition()
-  }
+    drawOriginPoint(context, this._obbWorldCenter, "_obbWorldCenter")
+    drawOriginPoint(context, this._handlePosition, "_handlePosition")
+    drawOriginPoint(context, this._pivotPosition, "_pivotPosition")
+    drawOriginPoint(context, this._worldPivot, "_worldPivot")
+    drawOriginPoint(context, originScale, "originScale")
 
-  public updateHandlersPosition() {
-    const nextPositions = this.computeTransformHandlerPositions(7);
-
-    // console.log(JSON.stringify(nextPositions.corner, null, 2))
-    mapKeys(this._transformHandlerShapes, (handler, shape) => {
-      if (EllipseShape.isEllipse(shape)) shape.position(nextPositions.corner[handler as Corner])
-
-      if (PolygonShape.isPolygon(shape)) {
-        shape.initialPoints = nextPositions.edge[handler as Edge] as unknown as Array<PointData>
-      }
-    })
+    context.restore()
   }
 
   public startTransform(event: EventObject) {
-    this.box.transformState = "resize"
+    this.context.transformState = "resize"
 
     const handler = event.target.classList[0] as ResizeHandler
     this._pickedHandler = this._getEffectiveSide(handler)
@@ -74,10 +53,19 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
     this._setHandlePosition(this._pickedHandler);
     this._setWorldPivot();
 
-    this.box.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
-    this.box.beginInteraction("scale");
+    this.node.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
+    this.node.beginInteraction("scale");
 
-    const handlerCenter = this._transformHandlerShapes[handler].getBounds().center
+    const mergedResizeHandlers = Object
+      .keys(this.context.resizeHandlerShapes)
+      .reduce((acc, key) => {
+        return Object.assign(
+          acc, 
+          this.context.resizeHandlerShapes[key as keyof typeof this.context.resizeHandlerShapes]
+        )
+      }, {} as Record<ResizeHandler, Shape>)
+
+    const handlerCenter = mergedResizeHandlers[handler].getBounds().center
     const currentPointer = pointFromEvent(event.evt as PointerEvent)
 
     this._deltaBetweenCursorAndHandler = currentPointer.sub(handlerCenter)
@@ -87,14 +75,14 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
     if (isNil(this._pickedHandler)) return;
 
     this._proportional = event.shiftKey
-    this.box.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
+    this.node.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
 
     const cursorPos = pointFromEvent(event)
 
     this._setTransformScale(cursorPos.sub(this._deltaBetweenCursorAndHandler), this._pickedHandler);
-    this.box.updateInteraction(this._transformScale);
+    this.node.updateInteraction(this._transformScale);
 
-    this.box.updateHandlersPosition()
+    this.context.updateHandlersPosition()
   }
 
   public finishTransform() {
@@ -103,19 +91,20 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
     if (this._transformScale.x === 0) this._transformScale.x = 0.001
     if (this._transformScale.y === 0) this._transformScale.y = 0.001
 
-    this.box.updateInteraction(this._transformScale)
-    this.box.endInteraction();
+    this.node.updateInteraction(this._transformScale)
+    this.node.endInteraction();
 
-    this.box.updateHandlersPosition()
+    this.context.updateHandlersPosition()
 
     this._transformScale.copyFrom(Point.one());
     this._deltaBetweenCursorAndHandler = Point.zero()
     this._pickedHandler = null;
-    this.box.transformState = "idle"
+
+    this.context.transformState = "idle"
   }
 
   private _setInitialState(): void {
-    const bounds = this.box.getUnrotateBounds()
+    const bounds = this.node.getUnrotateBounds()
 
     this._initialOBB.copyFrom(bounds);
     this._obbWorldCenter.copyFrom(this._initialOBB.center);
@@ -123,8 +112,9 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
 
   private _setWorldPivot(): void {
     const pivotPosition = this._pivotPosition.clone();
+    const currentAngle = this.node.getCurrentAngle()
 
-    const rotated = Matrix3x3.rotate(this.box.getCurrentAngle()).applyToPoint(pivotPosition);
+    const rotated = Matrix3x3.rotate(currentAngle).applyToPoint(pivotPosition);
     const world = this._obbWorldCenter.add(rotated);
 
     this._worldPivot.copyFrom(world);
@@ -153,7 +143,7 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
   private _setTransformScale(currentPointer: Point, side: Edge | Corner): void {
     const worldMatrix = Matrix3x3.compose(
       Matrix3x3.translate(this._obbWorldCenter.x, this._obbWorldCenter.y),
-      Matrix3x3.rotate(this.box.getCurrentAngle()),
+      Matrix3x3.rotate(this.node.getCurrentAngle()),
     );
 
     const localMatrix = Matrix3x3.invert(worldMatrix) ?? Matrix3x3.identity();
@@ -169,7 +159,7 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
   }
 
   private _getEffectiveSide(side: ResizeHandler): ResizeHandler {
-    const positions = this.computeTransformHandlerPositions(0)
+    const positions = this.context.computeTransformHandlerPositions(0)
 
     const { bottomRight, bottomLeft, topRight, topLeft } = positions.corner
 
@@ -244,7 +234,7 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
         break;
     }
 
-    const matrix = this.box.worldMatrix;
+    const matrix = this.node.worldMatrix;
 
     relativeOrigin.set(
       matrix.a < 0 ? 1 - relativeOrigin.x : relativeOrigin.x,
@@ -286,8 +276,8 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
         break;
     }
 
-    point.x *= Math.sign(this.box.worldMatrix.a);
-    point.y *= Math.sign(this.box.worldMatrix.a);
+    point.x *= Math.sign(this.node.worldMatrix.a);
+    point.y *= Math.sign(this.node.worldMatrix.a);
 
     return point;
   }
@@ -334,8 +324,8 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
         break;
     }
 
-    handleX *= Math.sign(this.box.worldMatrix.a)
-    handleY *= Math.sign(this.box.worldMatrix.a)
+    handleX *= Math.sign(this.node.worldMatrix.a)
+    handleY *= Math.sign(this.node.worldMatrix.a)
 
     this._handlePosition.set(handleX, handleY);
   }
@@ -382,8 +372,8 @@ export class ResizeTransformOpearation extends BaseTransformOperation implements
         break;
     }
 
-    pivotX *= Math.sign(this.box.worldMatrix.a)
-    pivotY *= Math.sign(this.box.worldMatrix.a)
+    pivotX *= Math.sign(this.node.worldMatrix.a)
+    pivotY *= Math.sign(this.node.worldMatrix.a)
 
     // pivotX = 0
     // pivotY = 0

@@ -1,9 +1,9 @@
-import {isUndefined} from "lodash";
-import {drawOriginPoint} from "../behaviors/Transformable";
-import {Matrix3x3, Point, Polygon, Rectangle, type PointData} from "../maths";
-import {BackgroundImage} from "../styles/background-image";
-import {type GetBoundsParams} from "../world/sim-object";
-import {Shape} from "./Shape";
+import { isUndefined } from "lodash";
+import { drawOriginPoint } from "../behaviors/Transformable";
+import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths";
+import { BackgroundImage } from "../styles/background-image";
+import { type GetBoundsParams } from "../world/sim-object";
+import { Shape } from "./Shape";
 
 const source =
   "https://avatars.mds.yandex.net/i?id=2e34b2a2ac0026106cc76353e2797bf03b9e2551-5249431-images-thumbs&n=13";
@@ -19,7 +19,7 @@ type PolygonConfig = {
   closed?: boolean
 }
 
-const mergeConfigWithDefaultValues = ({tension, closed, ...config}: PolygonConfig) => {
+const mergeConfigWithDefaultValues = ({ tension, closed, ...config }: PolygonConfig) => {
   return {
     ...config,
     sketchStyle: config.sketchStyle ?? false,
@@ -46,7 +46,7 @@ export class PolygonShape extends Shape {
     return candidate instanceof PolygonShape;
   }
 
-  public static tracePath({pointsToTrace, context, closed, tension}: TracePathParams): void {
+  public static tracePath({ pointsToTrace, context, closed, tension }: TracePathParams): void {
     context.beginPath();
 
     const shouldRenderStraightEdges = PolygonShape.prototype._shouldRenderStraightEdges.call({
@@ -55,10 +55,10 @@ export class PolygonShape extends Shape {
     })
 
     const traceMethodName = shouldRenderStraightEdges ? "linear" : "spline"
-    ;({
-      linear: PolygonShape.prototype._traceLinearPath,
-      spline: PolygonShape.prototype._traceSplinePath,
-    })[traceMethodName].call({_pointsToTrace: pointsToTrace}, context);
+      ; ({
+        linear: PolygonShape.prototype._traceLinearPath,
+        spline: PolygonShape.prototype._traceSplinePath,
+      })[traceMethodName].call({ _pointsToTrace: pointsToTrace }, context);
 
     if (closed) context.closePath();
   }
@@ -74,8 +74,17 @@ export class PolygonShape extends Shape {
   private _tension: number = 0.0;
   private _closed: boolean = true;
 
-  public set initialPoints(points: Array<PointData>) {
+  public initialPoints(): Array<PointData>
+  public initialPoints(points: Array<PointData | Point>): void
+  public initialPoints(points?: Array<PointData | Point>): Array<PointData> | void {
+    if (isUndefined(points)) return this._initialPoints
+
     this._initialPoints = points;
+    this.updateAfterTransform()
+  }
+
+  public setInitialPoints<L extends PointData[]>(points: L) {
+    this._initialPoints = points
     this.updateAfterTransform()
   }
 
@@ -153,7 +162,7 @@ export class PolygonShape extends Shape {
       );
 
       return result.concat([cp1, cp2, p2]);
-    }, [{...points[0]}] as Array<PointData>);
+    }, [{ ...points[0] }] as Array<PointData>);
   }
 
   public getUnrotateBounds(): Rectangle {
@@ -214,7 +223,7 @@ export class PolygonShape extends Shape {
 
   private _drawMainCanvas(context: CanvasRenderingContext2D) {
     context.save()
-    if (this.isInteracting) context.translate(...this._translate.array())
+    // if (this.isInteracting) context.translate(...this._translate.array())
     super.render(context);
     context.restore()
   }
@@ -226,12 +235,12 @@ export class PolygonShape extends Shape {
     const canvas = this.cachedCanvas!
     const shift = config.offset * 2
 
-    const bounds = this.getBounds({skipTransform: false})
+    const bounds = this.getBounds({ skipTransform: false })
 
     context.save()
     context.translate(
       ...this._translate
-        .add({x: config.offset, y: config.offset})
+        .add({ x: config.offset, y: config.offset })
         .array()
     )
     context.drawImage(canvas, bounds.x - shift, bounds.y - shift)
@@ -265,7 +274,7 @@ export class PolygonShape extends Shape {
   }
 
   private _drawBounds(context: CanvasRenderingContext2D): void {
-    const bounds = this.getBounds({skipTransform: false})
+    const bounds = this.getBounds({ skipTransform: false })
     context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
   }
 
@@ -273,7 +282,7 @@ export class PolygonShape extends Shape {
     const corners = this.getTransformedCorners()
 
     context.beginPath()
-    PolygonShape.prototype._traceLinearPath.call({_pointsToTrace: corners}, context)
+    PolygonShape.prototype._traceLinearPath.call({ _pointsToTrace: corners }, context)
     context.closePath()
     context.stroke()
   }

@@ -1,4 +1,5 @@
 import type { EventObject } from "../../behaviors/EventBehavior";
+import { Group } from "../../Group";
 import type { Layer } from "../../Layer";
 import type { SimObject } from "../sim-object";
 
@@ -15,9 +16,11 @@ export interface TransformOperationModel {
   finishTransform(): void
 }
 
-export interface TransformStrategy extends SimObject {
-  box: SimObject
+export interface TransformContext {
   transformState: TransformState
+  context: Group & {
+    box: SimObject
+  }
 
   updateHandlersPosition(): void
 }

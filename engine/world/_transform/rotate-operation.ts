@@ -1,49 +1,20 @@
 import type { EventObject } from "../../behaviors/EventBehavior"
-import { Layer } from "../../Layer"
-import { EllipseShape } from "../../shapes/Ellipse"
 import { pointFromEvent } from "../../shared/point"
-import { mapKeys } from "../../utils"
-import { BaseTransformOperation, } from "./base-transform-operation"
-import type { Corner, TransformOperationModel } from "./transform-operation.interface"
+import { SimObject } from "../sim-object"
+import type { TransformerV2 } from "../TransformerV2"
 
-const r = 5
-const r2 = 9
-
-export class RotateTransformOpearation extends BaseTransformOperation implements TransformOperationModel {
+export class RotateTransformOpearation {
   private _initialPointerAngle: number = 0
 
-  private readonly _rotateHandlerShapes: Record<Corner, EllipseShape> = {
-    "bottomRight": new EllipseShape(0, 0, r2, r2),
-    "bottomLeft": new EllipseShape(0, 0, r2, r2),
-    "topRight": new EllipseShape(0, 0, r2, r2),
-    "topLeft": new EllipseShape(0, 0, r2, r2),
-  }
-
-  public addHandlersToLayer(layer: Layer) {
-    mapKeys(this._rotateHandlerShapes, (_, shape) => {
-      shape.on("pointerdown", this.startTransform.bind(this))
-      layer.add(shape);
-    });
-
-    this.updateHandlersPosition()
-  }
-
-  public updateHandlersPosition() {
-    const padding = 7 + r * 2
-    const positions = this.computeTransformHandlerPositions(padding).corner;
-
-    mapKeys(this._rotateHandlerShapes, (handler, shape) => {
-      shape.position(positions[handler])
-    })
-  }
+  public constructor(public context: TransformerV2, public node: SimObject) { }
 
   public startTransform(event: EventObject) {
-    this.box.transformState = "rotate"
+    this.context.transformState = "rotate"
 
-    this.box.beginInteraction("rotate");
+    this.node.beginInteraction("rotate");
 
     const mousePos = pointFromEvent(event.evt as PointerEvent)
-    const originRotate = this.box.getInWorldOriginPosition("rotate")
+    const originRotate = this.node.getInWorldOriginPosition("rotate")
     const direction = mousePos.sub(originRotate)
     const currentAngle = Math.atan2(direction.y, direction.x)
 
@@ -51,22 +22,24 @@ export class RotateTransformOpearation extends BaseTransformOperation implements
   }
 
   public processTransform(event: PointerEvent) {
-    const originRotate = this.box.getInWorldOriginPosition("rotate")
+    const originRotate = this.node.getInWorldOriginPosition("rotate")
     const mousePos = pointFromEvent(event)
 
     const direction = mousePos.sub(originRotate)
     const currentAngle = Math.atan2(direction.y, direction.x)
     const targetRotation = (currentAngle - this._initialPointerAngle)
 
-    this.box.updateInteraction(targetRotation)
-    this.box.updateHandlersPosition()
+    this.node.updateInteraction(targetRotation)
+
+    this.context.updateHandlersPosition()
   }
 
   public finishTransform() {
-    this.box.endInteraction()
-    this.box.updateHandlersPosition()
+    this.node.endInteraction()
+
+    this.context.updateHandlersPosition()
+    this.context.transformState = "idle"
 
     this._initialPointerAngle = 0
-    this.box.transformState = "idle"
   }
 }

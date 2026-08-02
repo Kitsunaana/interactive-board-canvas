@@ -1,11 +1,10 @@
 ; import { Group } from "./Group";
 import "./index.css";
 import { Layer } from "./Layer";
-import { Point } from "./maths";
+import { Matrix3x3 } from "./maths";
 import { EllipseShape } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
-import { Transformer } from "./world/Transformer";
 import { TransformerV2 } from "./world/TransformerV2";
 
 const stage = new Stage({
@@ -99,12 +98,13 @@ const group = new Group()
 
 const ellipseTest = new EllipseShape(600, 300, 40, 20)
 
-group.children(polygonShape2, polygonShape3)
-transformer.children(polygonShape1, group, ellipseTest)
+// group.children(polygonShape2, polygonShape3)
+transformer.children(polygonShape1, polygonShape2, polygonShape3)
+// transformer.children(polygonShape1)
 
 // transformer.scale(new Point(0.5, 1))
 // transformer.rotate(-0.3)
-transformer.translate({ x: 100, y: 100 })
+// transformer.translate({ x: 100, y: 100 })
 
 ellipseTest.canDragging(true)
 

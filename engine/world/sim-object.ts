@@ -73,10 +73,6 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
     return this.classList.includes(classname)
   }
 
-  public getCurrentAngle(): number {
-    return Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
-  }
-
   public children(): Array<SimObject>
   public children(...list: Array<SimObject>): void
   public children(...list: Array<SimObject>): Array<SimObject> | void {

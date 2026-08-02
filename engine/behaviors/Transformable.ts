@@ -1,6 +1,6 @@
-import {isNumber, isObject} from "lodash"
-import {Matrix3x3, Point, type PointData, Rectangle} from "../maths"
-import type {GetBoundsParams} from "../world/sim-object"
+import { isNumber, isObject } from "lodash"
+import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
+import type { GetBoundsParams } from "../world/sim-object"
 
 export type TransformOperation = "scale" | "skew" | "rotate" | "translate"
 
@@ -22,7 +22,6 @@ export abstract class Transformable {
   public abstract worldMatrix: Matrix3x3
   public abstract cachedMatrix: Matrix3x3
 
-
   public currentRelativeOrigins = buildInitialOperationsRecord()
 
   public interactionOperation: TransformOperation | null = null
@@ -30,6 +29,10 @@ export abstract class Transformable {
 
   public constructor() {
     this.setInitialRelativeOrigins()
+  }
+
+  public getCurrentAngle(): number {
+    return Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
   }
 
   public setInitialRelativeOrigins(): void {
@@ -69,7 +72,7 @@ export abstract class Transformable {
 
   public scale(scale: PointData) {
     const scaleOrigin = this.getInLocalOriginPosition("scale")
-    const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
+    const currentAngle = this.getCurrentAngle()
 
     const delta = Matrix3x3.aroundOrigin(scaleOrigin, () => {
       const rotation = Matrix3x3.rotate(currentAngle)
@@ -78,8 +81,6 @@ export abstract class Transformable {
 
       return Matrix3x3.compose(rotation, operation, inverseRotation)
     })
-
-    // console.log(delta)
 
     this.applyDeltaTransform(delta)
   }
