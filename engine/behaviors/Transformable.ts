@@ -1,9 +1,8 @@
-import { isNumber, isObject } from "lodash"
-import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
-import type { GetBoundsParams } from "../world/sim-object"
+import {isNumber, isObject} from "lodash"
+import {Matrix3x3, Point, type PointData, Rectangle} from "../maths"
+import type {GetBoundsParams} from "../world/sim-object"
 
 export type TransformOperation = "scale" | "skew" | "rotate" | "translate"
-
 
 export const buildInitialOperationsRecord = (): Record<TransformOperation, Point> => ({
   translate: new Point(),
@@ -13,6 +12,37 @@ export const buildInitialOperationsRecord = (): Record<TransformOperation, Point
 })
 
 export abstract class Transformable {
+  public static getOriginInOriginalSpace({bounds, origin}: {
+    bounds: Rectangle
+    origin: PointData
+  }) {
+    return {
+      x: bounds.x + bounds.width * origin.x,
+      y: bounds.y + bounds.height * origin.y
+    }
+  }
+
+  public static getScaleDeltaMatrix({origin, scale, angle}: {
+    origin: PointData
+    scale: PointData
+    angle: number
+  }) {
+    return Matrix3x3.aroundOrigin(origin, () => {
+      const rotation = Matrix3x3.rotate(angle)
+      const inverseRotation = Matrix3x3.rotate(-angle)
+      const operation = Matrix3x3.scale(scale.x, scale.y)
+
+      return Matrix3x3.compose(rotation, operation, inverseRotation)
+    })
+  }
+
+  public static getRotateDeltaMatrix({origin, angle}: {
+    origin: PointData
+    angle: number
+  }) {
+    return Matrix3x3.aroundOrigin(origin, () => Matrix3x3.rotate(angle))
+  }
+
   public abstract getBounds(params: GetBoundsParams): Rectangle
   public abstract applyDeltaTransform(deltaMatrix: Matrix3x3): void
   public abstract updateWorldTransform(): void
@@ -54,7 +84,7 @@ export abstract class Transformable {
   }
 
   public getOriginInOriginalSpace(operation: TransformOperation) {
-    const bounds = this.getBounds({ skipTransform: true })
+    const bounds = this.getBounds({skipTransform: true})
     const relativeOrigin = this.currentRelativeOrigins[operation]
 
     return {
@@ -101,7 +131,6 @@ export abstract class Transformable {
     }
   }
 
-
   public skew(_skew: PointData): void {
     // TODO
   }
@@ -115,7 +144,8 @@ export abstract class Transformable {
     if (!this.isInteracting) return false
 
     switch (this.interactionOperation) {
-      case "rotate": return isNumber(value) && this.rotate(value)
+      case "rotate":
+        return isNumber(value) && this.rotate(value)
 
       case "skew":
       case "scale":

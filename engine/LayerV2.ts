@@ -1,14 +1,27 @@
-import rough from 'roughjs'
-import { isUndefined } from "lodash";
-import * as Primitive from "./maths";
-import { type Sizes, Stage } from "./Stage";
-import { SimObject } from "./world/sim-object";
+import { isEmpty, isNull, isUndefined } from "lodash";
+import rough from 'roughjs';
 import { RoughCanvas } from "roughjs/bin/canvas";
+import { Group } from './Group';
+import * as Primitive from "./maths";
+import { Shape } from './shapes/Shape';
+import { type Sizes, Stage } from "./Stage";
+import { type GetBoundsParams, SimObject } from "./world/sim-object";
 
-export interface LayerConfig {
-}
+export type Child = Group | Shape
 
-export class Layer extends SimObject {
+export class LayerV2 extends SimObject {
+  public getBounds(params?: GetBoundsParams): Primitive.Rectangle {
+    return new Primitive.Rectangle(0, 0, 1, 1)
+  }
+
+  public getUnrotateBounds(): Primitive.Rectangle {
+    return new Primitive.Rectangle(0, 0, 1, 1)
+  }
+
+  public updateAfterTransform(): void {
+
+  }
+
   protected readonly _type = "Layer"
 
   private _stage: Stage | null = null
@@ -20,9 +33,14 @@ export class Layer extends SimObject {
   private readonly _hitColorsToNodes = new Map<string, SimObject>()
   private readonly _nodesToHitColors = new Map<string, string>()
 
-  private _lastHitColorId = 0
+  protected readonly _children: Array<Child> = []
 
-  public rc: RoughCanvas
+  private _lastHitColorId = 0
+  private _rc: RoughCanvas
+
+  public get rc(): RoughCanvas {
+    return this._rc
+  }
 
   public constructor() {
     super()
@@ -35,19 +53,48 @@ export class Layer extends SimObject {
       alpha: true,
     }) as CanvasRenderingContext2D
 
-    this.rc = rough.canvas(this._canvas)
+    this._rc = rough.canvas(this._canvas)
   }
 
-  public getBounds(): Primitive.Rectangle {
-    return new Primitive.Rectangle(0, 0, 1, 1)
+  public screenToWorld(point: Primitive.Point): Primitive.Point {
+    return point
   }
 
-  public getSelfRect(): Primitive.Rectangle {
-    return new Primitive.Rectangle(0, 0, 1, 1)
+  public update(time: number) { }
+
+  public getCanvas(): HTMLCanvasElement {
+    return this._canvas
   }
 
-  public getPoints(): Array<Primitive.PointData> {
-    return []
+  public getContext(): CanvasRenderingContext2D {
+    return this._context
+  }
+
+  public getHitCanvas(): HTMLCanvasElement {
+    return this._hitCanvas
+  }
+
+  public getHitContext(): CanvasRenderingContext2D {
+    return this._hitContext
+  }
+
+  public getStageOrThrow(): Stage {
+    const stage = this.stage()
+    if (isNull(stage)) throw new Error("Layer не добавлен ни в один слой")
+    return stage
+  }
+
+  public children(): Array<Child>
+  public children(...list: Array<Child>): void
+  public children(...list: Array<Child>): Array<Child> | void {
+    if (isEmpty(list)) return this._children
+
+    list.forEach((child) => {
+      this._children.push(child)
+
+      child.layer(this)
+      child.fire("addToParent")
+    })
   }
 
   public stage(): Stage | null
@@ -75,22 +122,6 @@ export class Layer extends SimObject {
     this._hitCanvas.height = sizes.height
   }
 
-  public getCanvas() {
-    return this._canvas
-  }
-
-  public getContext() {
-    return this._context
-  }
-
-  public getHitCanvas() {
-    return this._hitCanvas
-  }
-
-  public getHitContext() {
-    return this._hitContext
-  }
-
   public getHitColor(shape: SimObject): string {
     const current = this._nodesToHitColors.get(shape.id)
     if (current) return current
@@ -116,7 +147,7 @@ export class Layer extends SimObject {
     const pixel = this._hitContext.getImageData(x, y, 1, 1).data
     if (pixel[3] === 0) return null
 
-    const color = Layer._toHitColor(pixel[0], pixel[1], pixel[2])
+    const color = LayerV2._toHitColor(pixel[0], pixel[1], pixel[2])
 
     return this._hitColorsToNodes.get(color) ?? null
   }
@@ -139,39 +170,12 @@ export class Layer extends SimObject {
     this.children().forEach((child) => child.renderHit(context))
   }
 
-  public contains(x: number, y: number): boolean {
-    return this
-      .children()
-      .some((child) => child.contains(x, y))
-  }
-
-  public getCorners(): Array<Primitive.PointData> {
-    const position = new Primitive.Point(0, 0)
-    const { width, height } = this.sizes()
-
-    return [
-      { x: position.x, y: position.y },                  // top-left
-      { x: position.x + width, y: position.y },          // top-right
-      { x: position.x + width, y: position.y + height }, // bottom-right
-      { x: position.x, y: position.y + height },         // bottom-left
-    ]
-  }
-
-  public add(...items: Array<SimObject>): void {
-    items.forEach((child) => {
-      this.children(child)
-
-      child.layer(this)
-      child.fire("addToParent")
-    })
-  }
-
   private _createUniqueHitColor(): string {
-    const red = Math.floor(Math.random() * 255)
-    const green = Math.floor(Math.random() * 255)
-    const blue = Math.floor(Math.random() * 255)
+    const r = Math.floor(Math.random() * 255)
+    const g = Math.floor(Math.random() * 255)
+    const b = Math.floor(Math.random() * 255)
 
-    return Layer._toHitColor(red, green, blue)
+    return LayerV2._toHitColor(r, g, b)
 
     while (this._lastHitColorId < 0xffffff) {
       this._lastHitColorId += 1
@@ -180,7 +184,7 @@ export class Layer extends SimObject {
       const green = (this._lastHitColorId >> 8) & 255
       const blue = this._lastHitColorId & 255
 
-      const color = Layer._toHitColor(red, green, blue)
+      const color = LayerV2._toHitColor(red, green, blue)
 
       if (!this._hitColorsToNodes.has(color)) {
         return color
@@ -190,18 +194,7 @@ export class Layer extends SimObject {
     throw new Error("Закончились уникальные hit-цвета для слоя")
   }
 
-  public removeNode(object: SimObject) {
-    const foundIndex = this._children.indexOf(object)
-    if (foundIndex === -1) return
-
-    const prev = this._children.splice(0, foundIndex)
-    const next = this._children.splice(foundIndex - 1, this._children.length) 
-
-    this._children = prev.concat(next)
-  }
-
   private static _toHitColor(red: number, green: number, blue: number): string {
     return `rgb(${red},${green},${blue})`
   }
 }
-

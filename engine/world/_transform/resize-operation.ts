@@ -1,12 +1,12 @@
 import { isNil } from "lodash";
 import type { EventObject } from "../../behaviors/EventBehavior";
 import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
+import { Shape } from "../../shapes/Shape";
 import { pointFromEvent } from "../../shared/point";
 import { SimObject } from "../sim-object";
 import { TransformerV2 } from "../TransformerV2";
 import type { Corner, Edge } from "./transform-operation.interface";
-import { drawOriginPoint } from "../../behaviors/Transformable";
-import { Shape } from "../../shapes/Shape";
+import { Background } from "../BG";
 
 type ResizeHandler = Corner | Edge
 
@@ -28,20 +28,6 @@ export class ResizeTransformOpearation {
 
   public constructor(public context: TransformerV2, public node: SimObject) { }
 
-  public drawDebug(context: CanvasRenderingContext2D) {
-    context.save()
-
-    const originScale = this.node.getInWorldOriginPosition("scale")
-
-    drawOriginPoint(context, this._obbWorldCenter, "_obbWorldCenter")
-    drawOriginPoint(context, this._handlePosition, "_handlePosition")
-    drawOriginPoint(context, this._pivotPosition, "_pivotPosition")
-    drawOriginPoint(context, this._worldPivot, "_worldPivot")
-    drawOriginPoint(context, originScale, "originScale")
-
-    context.restore()
-  }
-
   public startTransform(event: EventObject) {
     this.context.transformState = "resize"
 
@@ -60,15 +46,18 @@ export class ResizeTransformOpearation {
       .keys(this.context.resizeHandlerShapes)
       .reduce((acc, key) => {
         return Object.assign(
-          acc, 
+          acc,
           this.context.resizeHandlerShapes[key as keyof typeof this.context.resizeHandlerShapes]
         )
       }, {} as Record<ResizeHandler, Shape>)
 
-    const handlerCenter = mergedResizeHandlers[handler].getBounds().center
-    const currentPointer = pointFromEvent(event.evt as PointerEvent)
+    const bounds = mergedResizeHandlers[handler].getBounds()
 
-    this._deltaBetweenCursorAndHandler = currentPointer.sub(handlerCenter)
+    const currentPointer = this.node
+      .getLayerOrThrow()
+      .screenToWorld(pointFromEvent(event.evt as PointerEvent))
+
+    this._deltaBetweenCursorAndHandler = currentPointer.sub(bounds.center)
   }
 
   public processTransform(event: PointerEvent) {
@@ -77,7 +66,9 @@ export class ResizeTransformOpearation {
     this._proportional = event.shiftKey
     this.node.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
 
-    const cursorPos = pointFromEvent(event)
+    const cursorPos = this.node
+      .getLayerOrThrow()
+      .screenToWorld(pointFromEvent(event))
 
     this._setTransformScale(cursorPos.sub(this._deltaBetweenCursorAndHandler), this._pickedHandler);
     this.node.updateInteraction(this._transformScale);

@@ -4,7 +4,7 @@ import { Mixin } from "ts-mixer";
 import { Draggable } from "../behaviors/Draggable";
 import { EventBehavior } from "../behaviors/EventBehavior";
 import { Transformable } from "../behaviors/Transformable";
-import type { Layer } from "../Layer";
+import type { LayerV2 as Layer } from "../LayerV2";
 import { Matrix3x3, Point, type PointData, type Rectangle } from "../maths";
 import type { Sizes } from "../Stage";
 
@@ -35,6 +35,8 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   public isCached: boolean = false
   public isCacheDirty: boolean = true
 
+  public __testMatrix: Matrix3x3 = Matrix3x3.identity()
+
   public cachedMatrix: Matrix3x3 = Matrix3x3.identity()
   public worldMatrix: Matrix3x3 = Matrix3x3.identity()
   public localMatrix: Matrix3x3 = Matrix3x3.identity()
@@ -60,6 +62,8 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
     if (parent) this.worldMatrix = Matrix3x3.multiply(parent.worldMatrix, this.localMatrix)
     else this.worldMatrix = this.localMatrix.clone()
 
+    this.worldMatrix = Matrix3x3.compose(this.worldMatrix, this.__testMatrix)
+
     this.updateAfterTransform()
     children.forEach((child) => child.updateWorldTransform())
   }
@@ -81,6 +85,7 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
     list.forEach((child) => {
       this._children.push(child)
       this.fire("addChild", { child })
+
       child.parent(this)
     })
   }
@@ -92,6 +97,12 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
     this._parent = parent
   }
 
+  public getLayerOrThrow(): Layer {
+    const layer = this.layer()
+    if (isNull(layer)) throw new Error("23")
+    return layer
+  }
+
   public layer(): Layer | null
   public layer(layer: Layer): void
   public layer(layer?: Layer): Layer | null | void {
@@ -101,11 +112,13 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
     this._children.forEach((child) => child.layer(layer))
   }
 
-  public getTransformedCorners(): Array<PointData> {
+  public getCornersWithAppliedMatrix(): Array<PointData> {
     const bounds = this.getBounds({ skipTransform: true })
     const matrix = this.worldMatrix
 
-    return bounds.getCorners().map(matrix.applyToPoint.bind(matrix))
+    return bounds
+      .getCorners()
+      .map(matrix.applyToPoint.bind(matrix))
   }
 
   public getAllParents<T extends SimObject>(list: Array<T> = []): Array<T> {

@@ -1,11 +1,14 @@
+import {BackgroundImage} from "./styles/background-image";
+
 ; import { Group } from "./Group";
 import "./index.css";
-import { Layer } from "./Layer";
+import { LayerV2 } from "./LayerV2";
 import { Matrix3x3 } from "./maths";
 import { EllipseShape } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
 import { TransformerV2 } from "./world/TransformerV2";
+import {Background} from "./world/BG";
 
 const stage = new Stage({
   height: window.innerHeight,
@@ -13,7 +16,7 @@ const stage = new Stage({
   draggable: false,
 });
 
-const layer = new Layer();
+const layer = new LayerV2();
 
 const points1 = [
   { x: 200, y: 200 },
@@ -81,12 +84,8 @@ polygonShape1.cache({
   offset: 10,
 })
 
-polygonShape1.canDragging(true)
-
 const polygonShape2 = new PolygonShape({ initialPoints: points4, lineWidth: 1 });
 const polygonShape3 = new PolygonShape({ initialPoints: points1, tension: 0.0 });
-
-polygonShape3.canDragging(true)
 
 polygonShape2.closed(false)
 polygonShape1.addClassname("test")
@@ -99,14 +98,20 @@ const group = new Group()
 const ellipseTest = new EllipseShape(600, 300, 40, 20)
 
 // group.children(polygonShape2, polygonShape3)
+// group.children(polygonShape2, polygonShape3)
+// group.rotate(0.3)
+// group.children(polygonShape1)
+
+// transformer.children(group)
+polygonShape1.subscribe(polygonShape1)
+polygonShape2.subscribe(polygonShape2)
+polygonShape3.subscribe(polygonShape3)
 transformer.children(polygonShape1, polygonShape2, polygonShape3)
 // transformer.children(polygonShape1)
 
 // transformer.scale(new Point(0.5, 1))
 // transformer.rotate(-0.3)
 // transformer.translate({ x: 100, y: 100 })
-
-ellipseTest.canDragging(true)
 
 // polygonShape1.translate({ x: 100, y: 0 })
 
@@ -186,6 +191,10 @@ setTimeout(() => {
 
 const circleShape1 = new EllipseShape(500, 600, 40, 60);
 
-layer.add(transformer)
-stage.add(layer);
+// layer.children(transformer)
+// stage.add(layer);
 
+const bg = new Background()
+stage.children(bg)
+
+bg.children(transformer)

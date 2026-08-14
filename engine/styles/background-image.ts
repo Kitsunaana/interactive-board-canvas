@@ -3,7 +3,7 @@ import { BackgroundSizeParser } from "../components/string-size-parser"
 import { Bounds, Matrix3x3, Point, Rectangle, type PointData } from "../maths"
 import type { SimObject } from "../world/sim-object"
 
-const iterate = (start: number, end: number, callback: (i: number) => void) => {
+export const iterate = (start: number, end: number, callback: (i: number) => void) => {
   for (let col = start; col <= end; col++) {
     callback(col)
   }
@@ -96,21 +96,15 @@ export class BackgroundImage {
 
   private _computeImagePattern(context: CanvasRenderingContext2D): CanvasPattern | null {
     if (this._isLoaded && this._image) {
-      const shapeBounds = new Bounds()
-      shapeBounds.x = this._container.x
-      shapeBounds.y = this._container.y
-      shapeBounds.width = this._container.width
-      shapeBounds.height = this._container.height
-
-      if (!shapeBounds.isValid) return null
+      const shapeBounds = this._container
 
       const offscreen = new OffscreenCanvas(shapeBounds.width, shapeBounds.height)
       const offContext = offscreen.getContext('2d', { alpha: true })
       if (!offContext) return null
 
-      offContext.fillStyle = "blue"
+      // offContext.fillStyle = "blue"
       offContext.clearRect(0, 0, shapeBounds.width, shapeBounds.height)
-      offContext.fillRect(0, 0, shapeBounds.width, shapeBounds.height)
+      // offContext.fillRect(0, 0, shapeBounds.width, shapeBounds.height)
 
       const size = this._extractedBackgroundSize!
 
@@ -127,12 +121,16 @@ export class BackgroundImage {
       const pattern = context.createPattern(offscreen, 'no-repeat')
       if (!pattern) return null
 
-      const rotateOrigin = this.simObject.getInLocalOriginPosition("rotate")
+      const rotateOrigin = this.simObject.getInWorldOriginPosition("rotate")
 
       const rotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(this.simObject.getCurrentAngle()))
       const translate = Matrix3x3.translate(...shapeBounds.point().array())
-      const matrix = Matrix3x3.compose(rotate, translate)
-
+      // const matrix = Matrix3x3.compose(rotate, translate)
+      const matrix = Matrix3x3.compose(
+        Matrix3x3.translate(...shapeBounds.point().array()),
+        this.simObject.localMatrix
+      )
+      
       pattern.setTransform(matrix)
 
       return pattern

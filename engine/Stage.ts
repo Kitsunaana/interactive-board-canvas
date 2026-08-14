@@ -1,5 +1,6 @@
-import type { EventObject } from "./behaviors/EventBehavior"
-import type { Layer } from "./Layer"
+import { isEmpty, isNull } from "lodash"
+import { EventBehavior, type EventObject } from "./behaviors/EventBehavior"
+import { LayerV2 } from "./LayerV2"
 import { Point, type PointData } from "./maths"
 import { getPointFromEvent } from "./shared/point"
 import { SimObject } from "./world/sim-object"
@@ -44,6 +45,13 @@ const TOUCH_ALIASES: Partial<Record<string, string>> = {
 }
 
 export class Stage extends SimObject {
+  protected _type = "Stage"
+
+  public parent(): SimObject | null {
+    return null
+  }
+
+  // private readonly _children: Array<LayerV2> = []
   public readonly absolutePositionCursor = new Point()
   public readonly sizes: Sizes = {
     width: 0,
@@ -52,35 +60,41 @@ export class Stage extends SimObject {
 
   public content: HTMLDivElement = document.createElement("div")
 
-  protected _type = "Stage"
-
   private readonly _pointerStates = new Map<number, PointerState>()
+
   private readonly _boundHandlePointerMove = (event: PointerEvent) => {
     this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
     this._dispatchPointerMove(event)
   }
+
   private readonly _boundHandlePointerDown = (event: PointerEvent) => {
     this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
     this._dispatchPointerDown(event)
   }
+
   private readonly _boundHandlePointerUp = (event: PointerEvent) => {
     this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
     this._dispatchPointerUp(event)
   }
+
   private readonly _boundHandlePointerCancel = (event: PointerEvent) => {
     this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
     this._dispatchPointerCancel(event)
   }
+
   private readonly _boundHandlePointerLeave = (event: PointerEvent) => {
     this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
     this._dispatchPointerLeave(event)
   }
+
   private readonly _boundHandleClick = (event: MouseEvent) => {
     this._dispatchClickLikeEvent(event, "click", "pointerclick")
   }
+
   private readonly _boundHandleDoubleClick = (event: MouseEvent) => {
     this._dispatchClickLikeEvent(event, "dblclick", "pointerdblclick")
   }
+
   private readonly _boundHandleContextMenu = (event: MouseEvent) => {
     this._dispatchFromDomEvent("contextmenu", event)
   }
@@ -101,37 +115,37 @@ export class Stage extends SimObject {
     this.render()
   }
 
-  public getPoints(): Array<PointData> {
-    return []
-  }
-
   public getType() {
     return this._type
   }
 
   public renderHit(_context: CanvasRenderingContext2D): void { }
 
-  public render() {
-    this.children().forEach((layer) => {
-      const t_layer = layer as Layer
-      
-      layer.render(t_layer.getContext())
-      layer.renderHit(t_layer.getHitContext())
-    })
 
-    requestAnimationFrame(this.render.bind(this))
-  }
+  public children(): Array<LayerV2>
+  public children(...list: Array<LayerV2>): void
+  public children(...list: Array<LayerV2>): Array<LayerV2> | void {
+    if (isEmpty(list)) return this._children
 
-  public add(...layers: Array<Layer>) {
-    layers.forEach((layer) => {
+    list.forEach((layer) => {
+      this._children.push(layer)
+
       this.content.appendChild(layer.getCanvas())
       this.content.appendChild(layer.getHitCanvas())
 
-      this.children(layer)
-
-      layer.parent(this)
       layer.stage(this)
     })
+  }
+
+  public render(time: number = 0) {
+    this.children().forEach((layer) => {
+      layer.update(time)
+
+      layer.render()
+      layer.renderHit(layer.getHitContext())
+    })
+
+    requestAnimationFrame(this.render.bind(this))
   }
 
   private _bindContentEvents(): void {
@@ -330,6 +344,7 @@ export class Stage extends SimObject {
 
     for (let i = layers.length - 1; i >= 0; i -= 1) {
       const match = layers[i].getIntersection(point)
+      // console.log(layers[i].getIntersection(point))
       if (match) return match
     }
 

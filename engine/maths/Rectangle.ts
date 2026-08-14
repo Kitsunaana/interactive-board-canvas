@@ -116,9 +116,12 @@ export class Rectangle implements ShapePrimitive {
     const p3 = { x: this.x + this.width, y: this.y + this.height }
     const p4 = { x: this.x, y: this.y + this.height }
 
-    return [Point.fromData(p1), Point.fromData(p2), Point.fromData(p3), Point.fromData(p4)]
-
-    // return [p1, p2, p3, p4]
+    return [
+      Point.fromData(p1),
+      Point.fromData(p2),
+      Point.fromData(p3),
+      Point.fromData(p4)
+    ]
   }
 
   public point(): Point {

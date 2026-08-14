@@ -1,8 +1,8 @@
-import { isNil } from "lodash";
-import { Polygon, Rectangle, type PointData } from "../maths";
-import { BackgroundImage } from "../styles/background-image";
-import { BaseGradient } from "../styles/gradient";
-import { SimObject } from "../world/sim-object";
+import {isNil} from "lodash";
+import {Polygon, Rectangle, type PointData} from "../maths";
+import {BackgroundImage} from "../styles/background-image";
+import {BaseGradient} from "../styles/gradient";
+import {SimObject} from "../world/sim-object";
 
 export type SketchFillStyle =
   | "hachure"
@@ -18,7 +18,9 @@ export abstract class Shape extends SimObject {
   protected abstract _initialPoints: Array<PointData>
 
   public abstract getPoints(): Array<PointData>
+
   public abstract tracePath(context: CanvasRenderingContext2D): void
+
   public abstract getUnrotateBounds(): Rectangle
 
   public lineWidth: number = 1
@@ -90,9 +92,6 @@ export abstract class Shape extends SimObject {
   }
 
   public fillStrokeShape(context: CanvasRenderingContext2D) {
-    this._drawBackgroundImage(context)
-    this._drawBackgroundGradient(context)
-
     if (this.sketchStyle) {
       this.layer()!.rc.path(Polygon.getSVGPath(this._pointsToTrace), {
         seed: 3,
@@ -119,6 +118,9 @@ export abstract class Shape extends SimObject {
       context.strokeStyle = this.strokeColor
       context.stroke()
     }
+
+    this._drawBackgroundImage(context)
+    this._drawBackgroundGradient(context)
 
     context.restore()
   }

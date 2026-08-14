@@ -5,8 +5,7 @@ import { BackgroundImage } from "../styles/background-image";
 import { type GetBoundsParams } from "../world/sim-object";
 import { Shape } from "./Shape";
 
-const source =
-  "https://avatars.mds.yandex.net/i?id=2e34b2a2ac0026106cc76353e2797bf03b9e2551-5249431-images-thumbs&n=13";
+const source = "https://avatars.mds.yandex.net/i?id=2e34b2a2ac0026106cc76353e2797bf03b9e2551-5249431-images-thumbs&n=13";
 
 type PolygonConfig = {
   initialPoints: Array<PointData>
@@ -19,7 +18,7 @@ type PolygonConfig = {
   closed?: boolean
 }
 
-const mergeConfigWithDefaultValues = ({ tension, closed, ...config }: PolygonConfig) => {
+const mergeConfigWithDefaultValues = ({ tension, closed, initialPoints, ...config }: PolygonConfig) => {
   return {
     ...config,
     sketchStyle: config.sketchStyle ?? false,
@@ -28,7 +27,7 @@ const mergeConfigWithDefaultValues = ({ tension, closed, ...config }: PolygonCon
     draggable: config.draggable ?? false,
     lineWidth: config.lineWidth ?? 1,
 
-    _initialPoints: config.initialPoints ?? [],
+    _initialPoints: initialPoints ?? [],
     _tension: tension ?? 0,
     _closed: closed ?? true,
   }
@@ -74,20 +73,6 @@ export class PolygonShape extends Shape {
   private _tension: number = 0.0;
   private _closed: boolean = true;
 
-  public initialPoints(): Array<PointData>
-  public initialPoints(points: Array<PointData | Point>): void
-  public initialPoints(points?: Array<PointData | Point>): Array<PointData> | void {
-    if (isUndefined(points)) return this._initialPoints
-
-    this._initialPoints = points;
-    this.updateAfterTransform()
-  }
-
-  public setInitialPoints<L extends PointData[]>(points: L) {
-    this._initialPoints = points
-    this.updateAfterTransform()
-  }
-
   public constructor(params: PolygonConfig) {
     const config = mergeConfigWithDefaultValues(params)
 
@@ -97,15 +82,25 @@ export class PolygonShape extends Shape {
 
     this._pointsToTrace = this.computePointsToTraceWithTension(this._initialPoints);
 
-    this.backgroundImage = new BackgroundImage()
-      .setSimObject(this)
-      .setContainer(this.getBounds())
-      .setBackgroundImage(source)
-      .setBackgroundSize("cover");
-
-    this.backgroundImage = null;
+    // this.backgroundImage = new BackgroundImage()
+    //   .setSimObject(this)
+    //   .setContainer(this.getBounds())
+    //   .setBackgroundImage(source)
+    //   .setBackgroundSize("cover");
+    //
+    // this.backgroundImage = null;
 
     this.bindEvents()
+    // this.subscribe(this)
+  }
+
+  public initialPoints(): Array<PointData>
+  public initialPoints(points: Array<PointData | Point>): void
+  public initialPoints(points?: Array<PointData | Point>): Array<PointData> | void {
+    if (isUndefined(points)) return this._initialPoints
+
+    this._initialPoints = points;
+    this.updateAfterTransform()
   }
 
   public closed(): boolean
@@ -133,14 +128,13 @@ export class PolygonShape extends Shape {
     if (!this.isInteracting) {
       const transformedPoints = this._initialPoints.map((point) => this.worldMatrix.applyToPoint(point))
       this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
+      this.backgroundImage?.setContainer(this.getBounds({ skipTransform: true }))
     }
   }
 
   public getPoints(): Array<PointData> {
     const curveExtrema = Polygon.computeTensionedCurveExtrema(this._initialPoints, this.tension())
-    const allPoints = this._initialPoints.concat(curveExtrema)
-
-    return allPoints
+    return this._initialPoints.concat(curveExtrema)
   }
 
   public computePointsToTraceWithTension(points: Array<PointData>): Array<PointData> {
@@ -279,7 +273,7 @@ export class PolygonShape extends Shape {
   }
 
   private _drawCorners(context: CanvasRenderingContext2D): void {
-    const corners = this.getTransformedCorners()
+    const corners = this.getCornersWithAppliedMatrix()
 
     context.beginPath()
     PolygonShape.prototype._traceLinearPath.call({ _pointsToTrace: corners }, context)

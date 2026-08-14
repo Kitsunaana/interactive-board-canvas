@@ -39,6 +39,7 @@ export class EllipseShape extends Shape {
     this._pointsToTrace = this._initialPoints
 
     this.bindEvents()
+    // this.subscribe(this)
   }
 
   public getPoints(): Array<PointData> {

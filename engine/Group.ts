@@ -15,6 +15,14 @@ export class Group extends SimObject {
 
   public constructor() {
     super()
+    
+    this.on("addChild", (event) => {
+      const child = event.child as SimObject
+      
+      child.__testMatrix = Matrix3x3.invert(this.worldMatrix) ?? Matrix3x3.identity()
+
+      child.updateWorldTransform()
+    })
   }
 
   public updateAfterTransform(): void { }
@@ -70,7 +78,7 @@ export class Group extends SimObject {
       const invertParent = Matrix3x3.invert(this.localMatrix) ?? Matrix3x3.identity()
 
       return child.parent() === this
-        ? child.localMatrix
+        ? Matrix3x3.compose(child.__testMatrix, child.localMatrix)
         : Matrix3x3.compose(invertParent, child.worldMatrix)
     }
 
@@ -78,7 +86,7 @@ export class Group extends SimObject {
   }
 
   private _drawCorners(context: CanvasRenderingContext2D): void {
-    const corners = this.getTransformedCorners()
+    const corners = this.getCornersWithAppliedMatrix()
 
     context.beginPath()
     PolygonShape.prototype._traceLinearPath.call({ _pointsToTrace: corners }, context)
