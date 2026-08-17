@@ -1,7 +1,6 @@
 import { isUndefined } from "lodash";
 import { drawOriginPoint } from "../behaviors/Transformable";
 import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths";
-import { BackgroundImage } from "../styles/background-image";
 import { type GetBoundsParams } from "../world/sim-object";
 import { Shape } from "./Shape";
 
@@ -211,15 +210,15 @@ export class PolygonShape extends Shape {
     this.fillStrokeShape(context)
   }
 
-  private _shouldDrawFromCache() {
-    return (this.isCached && this.cachedCanvas)
-  }
-
   private _drawMainCanvas(context: CanvasRenderingContext2D) {
     context.save()
     // if (this.isInteracting) context.translate(...this._translate.array())
     super.render(context);
     context.restore()
+  }
+
+  private _shouldDrawFromCache() {
+    return (this.isCached && this.cachedCanvas)
   }
 
   private _drawCacheCanvas(context: CanvasRenderingContext2D) {

@@ -94,6 +94,7 @@ polygonShape2.tension(0.2)
 // const transformer = new Transformer()
 const transformer = new TransformerV2()
 const group = new Group()
+// const transformer = group
 
 const ellipseTest = new EllipseShape(600, 300, 40, 20)
 
@@ -103,9 +104,9 @@ const ellipseTest = new EllipseShape(600, 300, 40, 20)
 // group.children(polygonShape1)
 
 // transformer.children(group)
-polygonShape1.subscribe(polygonShape1)
-polygonShape2.subscribe(polygonShape2)
-polygonShape3.subscribe(polygonShape3)
+// polygonShape1.subscribe(polygonShape1)
+// polygonShape2.subscribe(polygonShape2)
+// polygonShape3.subscribe(polygonShape3)
 transformer.children(polygonShape1, polygonShape2, polygonShape3)
 // transformer.children(polygonShape1)
 
@@ -193,6 +194,9 @@ const circleShape1 = new EllipseShape(500, 600, 40, 60);
 
 // layer.children(transformer)
 // stage.add(layer);
+
+transformer.bindEvents()
+transformer.subscribe(transformer)
 
 const bg = new Background()
 stage.children(bg)

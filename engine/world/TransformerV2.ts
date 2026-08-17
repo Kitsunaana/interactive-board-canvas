@@ -2,7 +2,7 @@ import { isNil } from "lodash";
 import { Transformable, type TransformOperation } from "../behaviors/Transformable";
 import { Group } from "../Group";
 import { LayerV2 } from "../LayerV2";
-import { Matrix3x3, Point, Polygon } from "../maths";
+import { Matrix3x3, Point, type PointData, Polygon } from "../maths";
 import { EllipseShape } from "../shapes/Ellipse";
 import { PolygonShape } from "../shapes/Polygon";
 import { mapKeys } from "../utils";
@@ -177,6 +177,21 @@ export class TransformerV2 extends Group {
     })
   }
 
+  public translate(distance: PointData): void {
+    if (this._isSingle) return this._child.translate(distance);
+
+    this._tempOriginRotate = null
+
+    this
+      .children()
+      .forEach((child) => {
+        child.applyDeltaTransform(Transformable.getTranslateDeltaMatrix({
+          parent: child.parent(),
+          distance
+        }))
+      })
+  }
+
   public rotate(angle: number): void {
     if (this._isSingle) return this._child.rotate(angle);
 
@@ -205,8 +220,6 @@ export class TransformerV2 extends Group {
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    const cachedMatrix = this.node.cachedMatrix
-
     if (this.node === this) {
       this.children().forEach((child) => {
         context.save()
@@ -216,7 +229,7 @@ export class TransformerV2 extends Group {
       })
     } else {
       context.save();
-      cachedMatrix.applyToContext(context);
+      this.node.cachedMatrix.applyToContext(context);
       super.render(context);
       context.restore();
     }

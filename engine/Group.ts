@@ -20,7 +20,6 @@ export class Group extends SimObject {
       const child = event.child as SimObject
       
       child.__testMatrix = Matrix3x3.invert(this.worldMatrix) ?? Matrix3x3.identity()
-
       child.updateWorldTransform()
     })
   }
@@ -66,6 +65,7 @@ export class Group extends SimObject {
   }
 
   public render(context: CanvasRenderingContext2D): void {
+    this.cachedMatrix.applyToContext(context)
     super.render(context)
 
     if (this.isDrawOriginPosition) this._drawOriginPositions(context)

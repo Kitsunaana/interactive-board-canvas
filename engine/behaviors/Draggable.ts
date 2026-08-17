@@ -1,5 +1,6 @@
 import { Point } from "../maths"
 import { getPointFromEvent } from "../shared/point"
+import { SimObject } from "../world/sim-object"
 import { EventBehavior, type EventObject } from "./EventBehavior"
 
 export abstract class Draggable {
@@ -17,6 +18,16 @@ export abstract class Draggable {
     return this._isDragging
   }
 
+  public subscribe(target: EventBehavior): void {
+    target.on("pointerdown", this._handleDown)
+  }
+
+  public unsubscribe(target: EventBehavior): void {
+    target.off("pointerdown", this._handleDown)
+    target.off("pointermove", this._handleMove)
+    target.off("pointerup", this._handleUp)
+  }
+
   protected bindEvents() {
     this._handleDown = this._handleDown.bind(this)
     this._handleMove = this._handleMove.bind(this)
@@ -24,7 +35,7 @@ export abstract class Draggable {
   }
 
   private _handleMove(event: PointerEvent): void {
-    this._currentPosition.copyFrom(Point.fromData(getPointFromEvent(event)))
+    this._currentPosition.copyFrom(this._getPointerPosition(event))
     const delta = this._currentPosition.sub(this._startPosition)
 
     this._translate.copyFrom(delta)
@@ -45,22 +56,26 @@ export abstract class Draggable {
   private _handleDown(event: EventObject): void {
     this._isDragging = true
 
-    const point = getPointFromEvent(event.evt as PointerEvent)
+    this._startPosition.copyFrom(this._getPointerPosition(event.evt as PointerEvent))
 
-    this._startPosition.copyFrom(Point.fromData(point))
     this.onStart(event.evt as PointerEvent)
 
     window.addEventListener("pointermove", this._handleMove)
     window.addEventListener("pointerup", this._handleUp)
   }
 
-  public subscribe(target: EventBehavior): void {
-    target.on("pointerdown", this._handleDown)
-  }
+  private _getPointerPosition(event: PointerEvent) {
+    const point = Point.fromData(getPointFromEvent(event))
 
-  public unsubscribe(target: EventBehavior): void {
-    target.off("pointerdown", this._handleDown)
-    target.off("pointermove", this._handleMove)
-    target.off("pointerup", this._handleUp)
+    if (this instanceof SimObject) {
+      try {
+        const layer = this.getLayerOrThrow()
+        layer
+          .screenToWorld(point)
+          .copyTo(point)
+      } catch (error) { }
+    }
+
+    return point
   }
 }

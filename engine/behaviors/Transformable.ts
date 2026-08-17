@@ -1,6 +1,6 @@
-import {isNumber, isObject} from "lodash"
-import {Matrix3x3, Point, type PointData, Rectangle} from "../maths"
-import type {GetBoundsParams} from "../world/sim-object"
+import { isNumber, isObject } from "lodash"
+import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
+import type { GetBoundsParams } from "../world/sim-object"
 
 export type TransformOperation = "scale" | "skew" | "rotate" | "translate"
 
@@ -11,22 +11,36 @@ export const buildInitialOperationsRecord = (): Record<TransformOperation, Point
   skew: new Point(),
 })
 
+type GetOriginInOriginalSpaceParams = {
+  bounds: Rectangle
+  origin: PointData
+}
+
+type GetScaleDeltaMatrixParams = {
+  origin: PointData
+  scale: PointData
+  angle: number
+}
+
+type GetRotateDeltaMatrixParams = {
+  origin: PointData
+  angle: number
+}
+
+type GetTranslateDeltaMatrixParams = {
+  parent: Transformable | null,
+  distance: PointData
+}
+
 export abstract class Transformable {
-  public static getOriginInOriginalSpace({bounds, origin}: {
-    bounds: Rectangle
-    origin: PointData
-  }) {
+  public static getOriginInOriginalSpace({ bounds, origin }: GetOriginInOriginalSpaceParams) {
     return {
       x: bounds.x + bounds.width * origin.x,
       y: bounds.y + bounds.height * origin.y
     }
   }
 
-  public static getScaleDeltaMatrix({origin, scale, angle}: {
-    origin: PointData
-    scale: PointData
-    angle: number
-  }) {
+  public static getScaleDeltaMatrix({ origin, scale, angle }: GetScaleDeltaMatrixParams) {
     return Matrix3x3.aroundOrigin(origin, () => {
       const rotation = Matrix3x3.rotate(angle)
       const inverseRotation = Matrix3x3.rotate(-angle)
@@ -36,11 +50,22 @@ export abstract class Transformable {
     })
   }
 
-  public static getRotateDeltaMatrix({origin, angle}: {
-    origin: PointData
-    angle: number
-  }) {
+  public static getRotateDeltaMatrix({ origin, angle }: GetRotateDeltaMatrixParams) {
     return Matrix3x3.aroundOrigin(origin, () => Matrix3x3.rotate(angle))
+  }
+
+  public static getTranslateDeltaMatrix({ parent, distance }: GetTranslateDeltaMatrixParams) {
+    if (parent) {
+      const worldTranslate = Matrix3x3.translate(distance.x, distance.y);
+
+      const parentWorldInverse = Matrix3x3.invert(parent.worldMatrix) ?? Matrix3x3.identity();
+      const delta = Matrix3x3.multiply(parentWorldInverse, Matrix3x3.multiply(worldTranslate, parent.worldMatrix));
+
+      return delta
+    } else {
+      const delta = Matrix3x3.translate(distance.x, distance.y);
+      return delta
+    }
   }
 
   public abstract getBounds(params: GetBoundsParams): Rectangle
@@ -84,7 +109,7 @@ export abstract class Transformable {
   }
 
   public getOriginInOriginalSpace(operation: TransformOperation) {
-    const bounds = this.getBounds({skipTransform: true})
+    const bounds = this.getBounds({ skipTransform: true })
     const relativeOrigin = this.currentRelativeOrigins[operation]
 
     return {
@@ -94,41 +119,27 @@ export abstract class Transformable {
   }
 
   public rotate(angle: number) {
-    const rotateOrigin = this.getInLocalOriginPosition("rotate")
-    const delta = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(angle))
-
-    this.applyDeltaTransform(delta)
+    this.applyDeltaTransform(Transformable.getRotateDeltaMatrix({
+      origin: this.getInLocalOriginPosition("rotate"),
+      angle,
+    }))
   }
 
   public scale(scale: PointData) {
-    const scaleOrigin = this.getInLocalOriginPosition("scale")
-    const currentAngle = this.getCurrentAngle()
-
-    const delta = Matrix3x3.aroundOrigin(scaleOrigin, () => {
-      const rotation = Matrix3x3.rotate(currentAngle)
-      const inverseRotation = Matrix3x3.rotate(-currentAngle)
-      const operation = Matrix3x3.scale(scale.x, scale.y)
-
-      return Matrix3x3.compose(rotation, operation, inverseRotation)
-    })
-
-    this.applyDeltaTransform(delta)
+    this.applyDeltaTransform(Transformable.getScaleDeltaMatrix({
+      origin: this.getInLocalOriginPosition("scale"),
+      angle: this.getCurrentAngle(),
+      scale,
+    }))
   }
 
   public translate(distance: PointData): void {
     const parent = this.parent();
 
-    if (parent) {
-      const worldTranslate = Matrix3x3.translate(distance.x, distance.y);
-
-      const parentWorldInverse = Matrix3x3.invert(parent.worldMatrix) ?? Matrix3x3.identity();
-      const delta = Matrix3x3.multiply(parentWorldInverse, Matrix3x3.multiply(worldTranslate, parent.worldMatrix));
-
-      this.applyDeltaTransform(delta);
-    } else {
-      const delta = Matrix3x3.translate(distance.x, distance.y);
-      this.applyDeltaTransform(delta);
-    }
+    this.applyDeltaTransform(Transformable.getTranslateDeltaMatrix({
+      distance,
+      parent,
+    }))
   }
 
   public skew(_skew: PointData): void {

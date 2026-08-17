@@ -13,9 +13,14 @@ export class RotateTransformOpearation {
 
     this.node.beginInteraction("rotate");
 
-    const mousePos = pointFromEvent(event.evt as PointerEvent)
+    const pointerPosition = pointFromEvent(event.evt as PointerEvent)
+    this.node
+      .getLayerOrThrow()
+      .screenToWorld(pointerPosition)
+      .copyTo(pointerPosition)
+
     const originRotate = this.node.getInWorldOriginPosition("rotate")
-    const direction = mousePos.sub(originRotate)
+    const direction = pointerPosition.sub(originRotate)
     const currentAngle = Math.atan2(direction.y, direction.x)
 
     this._initialPointerAngle = currentAngle
@@ -23,9 +28,14 @@ export class RotateTransformOpearation {
 
   public processTransform(event: PointerEvent) {
     const originRotate = this.node.getInWorldOriginPosition("rotate")
-    const mousePos = pointFromEvent(event)
 
-    const direction = mousePos.sub(originRotate)
+    const pointerPosition = pointFromEvent(event)
+    this.node
+      .getLayerOrThrow()
+      .screenToWorld(pointerPosition)
+      .copyTo(pointerPosition)
+
+    const direction = pointerPosition.sub(originRotate)
     const currentAngle = Math.atan2(direction.y, direction.x)
     const targetRotation = (currentAngle - this._initialPointerAngle)
 
