@@ -1,18 +1,19 @@
-import {BackgroundImage} from "./styles/background-image";
+import { BackgroundImage } from "./styles/background-image";
 
 ; import { Group } from "./Group";
 import "./index.css";
 import { LayerV2 } from "./LayerV2";
-import { Matrix3x3 } from "./maths";
+import { Matrix3x3, Point } from "./maths";
 import { EllipseShape } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
 import { TransformerV2 } from "./world/TransformerV2";
-import {Background} from "./world/BG";
+import { Background } from "./world/BG";
+import { CubicBezierPath } from "./editors/cubic-bezier-path";
 
 const stage = new Stage({
   height: window.innerHeight,
-  width: window.innerWidth,
+  width: window.innerWidth / 2,
   draggable: false,
 });
 
@@ -87,9 +88,9 @@ polygonShape1.cache({
 const polygonShape2 = new PolygonShape({ initialPoints: points4, lineWidth: 1 });
 const polygonShape3 = new PolygonShape({ initialPoints: points1, tension: 0.0 });
 
-polygonShape2.closed(false)
+polygonShape2.closed = false
 polygonShape1.addClassname("test")
-polygonShape2.tension(0.2)
+polygonShape2.tension = 0.2
 
 // const transformer = new Transformer()
 const transformer = new TransformerV2()
@@ -201,4 +202,37 @@ transformer.subscribe(transformer)
 const bg = new Background()
 stage.children(bg)
 
-bg.children(transformer)
+// bg.children(transformer)
+
+const nextShape = new PolygonShape({
+  initialPoints: points2,
+  name: "test",
+})
+
+const nextCircle = new EllipseShape(0, 0, 20, 20)
+
+const radius = new Point(50, 50)
+nextCircle.radius(radius)
+
+let time = 0
+setInterval(() => {
+  time++
+  radius.x = Math.abs(Math.sin(time / 100)) * 59
+  radius.y = Math.abs(Math.sin(time / 100)) * 59
+
+  // console.log(radius.array())
+
+  nextCircle.radius(radius)
+}, 16)
+
+// nextShape.translate({ x: 200, y: 200 })
+// nextShape.rotate(0.4)
+
+// nextShape.position = new Point(0, 0)
+
+bg.children(nextCircle)
+
+const cubic = new CubicBezierPath()
+bg.children(cubic)
+
+// new Cubic()

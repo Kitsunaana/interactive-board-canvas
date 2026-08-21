@@ -165,15 +165,15 @@ export class TransformerV2 extends Group {
     const resizePositions = this.computeTransformHandlerPositions(7);
 
     mapKeys(this.rotateHandlerShapes, (handler, shape) => {
-      shape.position(rotatePositions.corner[handler])
+      shape.positionV2(rotatePositions.corner[handler])
     })
 
     mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
-      shape.position(resizePositions.corner[handler])
+      shape.positionV2(resizePositions.corner[handler])
     })
 
     mapKeys(this.resizeHandlerShapes.edge, (handler, shape) => {
-      shape.initialPoints(resizePositions.edge[handler])
+      // shape.initialPoints(resizePositions.edge[handler])
     })
   }
 

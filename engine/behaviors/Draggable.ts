@@ -18,14 +18,19 @@ export abstract class Draggable {
     return this._isDragging
   }
 
+  public get startDragPointerPosition() {
+    return this._startPosition
+  }
+
   public subscribe(target: EventBehavior): void {
     target.on("pointerdown", this._handleDown)
   }
 
   public unsubscribe(target: EventBehavior): void {
     target.off("pointerdown", this._handleDown)
-    target.off("pointermove", this._handleMove)
-    target.off("pointerup", this._handleUp)
+
+    window.removeEventListener("pointermove", this._handleMove)
+    window.removeEventListener("pointerup", this._handleUp)
   }
 
   protected bindEvents() {

@@ -56,7 +56,7 @@ export class Background extends LayerV2 {
     super()
 
     this.bindEvents()
-    this.subscribe(this)
+    // this.subscribe(this)
 
     window.addEventListener("wheel", (event) => {
       this._handleChangeZoom(event)

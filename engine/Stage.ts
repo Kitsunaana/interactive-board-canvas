@@ -44,14 +44,14 @@ const TOUCH_ALIASES: Partial<Record<string, string>> = {
   pointercancel: "touchcancel",
 }
 
-export class Stage extends SimObject {
+export class Stage extends EventBehavior {
   protected _type = "Stage"
 
   public parent(): SimObject | null {
     return null
   }
 
-  // private readonly _children: Array<LayerV2> = []
+  private readonly _children: Array<LayerV2> = []
   public readonly absolutePositionCursor = new Point()
   public readonly sizes: Sizes = {
     width: 0,
@@ -372,7 +372,12 @@ export class Stage extends SimObject {
     return "pointerId" in event ? (event as PointerEvent).pointerId : 1
   }
 
+  public getAllParents() {
+    return []
+  }
+
   private _getEventPath(target: EventTargetNode): EventTargetNode[] {
     return [target, ...target.getAllParents<EventTargetNode>()]
   }
 }
+

@@ -167,6 +167,7 @@ export abstract class Transformable {
 
   public endInteraction(): void {
     this.isInteracting = false
+    this.interactionOperation = null
 
     this.localMatrix = Matrix3x3.multiply(this.cachedMatrix, this.localMatrix)
     this.cachedMatrix = Matrix3x3.identity()

@@ -1,5 +1,3 @@
-import { isUndefined } from "lodash";
-import { drawOriginPoint } from "../behaviors/Transformable";
 import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths";
 import { type GetBoundsParams } from "../world/sim-object";
 import { Shape } from "./Shape";
@@ -61,7 +59,6 @@ export class PolygonShape extends Shape {
     if (closed) context.closePath();
   }
 
-
   protected _pointsToTrace: Array<PointData> = [];
   protected _initialPoints!: Array<PointData>
 
@@ -73,49 +70,50 @@ export class PolygonShape extends Shape {
   private _closed: boolean = true;
 
   public constructor(params: PolygonConfig) {
-    const config = mergeConfigWithDefaultValues(params)
+    const { _initialPoints, ...config } = mergeConfigWithDefaultValues(params)
 
     super();
 
     Object.assign(this, config)
 
+    const bounds = Polygon.getBounds(_initialPoints)
+    const origin = bounds.point()
+
+    this._initialPoints = _initialPoints.map((point) => ({
+      x: point.x - origin.x,
+      y: point.y - origin.y
+    }))
+
     this._pointsToTrace = this.computePointsToTraceWithTension(this._initialPoints);
 
-    // this.backgroundImage = new BackgroundImage()
-    //   .setSimObject(this)
-    //   .setContainer(this.getBounds())
-    //   .setBackgroundImage(source)
-    //   .setBackgroundSize("cover");
-    //
-    // this.backgroundImage = null;
-
     this.bindEvents()
-    // this.subscribe(this)
+    this.subscribe(this)
   }
 
-  public initialPoints(): Array<PointData>
-  public initialPoints(points: Array<PointData | Point>): void
-  public initialPoints(points?: Array<PointData | Point>): Array<PointData> | void {
-    if (isUndefined(points)) return this._initialPoints
-
-    this._initialPoints = points;
-    this.updateAfterTransform()
+  public get position() {
+    return this.getBounds().point()
   }
 
-  public closed(): boolean
-  public closed(value: boolean): void
-  public closed(value?: boolean): boolean | void {
-    if (isUndefined(value)) return this._closed
+  public set position(nextPos: PointData) {
+    const currentPosition = this.getBounds().point()
+    const delta = Point.fromData(nextPos).sub(currentPosition)
+    this.translate(delta)
+  }
 
+  public get closed() {
+    return this._closed
+  }
+
+  public get tension() {
+    return this._tension
+  }
+
+  public set closed(value: boolean) {
     this._closed = value
     this.updateAfterTransform()
   }
 
-  public tension(): number
-  public tension(value: number): void
-  public tension(value?: number): number | void {
-    if (isUndefined(value)) return this._tension
-
+  public set tension(value: number) {
     this._tension = value
     this.updateAfterTransform()
   }
@@ -125,49 +123,57 @@ export class PolygonShape extends Shape {
 
   public updateAfterTransform(): void {
     if (!this.isInteracting) {
-      const transformedPoints = this._initialPoints.map((point) => this.worldMatrix.applyToPoint(point))
+      const matrix = this.worldMatrix
+      const transformedPoints = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
       this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
-      this.backgroundImage?.setContainer(this.getBounds({ skipTransform: true }))
     }
   }
 
   public getPoints(): Array<PointData> {
-    const curveExtrema = Polygon.computeTensionedCurveExtrema(this._initialPoints, this.tension())
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(this._initialPoints, this.tension)
     return this._initialPoints.concat(curveExtrema)
   }
 
   public computePointsToTraceWithTension(points: Array<PointData>): Array<PointData> {
     const length = points.length;
-    const tension = this.tension()
+    const tension = this.tension
 
     return points.reduce((result, _, index, list) => {
-      if (!this.closed() && index === list.length - 1) return result;
+      if (!this.closed && index === list.length - 1) return result;
 
       const p0 = list[(index - 1 + length) % length];
       const p1 = list[index];
       const p2 = list[(index + 1) % length];
       const p3 = list[(index + 2) % length];
 
-      const cp1 = Point.fromData(p2).sub(p0).scale(tension).add(p1);
+      const cp1 = Point
+        .fromData(p2)
+        .sub(p0)
+        .scale(tension).
+        add(p1);
 
-      const cp2 = Point.fromData(p2).sub(
-        Point.fromData(p3).sub(p1).scale(tension),
-      );
+      const cp2 = Point
+        .fromData(p2)
+        .sub(
+          Point
+            .fromData(p3)
+            .sub(p1)
+            .scale(tension),
+        );
 
       return result.concat([cp1, cp2, p2]);
     }, [{ ...points[0] }] as Array<PointData>);
   }
 
   public getUnrotateBounds(): Rectangle {
-    const unrotate = Matrix3x3.aroundOrigin(
-      this.getInLocalOriginPosition("rotate"),
-      () => Matrix3x3.rotate(-Math.atan2(this.worldMatrix.b, this.worldMatrix.a))
-    )
+    const origin = this.getInLocalOriginPosition("rotate")
+    const currentAngle = -this.getCurrentAngle()
+    const unrotate = Matrix3x3.aroundOrigin(origin, () => Matrix3x3.rotate(currentAngle))
 
     const composed = Matrix3x3.compose(unrotate, this.worldMatrix)
 
     const transformedPoints = this._initialPoints.map(composed.applyToPoint.bind(composed))
-    const curveExtrema = Polygon.computeTensionedCurveExtrema(transformedPoints, this.tension())
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(transformedPoints, this.tension)
 
     return Polygon.getBounds(curveExtrema.concat(transformedPoints))
   }
@@ -177,7 +183,7 @@ export class PolygonShape extends Shape {
       ? this._initialPoints
       : this._initialPoints.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
 
-    const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension())
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension)
     const allPoints = points.concat(curveExtrema)
 
     return Polygon.getBounds(allPoints)
@@ -186,24 +192,20 @@ export class PolygonShape extends Shape {
   public render(context: CanvasRenderingContext2D): void {
     if (this._shouldDrawFromCache()) this._drawCacheCanvas(context)
     else this._drawMainCanvas(context)
-
-    if (this.isDrawOriginPosition) this._drawOriginPositions(context)
-    if (this.isDrawCorners) this._drawCorners(context)
-    if (this.isDrawBounds) this._drawBounds(context)
   }
 
   public tracePath(context: CanvasRenderingContext2D): void {
     context.beginPath();
     if (this._shouldRenderStraightEdges()) this._traceLinearPath(context);
     else this._traceSplinePath(context);
-    if (this.closed()) context.closePath();
+    if (this.closed) context.closePath();
   }
 
   public drawInOffscreen(context: CanvasRenderingContext2D & OffscreenCanvasRenderingContext2D) {
     PolygonShape.tracePath({
       pointsToTrace: this._pointsToTrace,
-      tension: this.tension(),
-      closed: this.closed(),
+      tension: this.tension,
+      closed: this.closed,
       context,
     })
 
@@ -212,7 +214,7 @@ export class PolygonShape extends Shape {
 
   private _drawMainCanvas(context: CanvasRenderingContext2D) {
     context.save()
-    // if (this.isInteracting) context.translate(...this._translate.array())
+    if (this.isInteracting) context.translate(...this._translate.array())
     super.render(context);
     context.restore()
   }
@@ -263,28 +265,6 @@ export class PolygonShape extends Shape {
   }
 
   private _shouldRenderStraightEdges(): boolean {
-    return this._pointsToTrace.length < 3 || this.tension() === 0;
-  }
-
-  private _drawBounds(context: CanvasRenderingContext2D): void {
-    const bounds = this.getBounds({ skipTransform: false })
-    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-  }
-
-  private _drawCorners(context: CanvasRenderingContext2D): void {
-    const corners = this.getCornersWithAppliedMatrix()
-
-    context.beginPath()
-    PolygonShape.prototype._traceLinearPath.call({ _pointsToTrace: corners }, context)
-    context.closePath()
-    context.stroke()
-  }
-
-  private _drawOriginPositions(context: CanvasRenderingContext2D): void {
-    const rotateOrigin = this.getInWorldOriginPosition("rotate")
-    const scaleOrigin = this.getInWorldOriginPosition("scale")
-
-    drawOriginPoint(context, rotateOrigin, "rotate")
-    drawOriginPoint(context, scaleOrigin, "scale")
+    return this._pointsToTrace.length < 3 || this.tension === 0;
   }
 }

@@ -48,6 +48,8 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   protected cachedCanvas: OffscreenCanvas | null = null
   protected offContext: OffscreenCanvasRenderingContext2D | null = null
 
+  public isListening: boolean = true
+
   public applyDeltaTransform(deltaMatrix: Matrix3x3): void {
     if (this.isInteracting) this.cachedMatrix = deltaMatrix
     else this.localMatrix = Matrix3x3.multiply(deltaMatrix, this.localMatrix)
@@ -143,16 +145,19 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
 
   public onStart(_event: PointerEvent): void {
     this.beginInteraction("translate")
+    this.fire("startDrag")
   }
 
   public onProcess(_event: PointerEvent): void {
     this.updateInteraction(this._translate)
     this.getAllParents().forEach((parent) => parent.updateAfterTransform?.())
+    this.fire("processDrag")
   }
 
   public onFinish(__event: PointerEvent): void {
     this.endInteraction()
     this.getAllParents().forEach((parent) => parent.updateAfterTransform?.())
+    this.fire("finishDrag")
   }
 
   public get cachedConfig(): Required<CacheConfig> {
