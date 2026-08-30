@@ -1,5 +1,5 @@
 import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths";
-import { type GetBoundsParams } from "../world/sim-object";
+import { SimObject, type GetBoundsParams } from "../world/sim-object";
 import { Shape } from "./Shape";
 
 const source = "https://avatars.mds.yandex.net/i?id=2e34b2a2ac0026106cc76353e2797bf03b9e2551-5249431-images-thumbs&n=13";
@@ -13,9 +13,10 @@ type PolygonConfig = {
   lineWidth?: number
   tension?: number
   closed?: boolean
+  cubic?: boolean
 }
 
-const mergeConfigWithDefaultValues = ({ tension, closed, initialPoints, ...config }: PolygonConfig) => {
+const mergeConfigWithDefaultValues = ({ tension, closed, cubic, initialPoints, ...config }: PolygonConfig) => {
   return {
     ...config,
     sketchStyle: config.sketchStyle ?? false,
@@ -27,6 +28,7 @@ const mergeConfigWithDefaultValues = ({ tension, closed, initialPoints, ...confi
     _initialPoints: initialPoints ?? [],
     _tension: tension ?? 0,
     _closed: closed ?? true,
+    _cubic: cubic ?? false
   }
 }
 
@@ -35,6 +37,20 @@ type TracePathParams = {
   pointsToTrace: Array<PointData>,
   tension: number,
   closed: boolean
+}
+
+class Control {
+  public constructor(private readonly object: SimObject) { }
+
+  public getPosition() {
+    return this.object.getBounds().point()
+  }
+
+  public setPosition(nextPos: PointData) {
+    const currentPosition = this.object.getBounds().point()
+    const delta = Point.fromData(nextPos).sub(currentPosition)
+    this.object.translate(delta)
+  }
 }
 
 export class PolygonShape extends Shape {
@@ -59,6 +75,8 @@ export class PolygonShape extends Shape {
     if (closed) context.closePath();
   }
 
+  public control: Control
+
   protected _pointsToTrace: Array<PointData> = [];
   protected _initialPoints!: Array<PointData>
 
@@ -68,6 +86,7 @@ export class PolygonShape extends Shape {
 
   private _tension: number = 0.0;
   private _closed: boolean = true;
+  private _cubic: boolean = false
 
   public constructor(params: PolygonConfig) {
     const { _initialPoints, ...config } = mergeConfigWithDefaultValues(params)
@@ -76,15 +95,20 @@ export class PolygonShape extends Shape {
 
     Object.assign(this, config)
 
+    this.control = new Control(this)
+
     const bounds = Polygon.getBounds(_initialPoints)
     const origin = bounds.point()
 
-    this._initialPoints = _initialPoints.map((point) => ({
-      x: point.x - origin.x,
-      y: point.y - origin.y
-    }))
+    this._initialPoints = _initialPoints
+      ;[].map((point) => ({
+        x: point.x - origin.x,
+        y: point.y - origin.y
+      }))
 
+    // console.log(_initialPoints)
     this._pointsToTrace = this.computePointsToTraceWithTension(this._initialPoints);
+    // this._pointsToTrace = this._initialPoints;
 
     this.bindEvents()
     this.subscribe(this)
@@ -92,6 +116,10 @@ export class PolygonShape extends Shape {
 
   public get position() {
     return this.getBounds().point()
+  }
+
+  public get pointsToTrace() {
+    return this._pointsToTrace
   }
 
   public set position(nextPos: PointData) {
@@ -126,6 +154,7 @@ export class PolygonShape extends Shape {
       const matrix = this.worldMatrix
       const transformedPoints = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
       this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
+      // this._pointsToTrace = transformedPoints
     }
   }
 
@@ -134,9 +163,17 @@ export class PolygonShape extends Shape {
     return this._initialPoints.concat(curveExtrema)
   }
 
+  public setPoints(points: Array<PointData>) {
+    this._initialPoints = points.map(p => ({ ...p }))
+    this._pointsToTrace = this._initialPoints
+    // this.updateAfterTransform()
+  }
+
   public computePointsToTraceWithTension(points: Array<PointData>): Array<PointData> {
     const length = points.length;
     const tension = this.tension
+
+    if (tension === 0) return points
 
     return points.reduce((result, _, index, list) => {
       if (!this.closed && index === list.length - 1) return result;
@@ -149,8 +186,8 @@ export class PolygonShape extends Shape {
       const cp1 = Point
         .fromData(p2)
         .sub(p0)
-        .scale(tension).
-        add(p1);
+        .scale(tension)
+        .add(p1);
 
       const cp2 = Point
         .fromData(p2)
@@ -196,8 +233,8 @@ export class PolygonShape extends Shape {
 
   public tracePath(context: CanvasRenderingContext2D): void {
     context.beginPath();
-    if (this._shouldRenderStraightEdges()) this._traceLinearPath(context);
-    else this._traceSplinePath(context);
+    // if (this._shouldRenderStraightEdges() && !this._cubic) this._traceLinearPath(context);
+    this._traceSplinePath(context);
     if (this.closed) context.closePath();
   }
 
@@ -251,16 +288,31 @@ export class PolygonShape extends Shape {
   }
 
   private _traceSplinePath(context: CanvasRenderingContext2D): void {
-    const length = this._pointsToTrace.length;
+    const points = this._pointsToTrace
+    const length = points.length;
 
-    context.moveTo(this._pointsToTrace[0].x, this._pointsToTrace[0].y);
+    if (length === 4) console.log(points)
 
-    for (let i = 1; i < length; i += 3) {
-      const p1 = this._pointsToTrace[i];
-      const p2 = this._pointsToTrace[i + 1];
-      const p3 = this._pointsToTrace[i + 2];
+    context.moveTo(points[0].x, points[0].y);
 
-      context.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+    if (points.length === 4) {
+      for (let i = 1; i < length; i += 3) {
+        const cp1 = points[i]
+        const cp2 = points[(i + 1) % length]
+        const p = points[(i + 2) % length]
+
+        context.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y)
+      }
+
+      return
+    }
+
+    for (let i = 3; i < length; i += 3) {
+      let cp1 = points[(i - 1) % length]
+      let cp2 = points[(i + 1) % length]
+      let p = points[i]
+
+      context.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y)
     }
   }
 

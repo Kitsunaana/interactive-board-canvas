@@ -59,6 +59,8 @@ export class EllipseShape extends Shape {
   public set position(nextPos: PointData) {
     const delta = Point.fromData(nextPos).sub(this.position)
     this.translate(delta)
+    // console.log(this)
+    this.fire("positionChange")
   }
 
   public get x() {

@@ -1,16 +1,16 @@
-import { BackgroundImage } from "./styles/background-image";
-
-; import { Group } from "./Group";
+import { CubicBezierPathCreator } from "./editors/cubic-bezier-path-creator";
+import { CubicBezierPathV2 } from "./editors/cubic-bezier-path-v2";
+import { Group } from "./Group";
 import "./index.css";
 import { LayerV2 } from "./LayerV2";
-import { Matrix3x3, Point } from "./maths";
+import { Point } from "./maths";
 import { EllipseShape } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
-import { TransformerV2 } from "./world/TransformerV2";
 import { Background } from "./world/BG";
-import { CubicBezierPath } from "./editors/cubic-bezier-path";
+import { TransformerV2 } from "./world/TransformerV2";
 
+; 
 const stage = new Stage({
   height: window.innerHeight,
   width: window.innerWidth / 2,
@@ -204,9 +204,66 @@ stage.children(bg)
 
 // bg.children(transformer)
 
+const qew = [
+  {
+    "x": 516,
+    "y": 190
+  },
+  {
+    "x": 516,
+    "y": 190
+  },
+  {
+    "x": 516,
+    "y": 190
+  },
+  {
+    "x": 372,
+    "y": 312
+  },
+  {
+    "x": 144,
+    "y": 184
+  },
+  {
+    "x": 600,
+    "y": 440
+  },
+  {
+    "x": 499,
+    "y": 488
+  },
+  {
+    "x": 821,
+    "y": 615
+  },
+  {
+    "x": 177,
+    "y": 361
+  },
+  {
+    "x": 158,
+    "y": 474
+  },
+  {
+    "x": 156,
+    "y": 467
+  },
+  {
+    "x": 160,
+    "y": 481
+  }
+]
+
 const nextShape = new PolygonShape({
-  initialPoints: points2,
+  initialPoints: qew, //.slice(0, 12),
+  // initialPoints: points2,
+  // initialPoints: [{x: 30, y: 30}, { x: 220, y: 140 }, { x: 180, y: 10 }, { x: 120, y: 160 }],
   name: "test",
+  closed: false,
+  // tension: 0.1,
+  cubic: true,
+  fillColor: "none"
 })
 
 const nextCircle = new EllipseShape(0, 0, 20, 20)
@@ -217,8 +274,7 @@ nextCircle.radius(radius)
 let time = 0
 setInterval(() => {
   time++
-  radius.x = Math.abs(Math.sin(time / 100)) * 59
-  radius.y = Math.abs(Math.sin(time / 100)) * 59
+  radius.x = radius.y = Math.abs(Math.sin(time / 100)) * 59
 
   // console.log(radius.array())
 
@@ -232,7 +288,17 @@ setInterval(() => {
 
 bg.children(nextCircle)
 
-const cubic = new CubicBezierPath()
+const cubic = new CubicBezierPathV2()
+// bg.children(nextShape)
 bg.children(cubic)
 
+// nextShape.position = new Point(150, 50)
+// nextShape.scale({ x: 2, y: 2 })
+
 // new Cubic()
+
+// nextShape.fillColor = "rgba(104, 54, 212, 0.2)"
+
+cubic.fromShape(nextShape)
+
+new CubicBezierPathCreator(bg)

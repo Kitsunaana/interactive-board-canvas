@@ -1,9 +1,9 @@
-import { isEmpty, isNull } from "lodash"
-import { EventBehavior, type EventObject } from "./behaviors/EventBehavior"
+import { isEmpty } from "lodash"
+import { type EventObject } from "./behaviors/EventBehavior"
 import { LayerV2 } from "./LayerV2"
-import { Point, type PointData } from "./maths"
+import { Point, Rectangle, type PointData } from "./maths"
 import { getPointFromEvent } from "./shared/point"
-import { SimObject } from "./world/sim-object"
+import { type GetBoundsParams, SimObject } from "./world/sim-object"
 
 export interface StageConfig {
   draggable: boolean
@@ -16,7 +16,7 @@ export type Sizes = {
   height: number
 }
 
-type EventTargetNode = SimObject | Stage
+type EventTargetNode = SimObject
 
 type PointerState = {
   downTarget: EventTargetNode | null
@@ -44,60 +44,29 @@ const TOUCH_ALIASES: Partial<Record<string, string>> = {
   pointercancel: "touchcancel",
 }
 
-export class Stage extends EventBehavior {
+const getPointerLocalPosition = (event: PointerEvent) => {
+  const rect = event.target instanceof HTMLElement
+    ? event.target.getBoundingClientRect()
+    : { left: 0, top: 0 }
+
+  return Point.fromData({
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  })
+}
+
+export class Stage extends SimObject {
   protected _type = "Stage"
 
-  public parent(): SimObject | null {
-    return null
-  }
+  public content: HTMLDivElement = document.createElement("div")
 
-  private readonly _children: Array<LayerV2> = []
   public readonly absolutePositionCursor = new Point()
   public readonly sizes: Sizes = {
     width: 0,
     height: 0,
   }
 
-  public content: HTMLDivElement = document.createElement("div")
-
   private readonly _pointerStates = new Map<number, PointerState>()
-
-  private readonly _boundHandlePointerMove = (event: PointerEvent) => {
-    this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
-    this._dispatchPointerMove(event)
-  }
-
-  private readonly _boundHandlePointerDown = (event: PointerEvent) => {
-    this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
-    this._dispatchPointerDown(event)
-  }
-
-  private readonly _boundHandlePointerUp = (event: PointerEvent) => {
-    this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
-    this._dispatchPointerUp(event)
-  }
-
-  private readonly _boundHandlePointerCancel = (event: PointerEvent) => {
-    this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
-    this._dispatchPointerCancel(event)
-  }
-
-  private readonly _boundHandlePointerLeave = (event: PointerEvent) => {
-    this.absolutePositionCursor.copyFrom(getPointFromEvent(event))
-    this._dispatchPointerLeave(event)
-  }
-
-  private readonly _boundHandleClick = (event: MouseEvent) => {
-    this._dispatchClickLikeEvent(event, "click", "pointerclick")
-  }
-
-  private readonly _boundHandleDoubleClick = (event: MouseEvent) => {
-    this._dispatchClickLikeEvent(event, "dblclick", "pointerdblclick")
-  }
-
-  private readonly _boundHandleContextMenu = (event: MouseEvent) => {
-    this._dispatchFromDomEvent("contextmenu", event)
-  }
 
   public constructor(config: StageConfig) {
     super()
@@ -112,20 +81,35 @@ export class Stage extends EventBehavior {
     document.body.appendChild(this.content)
 
     this._bindContentEvents()
-    this.render()
+    this._RAF()
   }
 
-  public getType() {
+  public getBounds(_params?: GetBoundsParams): Rectangle {
+    return new Rectangle(0, 0, 0, 0)
+  }
+
+  public getUnrotateBounds(): Rectangle {
+    return new Rectangle(0, 0, 0, 0)
+  }
+
+  public updateAfterTransform(): void { }
+
+  public parent(): SimObject | null {
+    return null
+  }
+
+  public getType(): string {
     return this._type
   }
 
   public renderHit(_context: CanvasRenderingContext2D): void { }
 
+  public render(_context: CanvasRenderingContext2D): void { }
 
   public children(): Array<LayerV2>
   public children(...list: Array<LayerV2>): void
   public children(...list: Array<LayerV2>): Array<LayerV2> | void {
-    if (isEmpty(list)) return this._children
+    if (isEmpty(list)) return this._children as Array<LayerV2>
 
     list.forEach((layer) => {
       this._children.push(layer)
@@ -137,7 +121,7 @@ export class Stage extends EventBehavior {
     })
   }
 
-  public render(time: number = 0) {
+  private _RAF(time: number = 0): void {
     this.children().forEach((layer) => {
       layer.update(time)
 
@@ -145,7 +129,7 @@ export class Stage extends EventBehavior {
       layer.renderHit(layer.getHitContext())
     })
 
-    requestAnimationFrame(this.render.bind(this))
+    requestAnimationFrame(this._RAF.bind(this))
   }
 
   private _bindContentEvents(): void {
@@ -157,6 +141,43 @@ export class Stage extends EventBehavior {
     this.content.addEventListener("click", this._boundHandleClick)
     this.content.addEventListener("dblclick", this._boundHandleDoubleClick)
     this.content.addEventListener("contextmenu", this._boundHandleContextMenu)
+  }
+
+  private _boundHandlePointerMove = (event: PointerEvent) => {
+    this.absolutePositionCursor.copyFrom(getPointerLocalPosition(event))
+    this._dispatchPointerMove(event)
+  }
+
+  private _boundHandlePointerDown = (event: PointerEvent) => {
+    this.absolutePositionCursor.copyFrom(getPointerLocalPosition(event))
+    this._dispatchPointerDown(event)
+  }
+
+  private _boundHandlePointerUp = (event: PointerEvent) => {
+    this.absolutePositionCursor.copyFrom(getPointerLocalPosition(event))
+    this._dispatchPointerUp(event)
+  }
+
+  private _boundHandlePointerCancel = (event: PointerEvent) => {
+    this.absolutePositionCursor.copyFrom(getPointerLocalPosition(event))
+    this._dispatchPointerCancel(event)
+  }
+
+  private _boundHandlePointerLeave = (event: PointerEvent) => {
+    this.absolutePositionCursor.copyFrom(getPointerLocalPosition(event))
+    this._dispatchPointerLeave(event)
+  }
+
+  private _boundHandleClick = (event: MouseEvent) => {
+    this._dispatchClickLikeEvent(event, "click", "pointerclick")
+  }
+
+  private _boundHandleDoubleClick = (event: MouseEvent) => {
+    this._dispatchClickLikeEvent(event, "dblclick", "pointerdblclick")
+  }
+
+  private _boundHandleContextMenu = (event: MouseEvent) => {
+    this._dispatchFromDomEvent("contextmenu", event)
   }
 
   private _dispatchPointerMove(event: PointerEvent): void {
@@ -344,7 +365,6 @@ export class Stage extends EventBehavior {
 
     for (let i = layers.length - 1; i >= 0; i -= 1) {
       const match = layers[i].getIntersection(point)
-      // console.log(layers[i].getIntersection(point))
       if (match) return match
     }
 
@@ -377,7 +397,7 @@ export class Stage extends EventBehavior {
   }
 
   private _getEventPath(target: EventTargetNode): EventTargetNode[] {
-    return [target, ...target.getAllParents<EventTargetNode>()]
+    return [target, ...target.getAllParents()]
   }
 }
 

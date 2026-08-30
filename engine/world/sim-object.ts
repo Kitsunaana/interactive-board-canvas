@@ -4,6 +4,7 @@ import { Mixin } from "ts-mixer";
 import { Draggable } from "../behaviors/Draggable";
 import { EventBehavior } from "../behaviors/EventBehavior";
 import { Transformable } from "../behaviors/Transformable";
+import { Group } from "../Group";
 import type { LayerV2 as Layer } from "../LayerV2";
 import { Matrix3x3, Point, type PointData, type Rectangle } from "../maths";
 import type { Sizes } from "../Stage";
@@ -123,6 +124,22 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
       .map(matrix.applyToPoint.bind(matrix))
   }
 
+  public findObjectsByName(name: string) {
+    return this
+      .getFlatListChildren()
+      .filter((child) => child.includeClassname(name))
+  }
+
+  public getFlatListChildren(): Array<SimObject> {
+    const children = this.children()
+
+    return children.flatMap((child) => (
+      Group.isGroup(child)
+        ? this.getFlatListChildren.call(child)
+        : child
+    ))
+  }
+
   public getAllParents<T extends SimObject>(list: Array<T> = []): Array<T> {
     const parent = this.parent() as unknown as T
 
@@ -132,15 +149,15 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    this._children.forEach((child) => child.render(context))
+    this.children().forEach((child) => child.render(context))
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {
-    this._children.forEach((child) => child.renderHit(context))
+    this.children().forEach((child) => child.renderHit(context))
   }
 
   public drawInOffscreen(context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D) {
-    this._children.forEach((child) => child.drawInOffscreen(context))
+    this.children().forEach((child) => child.drawInOffscreen(context))
   }
 
   public onStart(_event: PointerEvent): void {

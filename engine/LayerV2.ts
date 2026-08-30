@@ -60,6 +60,10 @@ export class LayerV2 extends SimObject {
     return point
   }
 
+  public get worldPointer(): Primitive.Point {
+    return this.screenToWorld(this.getStageOrThrow().absolutePositionCursor)
+  }
+
   public update(time: number) { }
 
   public getCanvas(): HTMLCanvasElement {

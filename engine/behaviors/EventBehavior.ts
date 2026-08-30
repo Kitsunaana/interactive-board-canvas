@@ -71,7 +71,7 @@ export abstract class EventBehavior {
       if (callback) {
         this._listenersMap.forEach((entries, eventType) => {
           const filtered = entries.filter((entry) => entry.callback !== callback)
-          
+
           if (filtered.length === 0) this._listenersMap.delete(eventType)
           else this._listenersMap.set(eventType, filtered)
         })
