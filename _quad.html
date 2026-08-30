@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quad Bezier Editor (финальная версия с правильным замыканием)</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+    }
+
+    .toolbar {
+      margin: 15px;
+    }
+
+    button {
+      margin: 0 5px;
+      padding: 8px 16px;
+      cursor: pointer;
+      border: 1px solid #888;
+      background: #fff;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background: #eee;
+    }
+
+    canvas {
+      border: 1px solid #333;
+      background: white;
+      cursor: crosshair;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .info {
+      margin: 10px;
+      color: #555;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="toolbar">
+    <button id="clearBtn">Очистить</button>
+    <button id="closeBtn">Замкнуть / Разомкнуть</button>
+    <button id="undoBtn">Отменить точку (Ctrl+Z)</button>
+  </div>
+  <canvas id="canvas" width="900" height="600"></canvas>
+  <div class="info">
+    <strong>Рисование:</strong> двигайте мышь — видите превью кривой (anchor у курсора, handle на продолжении
+    касательной).<br>
+    Кликните и, удерживая кнопку, тяните, чтобы изменить длину handle (он двигается по прямой касательной).<br>
+    Отпустите, чтобы зафиксировать. Клик по первому якорю (без перетаскивания) — замыкает контур с кривой, как в
+    превью.<br>
+    <strong>Перемещение:</strong> перетаскивайте якоря (круги) и управляющие точки (квадраты).<br>
+    <strong>Замыкание:</strong> клик по первому якорю (зелёному) без перетаскивания или кнопка.<br>
+    <strong>Escape:</strong> прекратить рисование (остаётся только перемещение существующих точек).<br>
+    <strong>Очистить:</strong> сбросить всё и снова включить рисование.
+  </div>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      let anchors = [];
+      let controls = [];
+      let isClosed = false;
+
+      let mouseDown = false;
+      let dragging = null;
+      let dragStartPos = null;
+      let creating = null;
+      let previewPos = null;
+      let hovered = null;
+      let drawingEnabled = true;
+
+      const HIT_RADIUS = 10;
+
+      function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+
+      function distance(p1, p2) {
+        return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+      }
+
+      function midpoint(p1, p2) {
+        return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+      }
+
+      function hitTest(pos) {
+        for (let i = 0; i < anchors.length; i++) {
+          if (distance(pos, anchors[i]) < HIT_RADIUS) {
+            return { type: 'anchor', index: i };
+          }
+        }
+        const segCount = isClosed ? anchors.length : anchors.length - 1;
+        for (let i = 0; i < segCount; i++) {
+          if (controls[i] && distance(pos, controls[i]) < HIT_RADIUS) {
+            return { type: 'control', index: i };
+          }
+        }
+        return null;
+      }
+
+      function clearAll() {
+        anchors = [];
+        controls = [];
+        isClosed = false;
+        mouseDown = false;
+        dragging = null;
+        dragStartPos = null;
+        creating = null;
+        previewPos = null;
+        hovered = null;
+        drawingEnabled = true;
+        draw();
+      }
+
+      function projectPointOnLine(point, linePoint, lineDir) {
+        const dx = point.x - linePoint.x;
+        const dy = point.y - linePoint.y;
+        const dlen2 = lineDir.x * lineDir.x + lineDir.y * lineDir.y;
+        if (dlen2 === 0) return { ...linePoint };
+        const t = (dx * lineDir.x + dy * lineDir.y) / dlen2;
+        return { x: linePoint.x + t * lineDir.x, y: linePoint.y + t * lineDir.y };
+      }
+
+      function getDefaultControlForNewSegment(lastIndex, newAnchorPos) {
+        const A = anchors[lastIndex];
+        if (lastIndex === 0 || !controls[lastIndex - 1]) {
+          return midpoint(A, newAnchorPos);
+        }
+        const H = controls[lastIndex - 1];
+        const dirX = A.x - H.x;
+        const dirY = A.y - H.y;
+        if (Math.abs(dirX) < 1e-6 && Math.abs(dirY) < 1e-6) {
+          return midpoint(A, newAnchorPos);
+        }
+        return projectPointOnLine(newAnchorPos, A, { x: dirX, y: dirY });
+      }
+
+      function closePath() {
+        if (anchors.length < 3) return;
+        if (isClosed) {
+          isClosed = false;
+        } else {
+          // Добавляем управляющую точку для замыкающего сегмента, используя продолжение касательной
+          const lastIndex = anchors.length - 1;
+          const newAnchorPos = anchors[0];
+          const control = getDefaultControlForNewSegment(lastIndex, newAnchorPos);
+          controls.push(control);
+          isClosed = true;
+        }
+        previewPos = null;
+        draw();
+      }
+
+      function toggleClose() {
+        closePath();
+      }
+
+      function undoLastPoint() {
+        if (isClosed || anchors.length === 0) return;
+        anchors.pop();
+        controls.pop();
+        if (creating) creating = null;
+        if (previewPos) previewPos = null;
+        draw();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Сетка
+        ctx.strokeStyle = '#f0f0f0';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 25) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
+          ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 25) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+
+        const segCount = isClosed ? anchors.length : anchors.length - 1;
+
+        // Существующие кривые
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < segCount; i++) {
+          const start = anchors[i];
+          const end = anchors[(i + 1) % anchors.length];
+          const control = controls[i];
+          if (!start || !end || !control) continue;
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
+          ctx.stroke();
+        }
+
+        // Превью нового сегмента (если рисование разрешено и не наведены на существующую точку)
+        if (!mouseDown && !creating && previewPos && !isClosed && anchors.length > 0 && !hovered && drawingEnabled) {
+          const lastIndex = anchors.length - 1;
+          const start = anchors[lastIndex];
+          const end = previewPos;
+          const control = getDefaultControlForNewSegment(lastIndex, end);
+
+          ctx.strokeStyle = '#888';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 3]);
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.strokeStyle = '#aaa';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(control.x, control.y);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(control.x, control.y);
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = '#ff8c00';
+          ctx.fillRect(control.x - 4, control.y - 4, 8, 8);
+
+          ctx.fillStyle = '#1e90ff';
+          ctx.beginPath();
+          ctx.arc(end.x, end.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        // Отрисовка создаваемого сегмента (при зажатой кнопке)
+        if (creating) {
+          const start = anchors[creating.startAnchorIndex];
+          const end = creating.tempAnchor;
+          const control = creating.tempControl;
+
+          ctx.strokeStyle = '#666';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 3]);
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.strokeStyle = '#aaa';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(control.x, control.y);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(control.x, control.y);
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.fillStyle = '#ff8c00';
+          ctx.fillRect(control.x - 4, control.y - 4, 8, 8);
+
+          ctx.fillStyle = '#1e90ff';
+          ctx.beginPath();
+          ctx.arc(end.x, end.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        // Вспомогательные линии для существующих сегментов
+        ctx.strokeStyle = '#aaa';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        for (let i = 0; i < segCount; i++) {
+          const start = anchors[i];
+          const end = anchors[(i + 1) % anchors.length];
+          const control = controls[i];
+          if (!start || !end || !control) continue;
+
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(control.x, control.y);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(control.x, control.y);
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        // Управляющие точки существующих сегментов
+        for (let i = 0; i < segCount; i++) {
+          if (!controls[i]) continue;
+          let color = '#ff8c00';
+          if (hovered && hovered.type === 'control' && hovered.index === i) color = '#ff5500';
+          ctx.fillStyle = color;
+          ctx.fillRect(controls[i].x - 4, controls[i].y - 4, 8, 8);
+          if (hovered && hovered.type === 'control' && hovered.index === i) {
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(controls[i].x - 4, controls[i].y - 4, 8, 8);
+          }
+        }
+
+        // Якоря
+        anchors.forEach((anchor, index) => {
+          let color = (index === 0) ? '#32cd32' : '#1e90ff';
+          if (hovered && hovered.type === 'anchor' && hovered.index === index) {
+            color = '#ff0000';
+          }
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(anchor.x, anchor.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
+
+        // Лёгкая заливка замкнутой фигуры
+        if (isClosed && anchors.length >= 3) {
+          ctx.fillStyle = 'rgba(30, 144, 255, 0.1)';
+          ctx.beginPath();
+          ctx.moveTo(anchors[0].x, anchors[0].y);
+          for (let i = 0; i < anchors.length; i++) {
+            const start = anchors[i];
+            const end = anchors[(i + 1) % anchors.length];
+            const control = controls[i];
+            ctx.quadraticCurveTo(control.x, control.y, end.x, end.y);
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
+      // Обработчики мыши
+      canvas.addEventListener('mousedown', (e) => {
+        const pos = getMousePos(e);
+        dragStartPos = { ...pos };
+        mouseDown = true;
+
+        const hit = hitTest(pos);
+        if (hit) {
+          dragging = hit;
+          previewPos = null;
+          creating = null;
+          draw();
+          return;
+        }
+
+        if (!drawingEnabled || isClosed) return;
+
+        const lastIndex = anchors.length - 1;
+        if (lastIndex >= 0) {
+          const tempAnchor = { x: pos.x, y: pos.y };
+          const tempControl = getDefaultControlForNewSegment(lastIndex, tempAnchor);
+          creating = {
+            startAnchorIndex: lastIndex,
+            tempAnchor: tempAnchor,
+            tempControl: tempControl,
+            moved: false
+          };
+        } else {
+          anchors.push({ x: pos.x, y: pos.y });
+          draw();
+        }
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        const pos = getMousePos(e);
+
+        if (dragging) {
+          if (dragging.type === 'anchor') {
+            anchors[dragging.index] = { x: pos.x, y: pos.y };
+          } else if (dragging.type === 'control') {
+            controls[dragging.index] = { x: pos.x, y: pos.y };
+          }
+          draw();
+          return;
+        }
+
+        if (mouseDown && creating) {
+          const startIdx = creating.startAnchorIndex;
+          let controlPos;
+          if (startIdx > 0 && controls[startIdx - 1]) {
+            const A = anchors[startIdx];
+            const H = controls[startIdx - 1];
+            const dirX = A.x - H.x;
+            const dirY = A.y - H.y;
+            if (Math.abs(dirX) > 1e-6 || Math.abs(dirY) > 1e-6) {
+              controlPos = projectPointOnLine(pos, A, { x: dirX, y: dirY });
+            } else {
+              controlPos = { x: pos.x, y: pos.y };
+            }
+          } else {
+            controlPos = { x: pos.x, y: pos.y };
+          }
+          creating.tempControl = controlPos;
+          if (distance(creating.tempAnchor, controlPos) > 3) creating.moved = true;
+          draw();
+          return;
+        }
+
+        previewPos = { x: pos.x, y: pos.y };
+        hovered = hitTest(pos);
+        draw();
+      });
+
+      canvas.addEventListener('mouseup', (e) => {
+        const pos = getMousePos(e);
+
+        if (dragging) {
+          const dist = distance(dragStartPos, pos);
+          if (dragging.type === 'anchor' && dragging.index === 0 && dist < 5 && anchors.length >= 3 && drawingEnabled) {
+            closePath(); // замыкание с правильным handle
+          }
+          dragging = null;
+          dragStartPos = null;
+          mouseDown = false;
+          draw();
+          return;
+        }
+
+        if (creating) {
+          const prevIndex = creating.startAnchorIndex;
+          const newAnchor = creating.tempAnchor;
+          const controlPos = creating.tempControl;
+          const moved = creating.moved;
+
+          // Обычное добавление нового якоря
+          anchors.push(newAnchor);
+          if (moved) {
+            controls.push(controlPos);
+          } else {
+            controls.push(getDefaultControlForNewSegment(prevIndex, newAnchor));
+          }
+          creating = null;
+          mouseDown = false;
+          draw();
+          return;
+        }
+
+        mouseDown = false;
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        previewPos = null;
+        hovered = null;
+        if (!dragging && !creating) {
+          mouseDown = false;
+          draw();
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'z') {
+          e.preventDefault();
+          undoLastPoint();
+        } else if (e.key === 'Escape') {
+          drawingEnabled = false;
+          if (creating) {
+            creating = null;
+            mouseDown = false;
+          }
+          previewPos = null;
+          draw();
+        }
+      });
+
+      document.getElementById('clearBtn').addEventListener('click', clearAll);
+      document.getElementById('closeBtn').addEventListener('click', toggleClose);
+      document.getElementById('undoBtn').addEventListener('click', undoLastPoint);
+
+      draw();
+    })();
+  </script>
+</body>
+
+</html>
