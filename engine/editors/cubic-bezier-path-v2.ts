@@ -1,25 +1,30 @@
-import { isEmpty } from "lodash"
+import { isEmpty, isUndefined } from "lodash"
 import { Group } from "../Group"
 import { LayerV2 } from "../LayerV2"
 import { Point, type PointData } from "../maths/Point"
 import { EllipseShape } from "../shapes/Ellipse"
 import { PolygonShape } from "../shapes/Polygon"
 import { SimObject } from "../world/sim-object"
+import {
+  ASSOCIATE_HANDLE_TYPE_WITH_SHAPE,
+  type BaseCubicBezierHandle
+} from "./cbp-manager"
+import type { EventObject } from "../behaviors/EventBehavior"
 
-type HandlerType = "anchor" | "in" | "out"
+export type HandlerType = "anchor" | "in" | "out"
 
-type HandlerChild = {
-  anchor: EllipseShape,
-  inHandle: EllipseShape,
-  outHandle: EllipseShape
+export type HandlerChild = {
+  outHandle: BaseCubicBezierHandle,
+  inHandle: BaseCubicBezierHandle,
+  anchor: BaseCubicBezierHandle,
 }
 
-type ChildrenRecord = {
+export type ChildrenRecord = {
   segments: Array<PolygonShape>,
   handlers: Array<HandlerChild>
 }
 
-const HANDLE_CONFIGURATIONS = [
+export const HANDLE_CONFIGURATIONS = [
   {
     defaultRadius: 5,
     handleType: "anchor",
@@ -49,16 +54,16 @@ export class CubicBezierPathV2 extends Group {
 
   public readonly toolType = "cubic" as const
 
-  private _activeControlIndex: number | null = null
-  private _isDrawingMode: boolean = false
-  private _isClosedPath: boolean = false
+  public activeControlIndex: number | null = null
+  public isDrawingMode: boolean = false
 
   public childrenRecord: ChildrenRecord = {
     handlers: [],
     segments: [],
   }
 
-  private _dragStartPositions = {
+  public isClosedPath: boolean = false
+  public dragStartPositions = {
     anchor: Point.zero(),
     inHandle: Point.zero(),
     outHandle: Point.zero(),
@@ -104,14 +109,14 @@ export class CubicBezierPathV2 extends Group {
   }
 
   public getAnchorHandles(anchorIndex: number, treatAsClosed: boolean = true): HandlerChild {
-    const index = treatAsClosed && this._isClosedPath && anchorIndex === this.anchorCount - 1
+    const index = treatAsClosed && this.isClosedPath && anchorIndex === this.anchorCount - 1
       ? 0
       : anchorIndex
 
     return this.childrenRecord.handlers[index]
   }
 
-  public buildAndPushHandler(anchorIndex: number, points: [PointData, PointData, PointData], isListening = true): void {
+  public buildAndPushHandler(anchorIndex: number, points: [PointData, PointData, PointData], isListening = true): HandlerChild {
     const layer = this.getLayerOrThrow();
     const r = ["anchor", "inHandle", "outHandle"] as Array<keyof HandlerChild>
 
@@ -124,6 +129,8 @@ export class CubicBezierPathV2 extends Group {
     }, {} as HandlerChild)
 
     this.childrenRecord.handlers.push(handler)
+
+    return handler
   }
 
   public buildAndPushSegment(points: Array<PointData>): void {
@@ -153,24 +160,36 @@ export class CubicBezierPathV2 extends Group {
     this.childrenRecord.segments.push(segment)
   }
 
-  private _createSingleControlHandle(layer: LayerV2, position: PointData, anchorIndex: number, confingIdx: number): EllipseShape {
+  private _createSingleControlHandle(
+    layer: LayerV2,
+    position: PointData,
+    anchorIndex: number,
+    confingIdx: number
+  ): BaseCubicBezierHandle {
     const { handleType, initialColor, defaultRadius } = HANDLE_CONFIGURATIONS[confingIdx]
 
-    const handleShape = new EllipseShape(position.x, position.y, defaultRadius, defaultRadius)
+    const handleShape = new ASSOCIATE_HANDLE_TYPE_WITH_SHAPE[handleType]({
+      anchorIndex,
+      context: this,
+      props: {
+        radius: defaultRadius,
+        ...position,
+      }
+    })
 
     handleShape.isListening = false
     handleShape.fillColor = initialColor
+    handleShape.setAttribute("anchorIndex", anchorIndex)
 
     handleShape.layer(layer)
     handleShape.subscribe(handleShape)
-    handleShape.addClassname("handle-shape")
 
     handleShape.on("pointerover", () => document.body.style.cursor = "move")
     handleShape.on("pointerout", () => document.body.style.cursor = "auto")
 
-    handleShape.on("startDrag", () => this._handleStartDragControl(handleType, handleShape, anchorIndex))
-    handleShape.on("finishDrag", () => this._handleFinishDragControl(handleType, handleShape, anchorIndex))
-    handleShape.on("processDrag", () => this._handleDragMoveControl(handleType, anchorIndex))
+    handleShape.on("startDrag", this._handleStartDragControl.bind(this))
+    handleShape.on("finishDrag", this._handleFinishDragControl.bind(this))
+    handleShape.on("processDrag", handleShape.changePosition.bind(handleShape))
 
     return handleShape
   }
@@ -178,21 +197,23 @@ export class CubicBezierPathV2 extends Group {
   private _captureInitialHandlePositions(anchorIndex: number): void {
     const { anchor, inHandle, outHandle } = this.getAnchorHandles(anchorIndex)
 
-    anchor.position.copyTo(this._dragStartPositions.anchor)
-    inHandle.position.copyTo(this._dragStartPositions.inHandle)
-    outHandle.position.copyTo(this._dragStartPositions.outHandle)
+    anchor.position.copyTo(this.dragStartPositions.anchor)
+    inHandle.position.copyTo(this.dragStartPositions.inHandle)
+    outHandle.position.copyTo(this.dragStartPositions.outHandle)
   }
 
   private _recalculateSegmentsAfterMoving(): void {
     const { segments, handlers } = this.childrenRecord
 
     segments.forEach((segment, index) => {
-      const needRemapRestriction = this._isClosedPath && index === segments.length - 1
+      const needRemapRestriction = this.isClosedPath && index === segments.length - 1
 
       const start = handlers[index]
       const end = handlers[needRemapRestriction ? 0 : index + 1]
 
-      segment.setPoints(CubicBezierPathV2._convertHandlersToPoints(start, end))
+      if (!isUndefined(start) && !isUndefined(end)) {
+        segment.setPoints(CubicBezierPathV2._convertHandlersToPoints(start, end))
+      }
     })
   }
 
@@ -207,7 +228,7 @@ export class CubicBezierPathV2 extends Group {
     const distance = shape.position.sub(target.anchor.position).length()
 
     if (distance <= 7) {
-      this._isClosedPath = true
+      this.isClosedPath = true
 
       const lastControls = this.getAnchorHandles(this.anchorCount - 1, false)
       lastControls.anchor.position = target.anchor.position
@@ -218,96 +239,29 @@ export class CubicBezierPathV2 extends Group {
     }
   }
 
-  private _handleStartDragControl(type: HandlerType, shape: EllipseShape, anchorIndex: number): void {
-    this.getFlatListHandlers().forEach(node => node.isListening = false)
-    this._changeToActiveStyleControl(type, shape)
-    this._captureInitialHandlePositions(anchorIndex)
+  private _setListeningState(enabled: boolean) {
+    this.childrenRecord.segments.forEach((segment) => segment.isListening = enabled)
+
+    this
+      .getFlatListHandlers()
+      .forEach(node => node.isListening = enabled)
+
   }
 
-  private _handleFinishDragControl(type: HandlerType, shape: EllipseShape, anchorIndex: number): void {
-    this.getFlatListHandlers().forEach(node => node.isListening = true)
-    this._changeToIdleStyleControl(type, shape)
-    this._unionRestrictionControls(shape, anchorIndex)
+  private _handleStartDragControl({ target }: EventObject<Event, BaseCubicBezierHandle>): void {
+    this._setListeningState(false)
+    this._captureInitialHandlePositions(target.getAttribute<number>("anchorIndex"))
+    
+    target.changeToActiveStyle()
+  }
+
+  private _handleFinishDragControl({ target }: EventObject<Event, BaseCubicBezierHandle>): void {
+    this._setListeningState(true)
     this._recalculateSegmentsAfterMoving()
+    this._unionRestrictionControls(target, target.getAttribute<number>("anchorIndex"))
+    
+    target.changeToIdleStyle()
   }
-
-  private _handleDragMoveControl(type: HandlerType, anchorIndex: number): void {
-    switch (type) {
-      case "anchor": {
-        const handler = this.getAnchorHandles(anchorIndex)
-
-        const layer = this.getLayerOrThrow()
-        const stage = layer.getStageOrThrow()
-        const currentPointerPosition = layer.screenToWorld(stage.absolutePositionCursor)
-
-        const delta = currentPointerPosition.sub(handler.anchor.startDragPointerPosition)
-
-        handler.inHandle.position = this._dragStartPositions.inHandle.add(delta)
-        handler.outHandle.position = this._dragStartPositions.outHandle.add(delta)
-
-        return
-      }
-      case "in": {
-        const handler = this.getAnchorHandles(anchorIndex)
-
-        handler.outHandle.position = handler.anchor.position
-          .scale(2)
-          .sub(handler.inHandle.position)
-
-        return
-      }
-      case "out": {
-        const handler = this.getAnchorHandles(anchorIndex)
-
-        handler.inHandle.position = handler.anchor.position
-          .scale(2)
-          .sub(handler.outHandle.position)
-
-        return
-      }
-    }
-  }
-
-  private _changeToActiveStyleControl(type: HandlerType, shape: EllipseShape): void {
-    switch (type) {
-      case "anchor": {
-        shape.fillColor = "#f38ba8"
-        shape.radius({ x: 7, y: 7 })
-        return
-      }
-      case "in": {
-        shape.fillColor = "#fab387"
-        shape.radius({ x: 5, y: 5 })
-        return
-      }
-      case "out": {
-        shape.fillColor = "#fab387"
-        shape.radius({ x: 5, y: 5 })
-        return
-      }
-    }
-  }
-
-  private _changeToIdleStyleControl(type: HandlerType, shape: EllipseShape): void {
-    switch (type) {
-      case "anchor": {
-        shape.fillColor = "#a6e3a1"
-        shape.radius({ x: 5, y: 5 })
-        return
-      }
-      case "in": {
-        shape.fillColor = "#f9e2af"
-        shape.radius({ x: 4, y: 4 })
-        return
-      }
-      case "out": {
-        shape.fillColor = "#f9e2af"
-        shape.radius({ x: 4, y: 4 })
-        return
-      }
-    }
-  }
-
 
 
   /**
@@ -329,11 +283,11 @@ export class CubicBezierPathV2 extends Group {
   }
 
   private _shouldDrawPreviewSegment(): boolean {
-    return this._isDrawingMode && !this._isClosedPath && !this._activeControlIndex
+    return this.isDrawingMode && !this.activeControlIndex
   }
 
   private _shouldDrawInteractiveSegment(): boolean {
-    return !!this._activeControlIndex && this._activeControlIndex > 0
+    return !!this.activeControlIndex && this.activeControlIndex > 0
   }
 
   private _applyActiveStrokeStyle(context: CanvasRenderingContext2D): void {
@@ -343,8 +297,8 @@ export class CubicBezierPathV2 extends Group {
 
   private _drawPreviewSegment(context: CanvasRenderingContext2D): void {
     const layer = this.getLayerOrThrow()
-    const currentPointerPosition = layer.screenToWorld(layer.getStageOrThrow().absolutePositionCursor)
 
+    const currentPointerPosition = layer.screenToWorld(layer.getStageOrThrow().absolutePositionCursor)
     const prevAnchorHandles = this.getAnchorHandles(this.anchorCount - 1, false)
 
     context.beginPath()
@@ -361,8 +315,8 @@ export class CubicBezierPathV2 extends Group {
   }
 
   private _drawInteractiveSegment(context: CanvasRenderingContext2D): void {
-    const prevHandles = this.getAnchorHandles(this._activeControlIndex! - 1)
-    const currentHandles = this.getAnchorHandles(this._activeControlIndex!)
+    const prevHandles = this.getAnchorHandles(this.activeControlIndex! - 1)
+    const currentHandles = this.getAnchorHandles(this.activeControlIndex!)
 
     context.beginPath()
     context.moveTo(prevHandles.anchor.x, prevHandles.anchor.y)
@@ -385,7 +339,7 @@ export class CubicBezierPathV2 extends Group {
     const totalAnchors = this.anchorCount
 
     for (let i = 0; i < totalAnchors; i++) {
-      if (this._isClosedPath && i === totalAnchors - 1) continue
+      if (this.isClosedPath && i === totalAnchors - 1) continue
 
       const { anchor, inHandle, outHandle } = this.getAnchorHandles(i)
 
@@ -430,7 +384,7 @@ export class CubicBezierPathV2 extends Group {
     context.lineCap = "round"
     context.stroke()
 
-    if (this._isClosedPath) {
+    if (this.isClosedPath) {
       context.fillStyle = "rgba(137,180,250,0.06)"
       context.fill()
     }

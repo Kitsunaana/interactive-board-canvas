@@ -299,6 +299,6 @@ bg.children(cubic)
 
 // nextShape.fillColor = "rgba(104, 54, 212, 0.2)"
 
-cubic.fromShape(nextShape)
+// cubic.fromShape(nextShape)
 
 new CubicBezierPathCreator(bg)

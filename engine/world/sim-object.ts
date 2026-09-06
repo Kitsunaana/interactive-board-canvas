@@ -225,5 +225,15 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
       }
     }
   }
+
+  private readonly _attributes: Record<string, unknown> = {}
+
+  public setAttribute(key: string, value: unknown) {
+    this._attributes[key] = value
+  }
+
+  public getAttribute<T extends unknown>(key: string): T {
+    return this._attributes[key] as T
+  }
 }
 

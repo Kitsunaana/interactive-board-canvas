@@ -13,9 +13,9 @@ type ParsedEventToken = {
   namespace?: string
 }
 
-export interface EventObject<EventType = Event> {
+export interface EventObject<EventType = Event, Target = SimObject> {
   type: string
-  target: SimObject
+  target: Target
   currentTarget: SimObject
   evt: EventType
   cancelBubble: boolean

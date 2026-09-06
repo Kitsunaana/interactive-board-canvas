@@ -9,6 +9,13 @@ type Unsubscribe = () => void
 export class CubicBezierPathCreator {
   public readonly toolType = "cubic" as const
 
+  private _activeControlIndex: number | null = null
+  private _dragStartPointer: Point = Point.zero()
+  private _prevHandlersLength: number = 0
+  private _isDrawingMode: boolean = false
+
+  private _path: CubicBezierPathV2 | null = null
+
   public _dragStartPositions = {
     anchor: Point.zero(),
     inHandle: Point.zero(),
@@ -20,9 +27,9 @@ export class CubicBezierPathCreator {
   }
 
   public addBezierToolEditorEvents(): Unsubscribe {
-    const downCallback = (event: EventObject) => this._handlePointerDown(event.evt as PointerEvent)
-    const moveCallback = (event: EventObject) => this._handlePointerMove(event.evt as PointerEvent)
-    const upCallback = (event: EventObject) => this._handlePointerUp(event.evt as PointerEvent)
+    const downCallback = (event: EventObject<PointerEvent>) => this._handlePointerDown(event.evt)
+    const moveCallback = (event: EventObject<PointerEvent>) => this._handlePointerMove(event.evt)
+    const upCallback = (event: EventObject<PointerEvent>) => this._handlePointerUp(event.evt)
 
     const keydownCallback = (event: KeyboardEvent) => this._handleKeyDown(event)
 
@@ -41,36 +48,68 @@ export class CubicBezierPathCreator {
     }
   }
 
-  private _dragStartPointer: Point = Point.zero()
-  private _activeControlIndex: number | null = null
-  private _path: CubicBezierPathV2 | null = null
-  private _isDrawingMode: boolean = false
+  private get path(): CubicBezierPathV2 {
+    if (!this._path) throw new Error("path is not defined")
+    return this._path
+  }
+
+  private set path(value: CubicBezierPathV2 | null) {
+    this._path = value
+  }
+
+  private set activeControlIndex(value: number | null) {
+    this._activeControlIndex = value
+    this.path.activeControlIndex = value
+  }
+
+  private set isDrawingMode(value: boolean) {
+    this._isDrawingMode = value
+    this.path.isDrawingMode = value
+  }
 
   private _handlePointerDown(_event: PointerEvent): void {
     if (isNull(this._path)) {
-      this._path = new CubicBezierPathV2()
-      this.layer.children(this._path)
+      this.path = new CubicBezierPathV2()
+      this.layer.children(this.path)
     }
 
     const position = this.layer.worldPointer
-
     this._dragStartPointer.copyFrom(position)
 
+    const pathId = this._path!.id
+
+    const handler = this.path.buildAndPushHandler(this.path.anchorCount, [position, position, position], false)
+    handler.anchor.on("pointerdown", (e) => this._extendPathFromLastAnchor(e, pathId))
+    
     if (this._isDrawingMode) {
-      this._path.buildAndPushHandler(this._path.anchorCount, [position, position, position], false)
-      this._activeControlIndex = this._path.anchorCount - 1
+      this.activeControlIndex = this.path.anchorCount - 1
     } else {
-      this._path.buildAndPushHandler(0, [position, position, position], false)
-      this._activeControlIndex = 0
-      this._isDrawingMode = true
+      this.activeControlIndex = 0
+      this.isDrawingMode = true
     }
+  }
+
+  private _extendPathFromLastAnchor({ target }: EventObject, pathId: string) {
+    const path = this.layer
+      .children()
+      .find((child) => child.id === pathId) as CubicBezierPathV2 | undefined
+
+    if (!path) return
+
+    const handlers = path.childrenRecord.handlers
+    const isLast = handlers[handlers.length - 1].anchor === target
+
+    if (!isLast) return
+
+    this._path = path
+    this.isDrawingMode = true
   }
 
   public _handlePointerMove(_event: PointerEvent): void {
     if (isNull(this._activeControlIndex)) return
 
     const dragDelta = this.layer.worldPointer.sub(this._dragStartPointer)
-    const { anchor, inHandle, outHandle } = this._path!.getAnchorHandles(this._activeControlIndex)
+    const { anchor, inHandle, outHandle } = this.path.getAnchorHandles(this._activeControlIndex)
 
     inHandle.position = anchor.position.sub(dragDelta)
     outHandle.position = anchor.position.add(dragDelta)
@@ -78,7 +117,7 @@ export class CubicBezierPathCreator {
 
   private _handlePointerUp(_event: PointerEvent): void {
     if (this._activeControlIndex !== null) {
-      const { anchor, inHandle, outHandle } = this._path!.getAnchorHandles(this._activeControlIndex)
+      const { anchor, inHandle, outHandle } = this.path.getAnchorHandles(this._activeControlIndex)
 
       const dragDistance = this.layer.worldPointer.sub(this._dragStartPointer).length()
 
@@ -88,20 +127,30 @@ export class CubicBezierPathCreator {
       }
 
       this._dragStartPointer.set(0, 0)
-      this._activeControlIndex = null
+      this.activeControlIndex = null
     }
   }
 
   private _handleKeyDown(event: KeyboardEvent): void {
     if (event.key === "Escape") {
-      this._isDrawingMode = false
-      this._activeControlIndex = null
+      this.isDrawingMode = false
+      this.activeControlIndex = null
 
-      this._path!.getFlatListHandlers().forEach((handler) => {
-        handler.isListening = true
-      })
+      const handlers = this.path.getFlatListHandlers()
+      const points = handlers.map((handler) => handler.position)
+      
+      handlers.forEach((handler) => handler.isListening = true)
 
-      this._path = null
+      for (let i = this._prevHandlersLength - 3; i < points.length; i += 3) {
+        const segmentPoints = points.slice(i, i + 6)
+
+        if (segmentPoints.length === 6) {
+          this.path.buildAndPushSegment(segmentPoints)
+        }
+      }
+
+      this._prevHandlersLength = handlers.length
+      this.path = null
     }
   }
 

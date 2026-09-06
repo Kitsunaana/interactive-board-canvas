@@ -1,8 +1,8 @@
-import {isNil} from "lodash";
-import {Polygon, Rectangle, type PointData} from "../maths";
-import {BackgroundImage} from "../styles/background-image";
-import {BaseGradient} from "../styles/gradient";
-import {SimObject} from "../world/sim-object";
+import { isNil } from "lodash";
+import { Polygon, Rectangle, type PointData } from "../maths";
+import { BackgroundImage } from "../styles/background-image";
+import { BaseGradient } from "../styles/gradient";
+import { SimObject } from "../world/sim-object";
 
 export type SketchFillStyle =
   | "hachure"
