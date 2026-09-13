@@ -8,7 +8,7 @@ import { EllipseShape } from "./shapes/Ellipse";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
 import { Background } from "./world/BG";
-import { TransformerV2 } from "./world/TransformerV2";
+import { Transformer } from "./world/TransformerV2";
 
 ; 
 const stage = new Stage({
@@ -72,7 +72,7 @@ const points4 = [
 const polygonShape1 = new PolygonShape({
   initialPoints: points2,
   sketchStyle: false,
-  lineWidth: 3,
+  lineWidth: 1,
   tension: 0.0,
   draggable: true
 });
@@ -80,12 +80,7 @@ const polygonShape1 = new PolygonShape({
 // polygonShape1.scale({ x: 2, y: 1 })
 // polygonShape1.rotate(0.3)
 
-polygonShape1.cache({
-  drawBorder: true,
-  offset: 10,
-})
-
-const polygonShape2 = new PolygonShape({ initialPoints: points4, lineWidth: 1 });
+const polygonShape2 = new PolygonShape({ initialPoints: points4, lineWidth: 10 });
 const polygonShape3 = new PolygonShape({ initialPoints: points1, tension: 0.0 });
 
 polygonShape2.closed = false
@@ -93,7 +88,7 @@ polygonShape1.addClassname("test")
 polygonShape2.tension = 0.2
 
 // const transformer = new Transformer()
-const transformer = new TransformerV2()
+const transformer = new Transformer()
 const group = new Group()
 // const transformer = group
 
@@ -108,7 +103,15 @@ const ellipseTest = new EllipseShape(600, 300, 40, 20)
 // polygonShape1.subscribe(polygonShape1)
 // polygonShape2.subscribe(polygonShape2)
 // polygonShape3.subscribe(polygonShape3)
-transformer.children(polygonShape1, polygonShape2, polygonShape3)
+
+
+group.children(polygonShape1, polygonShape2)
+
+// group.beginInteraction("scale")
+// group.scale({ x: 1.1, y: 1 })
+
+// layer.children(group)
+transformer.children(group, polygonShape3)
 // transformer.children(polygonShape1)
 
 // transformer.scale(new Point(0.5, 1))
@@ -171,7 +174,6 @@ setInterval(() => {
   run()
 }, 10)
 
-polygonShape1.clearCache()
 setTimeout(() => {
 }, 2000)
 
@@ -193,14 +195,14 @@ setTimeout(() => {
 
 const circleShape1 = new EllipseShape(500, 600, 40, 60);
 
-// layer.children(transformer)
-// stage.add(layer);
+layer.children(transformer)
+stage.children(layer);
 
 transformer.bindEvents()
 transformer.subscribe(transformer)
 
-const bg = new Background()
-stage.children(bg)
+// const bg = new Background()
+// stage.children(bg)
 
 // bg.children(transformer)
 
@@ -286,11 +288,11 @@ setInterval(() => {
 
 // nextShape.position = new Point(0, 0)
 
-bg.children(nextCircle)
+// bg.children(nextCircle)
 
-const cubic = new CubicBezierPathV2()
+// const cubic = new CubicBezierPathV2()
 // bg.children(nextShape)
-bg.children(cubic)
+// bg.children(cubic)
 
 // nextShape.position = new Point(150, 50)
 // nextShape.scale({ x: 2, y: 2 })
@@ -301,4 +303,4 @@ bg.children(cubic)
 
 // cubic.fromShape(nextShape)
 
-new CubicBezierPathCreator(bg)
+// new CubicBezierPathCreator(bg)

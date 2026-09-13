@@ -8,6 +8,7 @@ import { Group } from "../Group";
 import type { LayerV2 as Layer } from "../LayerV2";
 import { Matrix3x3, Point, type PointData, type Rectangle } from "../maths";
 import type { Sizes } from "../Stage";
+import { createRoute, EventEmitter } from "../EventBus"
 
 export type GetBoundsParams = {
   skipTransform?: boolean
@@ -23,15 +24,19 @@ export type CacheConfig = {
   imageSmoothingEnabled?: boolean
 }
 
+export type GetPointsParams = {
+  applyTransform?: boolean
+  applyCachedTransform?: boolean
+}
+
 export abstract class SimObject extends Mixin(Transformable, Draggable, EventBehavior) {
   public abstract getBounds(params?: GetBoundsParams): Rectangle
   public abstract getUnrotateBounds(): Rectangle
   public abstract updateAfterTransform(): void
+  public abstract getPoints(params?: GetPointsParams): Array<PointData>
 
-  private _cacheConfig: Required<CacheConfig> | null = null
-
-  public id: string = nanoid()
   public classList: Array<string> = []
+  public id: string = nanoid()
 
   public isCached: boolean = false
   public isCacheDirty: boolean = true
@@ -42,14 +47,19 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   public worldMatrix: Matrix3x3 = Matrix3x3.identity()
   public localMatrix: Matrix3x3 = Matrix3x3.identity()
 
+  public visible: boolean = true
+
   protected _children: Array<SimObject> = []
   protected _parent: SimObject | null = null
   protected _layer: Layer | null = null
 
-  protected cachedCanvas: OffscreenCanvas | null = null
-  protected offContext: OffscreenCanvasRenderingContext2D | null = null
-
   public isListening: boolean = true
+
+  public eventBus = new EventEmitter()
+  public eventRoutes = {
+    changePosition: createRoute("changePosition"),
+    finishDrag: createRoute("finishDrag"),
+  }
 
   public applyDeltaTransform(deltaMatrix: Matrix3x3): void {
     if (this.isInteracting) this.cachedMatrix = deltaMatrix
@@ -168,72 +178,15 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   public onProcess(_event: PointerEvent): void {
     this.updateInteraction(this._translate)
     this.getAllParents().forEach((parent) => parent.updateAfterTransform?.())
+    this.eventBus.emit(this.eventRoutes.changePosition())
     this.fire("processDrag")
   }
 
   public onFinish(__event: PointerEvent): void {
     this.endInteraction()
     this.getAllParents().forEach((parent) => parent.updateAfterTransform?.())
+    this.eventBus.emit(this.eventRoutes.finishDrag())
     this.fire("finishDrag")
-  }
-
-  public get cachedConfig(): Required<CacheConfig> {
-    if (isNull(this._cacheConfig)) throw new Error("Не используется кеширование")
-    return this._cacheConfig
-  }
-
-  public invalidateCache() {
-    if (this.isCached) this.isCacheDirty = true
-  }
-
-  public clearCache() {
-    this.cachedCanvas = null
-    this.offContext = null
-
-    this.isCached = false
-    this.isCacheDirty = true
-
-    this._cacheConfig = null
-  }
-
-  public cache(config: CacheConfig = {}) {
-    const parseDimension = (dimension: keyof Sizes, bounds: Rectangle) => Number(config[dimension]) > 0 ? config[dimension] : bounds[dimension]
-
-    const position = new Point(config.x, config.y)
-    const bounds = this.getBounds({ skipTransform: false }).padding(defaultTo(config.offset, 0))
-    const sizes = new Point(parseDimension("width", bounds), parseDimension("height", bounds))
-
-    this.cachedCanvas = new OffscreenCanvas(...sizes.array())
-    this.offContext = this.cachedCanvas.getContext("2d")
-
-    if (this.offContext !== null) {
-      this.offContext.translate(-bounds.x + position.x, -bounds.y + position.y)
-      this.offContext.imageSmoothingEnabled = Boolean(config.imageSmoothingEnabled)
-
-      this.drawInOffscreen(this.offContext)
-
-      this.isCached = true
-      this.isCacheDirty = false
-
-      this._cacheConfig = {
-        ...config,
-        ...position,
-        ...sizes.size(),
-        offset: config.offset ?? 0,
-        drawBorder: Boolean(config.imageSmoothingEnabled),
-        imageSmoothingEnabled: Boolean(config.imageSmoothingEnabled),
-      }
-    }
-  }
-
-  private readonly _attributes: Record<string, unknown> = {}
-
-  public setAttribute(key: string, value: unknown) {
-    this._attributes[key] = value
-  }
-
-  public getAttribute<T extends unknown>(key: string): T {
-    return this._attributes[key] as T
   }
 }
 

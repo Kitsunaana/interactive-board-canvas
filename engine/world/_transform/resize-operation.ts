@@ -1,18 +1,16 @@
 import { isNil } from "lodash";
 import type { EventObject } from "../../behaviors/EventBehavior";
+import { drawOriginPoint } from "../../behaviors/Transformable";
 import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
 import { Shape } from "../../shapes/Shape";
 import { pointFromEvent } from "../../shared/point";
 import { SimObject } from "../sim-object";
-import { TransformerV2 } from "../TransformerV2";
+import { Transformer } from "../TransformerV2";
 import type { Corner, Edge } from "./transform-operation.interface";
-import { Background } from "../BG";
 
 type ResizeHandler = Corner | Edge
 
-const r = 5
-
-export class ResizeTransformOpearation {
+export class ResizeTransformOperation {
   private readonly _initialOBB = new Rectangle();
   private readonly _obbWorldCenter = new Point();
   private readonly _handlePosition = new Point();
@@ -24,11 +22,19 @@ export class ResizeTransformOpearation {
 
   private _pickedHandler: Corner | Edge | null = null;
   private _proportional: boolean = false
-  private _padding = 7;
 
-  public constructor(public context: TransformerV2, public node: SimObject) { }
+  public constructor(public context: Transformer, public node: SimObject) { }
 
-  public startTransform(event: EventObject) {
+  public debugRender(context: CanvasRenderingContext2D): void {
+    context.betweenSaveAndRestore(() => {
+      drawOriginPoint(context, this._obbWorldCenter, "_obbWorldCenter")
+      drawOriginPoint(context, this._handlePosition, "_handlePosition")
+      drawOriginPoint(context, this._pivotPosition, "_pivotPosition")
+      drawOriginPoint(context, this._worldPivot, "_worldPivot")
+    })
+  }
+
+  public startTransform(event: EventObject<PointerEvent>): void {
     this.context.transformState = "resize"
 
     const handler = event.target.classList[0] as ResizeHandler
@@ -44,39 +50,36 @@ export class ResizeTransformOpearation {
 
     const mergedResizeHandlers = Object
       .keys(this.context.resizeHandlerShapes)
-      .reduce((acc, key) => {
-        return Object.assign(
-          acc,
-          this.context.resizeHandlerShapes[key as keyof typeof this.context.resizeHandlerShapes]
-        )
-      }, {} as Record<ResizeHandler, Shape>)
+      .reduce((acc, key) => (Object.assign(
+        acc,
+        this.context.resizeHandlerShapes[key as keyof typeof this.context.resizeHandlerShapes]
+      )), {} as Record<ResizeHandler, Shape>)
 
     const bounds = mergedResizeHandlers[handler].getBounds()
-
-    const currentPointer = this.node
-      .getLayerOrThrow()
-      .screenToWorld(pointFromEvent(event.evt as PointerEvent))
+    const currentPointer = this.node.getLayerOrThrow().worldPointer
 
     this._deltaBetweenCursorAndHandler = currentPointer.sub(bounds.center)
   }
 
-  public processTransform(event: PointerEvent) {
+  public processTransform(event: PointerEvent): void {
     if (isNil(this._pickedHandler)) return;
 
     this._proportional = event.shiftKey
+
     this.node.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
 
-    const cursorPos = this.node
+    const cursorPosition = this.node
       .getLayerOrThrow()
       .screenToWorld(pointFromEvent(event))
+      .sub(this._deltaBetweenCursorAndHandler)
 
-    this._setTransformScale(cursorPos.sub(this._deltaBetweenCursorAndHandler), this._pickedHandler);
+    this._setTransformScale(cursorPosition, this._pickedHandler);
+
     this.node.updateInteraction(this._transformScale);
-
     this.context.updateHandlersPosition()
   }
 
-  public finishTransform() {
+  public finishTransform(): void {
     if (isNil(this._pickedHandler)) return;
 
     if (this._transformScale.x === 0) this._transformScale.x = 0.001
@@ -87,8 +90,8 @@ export class ResizeTransformOpearation {
 
     this.context.updateHandlersPosition()
 
-    this._transformScale.copyFrom(Point.one());
     this._deltaBetweenCursorAndHandler = Point.zero()
+    this._transformScale.copyFrom(Point.one());
     this._pickedHandler = null;
 
     this.context.transformState = "idle"
@@ -112,7 +115,7 @@ export class ResizeTransformOpearation {
   }
 
   private _computeDeadZoneAdjustedFactor(referenceScale: Point, pointerOffset: Point, axis: keyof PointData): number {
-    const deadZoneThreshold: number = this._padding * 2;
+    const deadZoneThreshold: number = Transformer.OFFSET_BETWEEN_SHAPES_AND_AABB * 2;
 
     if (referenceScale[axis] !== 0) {
       const initialRatio = pointerOffset[axis] / referenceScale[axis];
@@ -122,9 +125,7 @@ export class ResizeTransformOpearation {
         const deadZoneAdjustedValue = pointerOffset[axis] + Math.sign(referenceScale[axis]) * deadZoneThreshold;
         const adjustedRatio = deadZoneAdjustedValue / referenceScale[axis];
 
-        return (
-          Math.sign(adjustedRatio) * Math.max(0.01, Math.abs(adjustedRatio))
-        );
+        return Math.sign(adjustedRatio) * Math.max(0.01, Math.abs(adjustedRatio))
       }
     }
 
@@ -190,7 +191,7 @@ export class ResizeTransformOpearation {
     return effective
   }
 
-  private _getRelativeOriginScale(side: ResizeHandler) {
+  private _getRelativeOriginScale(side: ResizeHandler): Point {
     const relativeOrigin = new Point();
 
     switch (side) {
@@ -235,35 +236,34 @@ export class ResizeTransformOpearation {
     return relativeOrigin;
   }
 
-  private _getPaddingToLocalCursor(side: ResizeHandler) {
-    const padding = this._padding;
-
-    let point: Point;
+  private _getPaddingToLocalCursor(side: ResizeHandler): Point {
+    const padding = Transformer.OFFSET_BETWEEN_SHAPES_AND_AABB;
+    const point = new Point();
 
     switch (side) {
       case "topLeft":
-        point = new Point(padding, padding);
+        point.set(padding, padding)
         break;
       case "top":
-        point = new Point(padding, padding);
+        point.set(padding, padding)
         break;
       case "topRight":
-        point = new Point(-padding, padding);
+        point.set(-padding, padding)
         break;
       case "right":
-        point = new Point(-padding, padding);
+        point.set(-padding, padding)
         break;
       case "bottomRight":
-        point = new Point(-padding, -padding);
+        point.set(-padding, -padding)
         break;
       case "bottom":
-        point = new Point(padding, -padding);
+        point.set(padding, -padding)
         break;
       case "bottomLeft":
-        point = new Point(padding, -padding);
+        point.set(padding, -padding)
         break;
       case "left":
-        point = new Point(padding, -padding);
+        point.set(padding, -padding)
         break;
     }
 

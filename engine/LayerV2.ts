@@ -5,13 +5,23 @@ import { Group } from './Group';
 import * as Primitive from "./maths";
 import { Shape } from './shapes/Shape';
 import { type Sizes, Stage } from "./Stage";
-import { type GetBoundsParams, SimObject } from "./world/sim-object";
+import { type GetBoundsParams, type GetPointsParams, SimObject } from "./world/sim-object";
+
+declare global {
+  interface CanvasRenderingContext2D {
+    betweenSaveAndRestore: (callback: () => void) => void
+  }
+}
 
 export type Child = Group | Shape
 
 export class LayerV2 extends SimObject {
   public getBounds(params?: GetBoundsParams): Primitive.Rectangle {
     return new Primitive.Rectangle(0, 0, 1, 1)
+  }
+
+  public getPoints(params?: GetPointsParams): Array<Primitive.PointData> {
+    return []
   }
 
   public getUnrotateBounds(): Primitive.Rectangle {
@@ -52,6 +62,18 @@ export class LayerV2 extends SimObject {
       willReadFrequently: true,
       alpha: true,
     }) as CanvasRenderingContext2D
+
+    this._context.betweenSaveAndRestore = (drawCallback: () => void) => {
+      this._context.save()
+      drawCallback()
+      this._context.restore()
+    }
+
+    this._hitContext.betweenSaveAndRestore = (drawCallback: () => void) => {
+      this._hitContext.save()
+      drawCallback()
+      this._hitContext.restore()
+    }
 
     this._rc = rough.canvas(this._canvas)
   }

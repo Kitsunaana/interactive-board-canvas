@@ -56,15 +56,12 @@ export abstract class Transformable {
 
   public static getTranslateDeltaMatrix({ parent, distance }: GetTranslateDeltaMatrixParams) {
     if (parent) {
-      const worldTranslate = Matrix3x3.translate(distance.x, distance.y);
+      const worldTranslate = Matrix3x3.translate(distance.x, distance.y)
+      const parentWorldInverse = Matrix3x3.invert(parent.worldMatrix) ?? Matrix3x3.identity()
 
-      const parentWorldInverse = Matrix3x3.invert(parent.worldMatrix) ?? Matrix3x3.identity();
-      const delta = Matrix3x3.multiply(parentWorldInverse, Matrix3x3.multiply(worldTranslate, parent.worldMatrix));
-
-      return delta
+      return Matrix3x3.multiply(parentWorldInverse, Matrix3x3.multiply(worldTranslate, parent.worldMatrix))
     } else {
-      const delta = Matrix3x3.translate(distance.x, distance.y);
-      return delta
+      return Matrix3x3.translate(distance.x, distance.y)
     }
   }
 
@@ -126,11 +123,12 @@ export abstract class Transformable {
   }
 
   public scale(scale: PointData) {
-    this.applyDeltaTransform(Transformable.getScaleDeltaMatrix({
-      origin: this.getInLocalOriginPosition("scale"),
-      angle: this.getCurrentAngle(),
-      scale,
-    }))
+    const origin = this.getInLocalOriginPosition("scale")
+    const angle = this.getCurrentAngle()
+
+    const delta = Transformable.getScaleDeltaMatrix({ origin, angle, scale })
+
+    this.applyDeltaTransform(delta)
   }
 
   public translate(distance: PointData): void {

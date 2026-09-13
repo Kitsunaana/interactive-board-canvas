@@ -2,7 +2,7 @@ import { drawOriginPoint } from "./behaviors/Transformable"
 import { Matrix3x3, Polygon, Rectangle } from "./maths"
 import { PolygonShape } from "./shapes/Polygon"
 import { Shape } from "./shapes/Shape"
-import { SimObject, type GetBoundsParams } from "./world/sim-object"
+import { type GetPointsParams, SimObject, type GetBoundsParams } from "./world/sim-object"
 
 export class Group extends SimObject {
   public static isGroup(candidate: unknown): candidate is Group {
@@ -15,10 +15,10 @@ export class Group extends SimObject {
 
   public constructor() {
     super()
-    
+
     this.on("addChild", (event) => {
       const child = event.child as SimObject
-      
+
       child.__testMatrix = Matrix3x3.invert(this.worldMatrix) ?? Matrix3x3.identity()
       child.updateWorldTransform()
     })
@@ -50,6 +50,10 @@ export class Group extends SimObject {
     })
   }
 
+  public getPoints(params: GetPointsParams = {}) {
+    return this.children().flatMap((child) => child.getPoints(params))
+  }
+
   public getUnrotateBounds(): Rectangle {
     const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
     const unrotate = Matrix3x3.aroundOrigin(this.getInLocalOriginPosition("rotate"), () => {
@@ -65,7 +69,7 @@ export class Group extends SimObject {
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    this.cachedMatrix.applyToContext(context)
+    // this.cachedMatrix.applyToContext(context)
     super.render(context)
 
     if (this.isDrawOriginPosition) this._drawOriginPositions(context)

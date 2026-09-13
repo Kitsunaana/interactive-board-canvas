@@ -50,8 +50,6 @@ export class EllipseShape extends Shape {
     // this.position = new Point(_x, _y)
   }
 
-  public visible: boolean = true
-
   public get position(): Point {
     return this.getBounds().center.add(this._translate)
   }
@@ -59,8 +57,6 @@ export class EllipseShape extends Shape {
   public set position(nextPos: PointData) {
     const delta = Point.fromData(nextPos).sub(this.position)
     this.translate(delta)
-    // console.log(this)
-    this.fire("positionChange")
   }
 
   public get x() {
@@ -76,12 +72,10 @@ export class EllipseShape extends Shape {
   }
 
   public updateAfterTransform(): void {
-    // if (!this.isInteracting) {
     const matrix = this.worldMatrix
 
     this._initialPoints = EllipseShape.computePointsToTrace(this._x, this._y, this._rx, this._ry)
     this._pointsToTrace = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
-    // }
   }
 
   public radius(value: PointData) {
@@ -92,9 +86,8 @@ export class EllipseShape extends Shape {
 
   public render(context: CanvasRenderingContext2D): void {
     if (!this.visible) return
-    
+
     context.save()
-    if (this.isInteracting) context.translate(...this._translate.array())
     super.render(context)
     context.restore()
   }
@@ -103,10 +96,7 @@ export class EllipseShape extends Shape {
     if (!this.visible) return
 
     if (this.isListening) {
-      context.save()
-      if (this.isInteracting) context.translate(...this._translate.array())
-      super.renderHit(context)
-      context.restore()
+      context.betweenSaveAndRestore(() => super.renderHit(context))
     }
   }
 

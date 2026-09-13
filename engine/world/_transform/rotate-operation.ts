@@ -1,19 +1,19 @@
 import type { EventObject } from "../../behaviors/EventBehavior"
 import { pointFromEvent } from "../../shared/point"
 import { SimObject } from "../sim-object"
-import type { TransformerV2 } from "../TransformerV2"
+import type { Transformer } from "../TransformerV2"
 
-export class RotateTransformOpearation {
+export class RotateTransformOperation {
   private _initialPointerAngle: number = 0
 
-  public constructor(public context: TransformerV2, public node: SimObject) { }
+  public constructor(public context: Transformer, public node: SimObject) { }
 
-  public startTransform(event: EventObject) {
+  public startTransform(event: EventObject<PointerEvent>): void {
     this.context.transformState = "rotate"
-
     this.node.beginInteraction("rotate");
 
-    const pointerPosition = pointFromEvent(event.evt as PointerEvent)
+    const pointerPosition = pointFromEvent(event.evt)
+
     this.node
       .getLayerOrThrow()
       .screenToWorld(pointerPosition)
@@ -26,10 +26,10 @@ export class RotateTransformOpearation {
     this._initialPointerAngle = currentAngle
   }
 
-  public processTransform(event: PointerEvent) {
+  public processTransform(event: PointerEvent): void {
     const originRotate = this.node.getInWorldOriginPosition("rotate")
-
     const pointerPosition = pointFromEvent(event)
+
     this.node
       .getLayerOrThrow()
       .screenToWorld(pointerPosition)
@@ -37,14 +37,13 @@ export class RotateTransformOpearation {
 
     const direction = pointerPosition.sub(originRotate)
     const currentAngle = Math.atan2(direction.y, direction.x)
-    const targetRotation = (currentAngle - this._initialPointerAngle)
+    const targetRotation = currentAngle - this._initialPointerAngle
 
     this.node.updateInteraction(targetRotation)
-
     this.context.updateHandlersPosition()
   }
 
-  public finishTransform() {
+  public finishTransform(): void {
     this.node.endInteraction()
 
     this.context.updateHandlersPosition()

@@ -1,36 +1,41 @@
-import { isNil } from "lodash";
-import { Transformable, type TransformOperation } from "../behaviors/Transformable";
-import { Group } from "../Group";
-import { LayerV2 } from "../LayerV2";
-import { Matrix3x3, Point, type PointData, Polygon } from "../maths";
-import { EllipseShape } from "../shapes/Ellipse";
-import { PolygonShape } from "../shapes/Polygon";
-import { mapKeys } from "../utils";
-import { ResizeTransformOpearation } from "./_transform/resize-operation";
-import { RotateTransformOpearation } from "./_transform/rotate-operation";
-import type { Corner, Edge, TransformState } from "./_transform/transform-operation.interface";
-import { SimObject } from "./sim-object";
+import { isNil } from "lodash"
+import { Transformable, type TransformOperation } from "../behaviors/Transformable"
+import { Group } from "../Group"
+import { LayerV2 } from "../LayerV2"
+import { Matrix3x3, Point, type PointData, Polygon } from "../maths"
+import { EllipseShape } from "../shapes/Ellipse"
+import { PolygonShape } from "../shapes/Polygon"
+import { Shape } from "../shapes/Shape"
+import { mapKeys } from "../utils"
+import { ResizeTransformOperation } from "./_transform/resize-operation"
+import { RotateTransformOperation } from "./_transform/rotate-operation"
+import type { Corner, Edge, TransformState } from "./_transform/transform-operation.interface"
+import { SimObject } from "./sim-object"
 
-const r2 = 9
-const r = 5
+export class Transformer extends Group {
+  public static OFFSET_BETWEEN_SHAPES_AND_AABB = 7
+  public static RESIZE_HANDLER_RADIUS = 5
+  public static ROTATE_HANDLER_RADIUS = 9
 
-export class TransformerV2 extends Group {
-  public static isTransformer(candidate: unknown): candidate is TransformerV2 {
-    return candidate instanceof TransformerV2
+  public static isTransformer(candidate: unknown): candidate is Transformer {
+    return candidate instanceof Transformer
   }
 
-  private _transformState: TransformState = "idle";
+  private _transformState: TransformState = "idle"
   private _tempOriginRotate: Point | null = null
 
-  public activeOperation: RotateTransformOpearation | ResizeTransformOpearation | null = null
-  public rotateOperation: RotateTransformOpearation
-  public resizeOperation: ResizeTransformOpearation
+  private _processTransform = (_event: PointerEvent) => { }
+  private _finishTransform = (_event: PointerEvent) => { }
+
+  public activeOperation: RotateTransformOperation | ResizeTransformOperation | null = null
+  public rotateOperation: RotateTransformOperation
+  public resizeOperation: ResizeTransformOperation
 
   public readonly rotateHandlerShapes: Record<Corner, EllipseShape> = {
-    bottomRight: new EllipseShape(0, 0, r2, r2),
-    bottomLeft: new EllipseShape(0, 0, r2, r2),
-    topRight: new EllipseShape(0, 0, r2, r2),
-    topLeft: new EllipseShape(0, 0, r2, r2),
+    bottomRight: new EllipseShape(0, 0, Transformer.ROTATE_HANDLER_RADIUS, Transformer.ROTATE_HANDLER_RADIUS),
+    bottomLeft: new EllipseShape(0, 0, Transformer.ROTATE_HANDLER_RADIUS, Transformer.ROTATE_HANDLER_RADIUS),
+    topRight: new EllipseShape(0, 0, Transformer.ROTATE_HANDLER_RADIUS, Transformer.ROTATE_HANDLER_RADIUS),
+    topLeft: new EllipseShape(0, 0, Transformer.ROTATE_HANDLER_RADIUS, Transformer.ROTATE_HANDLER_RADIUS),
   }
 
   public readonly resizeHandlerShapes = {
@@ -42,30 +47,24 @@ export class TransformerV2 extends Group {
     },
 
     corner: {
-      bottomRight: new EllipseShape(0, 0, r, r),
-      bottomLeft: new EllipseShape(0, 0, r, r),
-      topRight: new EllipseShape(0, 0, r, r),
-      topLeft: new EllipseShape(0, 0, r, r),
+      bottomRight: new EllipseShape(0, 0, Transformer.RESIZE_HANDLER_RADIUS, Transformer.RESIZE_HANDLER_RADIUS),
+      bottomLeft: new EllipseShape(0, 0, Transformer.RESIZE_HANDLER_RADIUS, Transformer.RESIZE_HANDLER_RADIUS),
+      topRight: new EllipseShape(0, 0, Transformer.RESIZE_HANDLER_RADIUS, Transformer.RESIZE_HANDLER_RADIUS),
+      topLeft: new EllipseShape(0, 0, Transformer.RESIZE_HANDLER_RADIUS, Transformer.RESIZE_HANDLER_RADIUS),
     }
-  };
-
-  private _processTransform(_event: PointerEvent) {
-  }
-
-  private _finishTransform(_event: PointerEvent) {
   }
 
   private get _isSingle(): boolean {
-    return this.children().length === 1;
+    return this.children().length === 1
   }
 
   private get _child(): SimObject {
-    return this.children()[0];
+    return this.children()[0]
   }
 
   public get node(): SimObject {
-    if (this._isSingle) return this._child;
-    return this;
+    if (this._isSingle) return this._child
+    return this
   }
 
   public get transformState() {
@@ -88,43 +87,75 @@ export class TransformerV2 extends Group {
   }
 
   public constructor() {
-    super();
+    super()
 
-    this.rotateOperation = new RotateTransformOpearation(this, this.node)
-    this.resizeOperation = new ResizeTransformOpearation(this, this.node)
+    this.rotateOperation = new RotateTransformOperation(this, this.node)
+    this.resizeOperation = new ResizeTransformOperation(this, this.node)
 
-    this.on("addToParent", () => {
-      const layer = this.layer()!
+    this
+      .getSystemUiShapes()
+      .forEach((shape: Shape) => shape.unsubscribe(shape))
 
-      this.rotateOperation.node = this.node
-      this.resizeOperation.node = this.node
-
-      this.addHandlersToLayer(layer)
-      this.updateHandlersPosition()
-    });
+    this.on("addToParent", this._afterAddToParentCallback.bind(this))
   }
 
-  public updateAfterTransform(): void {
-    super.updateAfterTransform()
+  private _afterAddToParentCallback(): void {
+    this.rotateOperation.node = this.node
+    this.resizeOperation.node = this.node
+
+    this.addHandlersToLayer(this.getLayerOrThrow())
     this.updateHandlersPosition()
+
+    this
+      .children()
+      .forEach((child) => {
+        child.eventBus.on(child.eventRoutes.changePosition, () => {
+          this.hideSystemUiControls()
+        })
+
+        child.eventBus.on(child.eventRoutes.finishDrag, () => {
+          this.updateHandlersPosition()
+          this.showSystemUiControls()
+        })
+      })
+  }
+
+  public getSystemUiShapes(): Array<Shape> {
+    return [this.rotateHandlerShapes, ...Object.values(this.resizeHandlerShapes)].flatMap(Object.values)
+  }
+
+  public hideSystemUiControls(): void {
+    this
+      .getSystemUiShapes()
+      .forEach((shape) => shape.visible = false)
+  }
+
+  public showSystemUiControls(): void {
+    this
+      .getSystemUiShapes()
+      .forEach((shape) => shape.visible = true)
   }
 
   public beginInteraction(type: TransformOperation): void {
     super.beginInteraction(type)
-    this.children().forEach((child) => child.beginInteraction(type))
+    this
+      .children()
+      .forEach((child) => child.beginInteraction(type))
   }
 
   public endInteraction(): void {
     super.endInteraction()
-    this.children().forEach((child) => child.endInteraction())
+    this
+      .children()
+      .forEach((child) => child.endInteraction())
   }
 
-  public removeTransformHandlersToWindow() {
+  public removeTransformHandlersToWindow(): void {
     window.removeEventListener("pointermove", this._processTransform)
     window.removeEventListener("pointerup", this._finishTransform)
   }
 
-  public subscribeTransformHandlersToWindow() {
+  public subscribeTransformHandlersToWindow(): void {
     const operation = this.activeOperation
 
     if (operation) {
@@ -136,50 +167,49 @@ export class TransformerV2 extends Group {
     }
   }
 
-  public addHandlersToLayer(layer: LayerV2) {
+  public addHandlersToLayer(layer: LayerV2): void {
     mapKeys(this.rotateHandlerShapes, (handler, shape) => {
       shape.on("pointerdown", this.rotateOperation.startTransform.bind(this.rotateOperation))
       shape.addClassname(handler)
-      layer.children(shape);
-    });
+      layer.children(shape)
+    })
 
     mapKeys(this.resizeHandlerShapes.edge, (handler, shape) => {
       shape.on("pointerdown", this.resizeOperation.startTransform.bind(this.resizeOperation))
       shape.addClassname(handler)
-      layer.children(shape);
-    });
+      layer.children(shape)
+    })
 
     mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
       shape.on("pointerdown", this.resizeOperation.startTransform.bind(this.resizeOperation))
       shape.addClassname(handler)
-      layer.children(shape);
-    });
+      layer.children(shape)
+    })
 
     this.updateHandlersPosition()
   }
 
-  public updateHandlersPosition() {
-    const padding = 7 + r * 2
+  public updateHandlersPosition(): void {
+    const padding = Transformer.OFFSET_BETWEEN_SHAPES_AND_AABB + Transformer.RESIZE_HANDLER_RADIUS * 2
 
-    const rotatePositions = this.computeTransformHandlerPositions(padding);
-    const resizePositions = this.computeTransformHandlerPositions(7);
+    const resizePositions = this.computeTransformHandlerPositions(Transformer.OFFSET_BETWEEN_SHAPES_AND_AABB)
+    const rotatePositions = this.computeTransformHandlerPositions(padding)
 
     mapKeys(this.rotateHandlerShapes, (handler, shape) => {
-      shape.positionV2(rotatePositions.corner[handler])
+      shape.position = rotatePositions.corner[handler]
     })
 
     mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
-      shape.positionV2(resizePositions.corner[handler])
+      shape.position = resizePositions.corner[handler]
     })
 
     mapKeys(this.resizeHandlerShapes.edge, (handler, shape) => {
-      // shape.initialPoints(resizePositions.edge[handler])
+      shape.setPoints(resizePositions.edge[handler])
     })
   }
 
   public translate(distance: PointData): void {
-    if (this._isSingle) return this._child.translate(distance);
-
+    if (this._isSingle) return this._child.translate(distance)
     this._tempOriginRotate = null
 
     this
@@ -193,45 +223,49 @@ export class TransformerV2 extends Group {
   }
 
   public rotate(angle: number): void {
-    if (this._isSingle) return this._child.rotate(angle);
-
+    if (this._isSingle) return this._child.rotate(angle)
     if (isNil(this._tempOriginRotate)) this._setTempOriginRotate()
 
-    this.children().forEach((child) => {
-      child.applyDeltaTransform(Transformable.getRotateDeltaMatrix({
-        origin: this._tempOriginRotate!,
-        angle
-      }))
-    })
+    this
+      .children()
+      .forEach((child) => {
+        const origin = this._tempOriginRotate!
+        const deltaMatrix = Transformable.getRotateDeltaMatrix({ origin, angle })
+
+        child.applyDeltaTransform(deltaMatrix)
+      })
   }
 
   public scale(scale: Point): void {
-    if (this._isSingle) return this._child.scale(scale);
-
+    if (this._isSingle) return this._child.scale(scale)
     this._tempOriginRotate = null
 
-    this.children().forEach((child) => {
-      child.applyDeltaTransform(Transformable.getScaleDeltaMatrix({
-        origin: this.getInLocalOriginPosition("scale"),
-        angle: 0,
-        scale,
-      }))
-    })
+    this
+      .children()
+      .forEach((child) => {
+        const angle = 0
+        const origin = this.getInLocalOriginPosition("scale")
+        const deltaMatrix = Transformable.getScaleDeltaMatrix({ origin, angle, scale })
+
+        child.applyDeltaTransform(deltaMatrix)
+      })
   }
 
   public render(context: CanvasRenderingContext2D): void {
     if (this.node === this) {
-      this.children().forEach((child) => {
-        context.save()
-        child.cachedMatrix.applyToContext(context)
-        child.render(context)
-        context.restore()
-      })
+      this
+        .children()
+        .forEach((child) => {
+          context.betweenSaveAndRestore(() => {
+            child.cachedMatrix.applyToContext(context)
+            child.render(context)
+          })
+        })
     } else {
-      context.save();
-      this.node.cachedMatrix.applyToContext(context);
-      super.render(context);
-      context.restore();
+      context.betweenSaveAndRestore(() => {
+        this.node.cachedMatrix.applyToContext(context)
+        super.render(context)
+      })
     }
   }
 
@@ -254,17 +288,17 @@ export class TransformerV2 extends Group {
         left: [mappedCorners[3], mappedCorners[0]],
         top: [mappedCorners[0], mappedCorners[1]],
       } as Record<Edge, Array<Point>>
-    };
+    }
   }
 
-  private _getPositionsForActionAppliedToSingleNode(padding: number) {
+  private _getPositionsForActionAppliedToSingleNode(padding: number): Array<Point> {
     const composed = Matrix3x3.compose(this.node.cachedMatrix, this.node.worldMatrix)
 
     const forAngle = ({
       rotate: composed,
       idle: this.node.worldMatrix,
       resize: this.node.worldMatrix,
-    })[this.transformState];
+    })[this.transformState]
 
     const currentAngle = Math.atan2(forAngle.b, forAngle.a)
 
@@ -282,13 +316,11 @@ export class TransformerV2 extends Group {
     return nextCorners.map(rotate.applyToPoint.bind(rotate))
   }
 
-  private _getPositionsWhenActionAppliedToSetOfNodes(padding: number) {
-    const transformedPoints = this
-      .getFlatListChildren()
-      .flatMap((child) => {
-        const matrix = Matrix3x3.compose(child.cachedMatrix, child.worldMatrix)
-        return child.getPoints().map(matrix.applyToPoint.bind(matrix))
-      })
+  private _getPositionsWhenActionAppliedToSetOfNodes(padding: number): Array<Point> {
+    const transformedPoints = this.node.getPoints({
+      applyCachedTransform: true,
+      applyTransform: true,
+    })
 
     return Polygon
       .getBounds(transformedPoints)
@@ -296,7 +328,7 @@ export class TransformerV2 extends Group {
       .getCorners()
   }
 
-  private _setTempOriginRotate() {
+  private _setTempOriginRotate(): void {
     const origin = Transformable.getOriginInOriginalSpace({
       bounds: this.getBounds({ skipTransform: false }),
       origin: Point

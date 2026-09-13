@@ -87,6 +87,15 @@ export class Matrix3x3 {
     return new Matrix3x3(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f)
   }
 
+  public copyFrom(matrix: Matrix3x3) {
+    this.a = matrix.a
+    this.b = matrix.b
+    this.c = matrix.c
+    this.d = matrix.d
+    this.e = matrix.e
+    this.f = matrix.f
+  }
+
   public clone(): Matrix3x3 {
     return new Matrix3x3(this.a, this.b, this.c, this.d, this.e, this.f)
   }

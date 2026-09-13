@@ -1,8 +1,6 @@
 import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths";
-import { SimObject, type GetBoundsParams } from "../world/sim-object";
+import { type GetPointsParams, type GetBoundsParams } from "../world/sim-object";
 import { Shape } from "./Shape";
-
-const source = "https://avatars.mds.yandex.net/i?id=2e34b2a2ac0026106cc76353e2797bf03b9e2551-5249431-images-thumbs&n=13";
 
 type PolygonConfig = {
   initialPoints: Array<PointData>
@@ -32,50 +30,10 @@ const mergeConfigWithDefaultValues = ({ tension, closed, cubic, initialPoints, .
   }
 }
 
-type TracePathParams = {
-  context: CanvasRenderingContext2D,
-  pointsToTrace: Array<PointData>,
-  tension: number,
-  closed: boolean
-}
-
-class Control {
-  public constructor(private readonly object: SimObject) { }
-
-  public getPosition() {
-    return this.object.getBounds().point()
-  }
-
-  public setPosition(nextPos: PointData) {
-    const currentPosition = this.object.getBounds().point()
-    const delta = Point.fromData(nextPos).sub(currentPosition)
-    this.object.translate(delta)
-  }
-}
-
 export class PolygonShape extends Shape {
   public static isPolygon(candidate: unknown): candidate is PolygonShape {
     return candidate instanceof PolygonShape;
   }
-
-  public static tracePath({ pointsToTrace, context, closed, tension }: TracePathParams): void {
-    context.beginPath();
-
-    const shouldRenderStraightEdges = PolygonShape.prototype._shouldRenderStraightEdges.call({
-      tension: () => tension,
-      _pointsToTrace: pointsToTrace,
-    })
-
-    const traceMethodName = shouldRenderStraightEdges ? "linear" : "spline"
-      ; ({
-        linear: PolygonShape.prototype._traceLinearPath,
-        spline: PolygonShape.prototype._traceSplinePath,
-      })[traceMethodName].call({ _pointsToTrace: pointsToTrace }, context);
-
-    if (closed) context.closePath();
-  }
-
-  public control: Control
 
   protected _pointsToTrace: Array<PointData> = [];
   protected _initialPoints!: Array<PointData>
@@ -95,20 +53,14 @@ export class PolygonShape extends Shape {
 
     Object.assign(this, config)
 
-    this.control = new Control(this)
-
     const bounds = Polygon.getBounds(_initialPoints)
     const origin = bounds.point()
 
     this._initialPoints = _initialPoints
-      ;[].map((point) => ({
-        x: point.x - origin.x,
-        y: point.y - origin.y
-      }))
 
-    // console.log(_initialPoints)
     this._pointsToTrace = this.computePointsToTraceWithTension(this._initialPoints);
-    // this._pointsToTrace = this._initialPoints;
+
+    // this.eventBus.on()
 
     this.bindEvents()
     this.subscribe(this)
@@ -154,19 +106,37 @@ export class PolygonShape extends Shape {
       const matrix = this.worldMatrix
       const transformedPoints = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
       this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
-      // this._pointsToTrace = transformedPoints
     }
   }
 
-  public getPoints(): Array<PointData> {
+  public getPoints(params: GetPointsParams = {}): Array<PointData> {
     const curveExtrema = Polygon.computeTensionedCurveExtrema(this._initialPoints, this.tension)
-    return this._initialPoints.concat(curveExtrema)
+    const points = this._initialPoints.concat(curveExtrema)
+
+    if (params.applyTransform) {
+      const matrix = this.worldMatrix.clone()
+
+      if (params.applyCachedTransform) {
+        const parentsMatrix = this.getAllParents().map((p) => p.cachedMatrix)
+        const nextMatrix = Matrix3x3.compose(...parentsMatrix, this.cachedMatrix, this.worldMatrix)
+
+        matrix.copyFrom(nextMatrix)
+      }
+
+      return points.map(matrix.applyToPoint.bind(matrix))
+    }
+
+    return points
   }
 
   public setPoints(points: Array<PointData>) {
-    this._initialPoints = points.map(p => ({ ...p }))
+    this.worldMatrix = Matrix3x3.identity()
+    this.localMatrix = Matrix3x3.identity()
+
+    this._initialPoints = points.map((point) => ({ ...point }))
     this._pointsToTrace = this._initialPoints
-    // this.updateAfterTransform()
+
+    this.updateAfterTransform()
   }
 
   public computePointsToTraceWithTension(points: Array<PointData>): Array<PointData> {
@@ -215,6 +185,12 @@ export class PolygonShape extends Shape {
     return Polygon.getBounds(curveExtrema.concat(transformedPoints))
   }
 
+  public render(context: CanvasRenderingContext2D): void {
+    if (!this.visible) return
+
+    context.betweenSaveAndRestore(() => super.render(context))
+  }
+
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     const points = params.skipTransform
       ? this._initialPoints
@@ -226,60 +202,11 @@ export class PolygonShape extends Shape {
     return Polygon.getBounds(allPoints)
   }
 
-  public render(context: CanvasRenderingContext2D): void {
-    if (this._shouldDrawFromCache()) this._drawCacheCanvas(context)
-    else this._drawMainCanvas(context)
-  }
-
   public tracePath(context: CanvasRenderingContext2D): void {
     context.beginPath();
-    // if (this._shouldRenderStraightEdges() && !this._cubic) this._traceLinearPath(context);
-    this._traceSplinePath(context);
+    if (this._tension !== 0 || this._cubic) this._traceSplinePath(context)
+    else this._traceLinearPath(context)
     if (this.closed) context.closePath();
-  }
-
-  public drawInOffscreen(context: CanvasRenderingContext2D & OffscreenCanvasRenderingContext2D) {
-    PolygonShape.tracePath({
-      pointsToTrace: this._pointsToTrace,
-      tension: this.tension,
-      closed: this.closed,
-      context,
-    })
-
-    this.fillStrokeShape(context)
-  }
-
-  private _drawMainCanvas(context: CanvasRenderingContext2D) {
-    context.save()
-    if (this.isInteracting) context.translate(...this._translate.array())
-    super.render(context);
-    context.restore()
-  }
-
-  private _shouldDrawFromCache() {
-    return (this.isCached && this.cachedCanvas)
-  }
-
-  private _drawCacheCanvas(context: CanvasRenderingContext2D) {
-    if (this.isCacheDirty) this.cache(this.cachedConfig)
-
-    const config = this.cachedConfig
-    const canvas = this.cachedCanvas!
-    const shift = config.offset * 2
-
-    const bounds = this.getBounds({ skipTransform: false })
-
-    context.save()
-    context.translate(
-      ...this._translate
-        .add({ x: config.offset, y: config.offset })
-        .array()
-    )
-    context.drawImage(canvas, bounds.x - shift, bounds.y - shift)
-
-    context.strokeStyle = "red"
-    context.strokeRect(bounds.x - shift, bounds.y - shift, canvas.width, canvas.height)
-    context.restore()
   }
 
   private _traceLinearPath(context: CanvasRenderingContext2D): void {
@@ -290,8 +217,6 @@ export class PolygonShape extends Shape {
   private _traceSplinePath(context: CanvasRenderingContext2D): void {
     const points = this._pointsToTrace
     const length = points.length;
-
-    if (length === 4) console.log(points)
 
     context.moveTo(points[0].x, points[0].y);
 
@@ -307,10 +232,10 @@ export class PolygonShape extends Shape {
       return
     }
 
-    for (let i = 3; i < length; i += 3) {
-      let cp1 = points[(i - 1) % length]
-      let cp2 = points[(i + 1) % length]
-      let p = points[i]
+    for (let i = 1; i < length; i += 3) {
+      const cp1 = this.pointsToTrace[i]
+      const cp2 = this.pointsToTrace[i + 1]
+      const p = this.pointsToTrace[i + 2]
 
       context.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y)
     }
