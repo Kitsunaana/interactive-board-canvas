@@ -56,7 +56,7 @@ export class ResizeTransformOperation {
       )), {} as Record<ResizeHandler, Shape>)
 
     const bounds = mergedResizeHandlers[handler].getBounds()
-    const currentPointer = this.node.getLayerOrThrow().worldPointer
+    const currentPointer = this.node.layer.worldPointer
 
     this._deltaBetweenCursorAndHandler = currentPointer.sub(bounds.center)
   }
@@ -68,8 +68,7 @@ export class ResizeTransformOperation {
 
     this.node.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
 
-    const cursorPosition = this.node
-      .getLayerOrThrow()
+    const cursorPosition = this.node.layer
       .screenToWorld(pointFromEvent(event))
       .sub(this._deltaBetweenCursorAndHandler)
 

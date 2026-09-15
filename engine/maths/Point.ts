@@ -89,6 +89,10 @@ export class Point implements PointLike {
     return Math.hypot(this.x, this.y)
   }
 
+  public lengthSquared(): number {
+    return this.x * this.x + this.y * this.y;
+  }
+
   public array(): [number, number] {
     return [this.x, this.y]
   }

@@ -1,6 +1,6 @@
 import type { EventObject } from "../../behaviors/EventBehavior";
 import { Group } from "../../Group";
-import type { LayerV2 } from "../../LayerV2";
+import type { Layer } from "../../LayerV2";
 import type { SimObject } from "../sim-object";
 
 export type TransformState = "idle" | "resize" | "rotate"
@@ -8,7 +8,7 @@ export type Corner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 export type Edge = "top" | "right" | "bottom" | "left";
 
 export interface TransformOperationModel {
-  addHandlersToLayer(layer: LayerV2): void
+  addHandlersToLayer(layer: Layer): void
   updateHandlersPosition(): void
 
   startTransform(event: EventObject): void

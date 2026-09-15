@@ -9,6 +9,8 @@ export class Group extends SimObject {
     return candidate instanceof Group
   }
 
+  public type: string = "Group"
+
   public isDrawOriginPosition: boolean = false
   public isDrawCorners: boolean = false
   public isDrawBounds: boolean = false
@@ -16,8 +18,8 @@ export class Group extends SimObject {
   public constructor() {
     super()
 
-    this.on("addChild", (event) => {
-      const child = event.child as SimObject
+    this.emitter.on(this.routes.addChild, ({payload}) => {
+      const child = payload.child
 
       child.__testMatrix = Matrix3x3.invert(this.worldMatrix) ?? Matrix3x3.identity()
       child.updateWorldTransform()
@@ -42,16 +44,14 @@ export class Group extends SimObject {
   }
 
   public getFlatListChildren(): Array<Shape> {
-    const children = this.children()
-
-    return children.flatMap(child => {
+    return this.children.flatMap(child => {
       if (Shape.isShape(child)) return child
       return this.getFlatListChildren.call(child)
     })
   }
 
   public getPoints(params: GetPointsParams = {}) {
-    return this.children().flatMap((child) => child.getPoints(params))
+    return this.children.flatMap((child) => child.getPoints(params))
   }
 
   public getUnrotateBounds(): Rectangle {
@@ -81,7 +81,7 @@ export class Group extends SimObject {
     if (params.skipTransform) {
       const invertParent = Matrix3x3.invert(this.localMatrix) ?? Matrix3x3.identity()
 
-      return child.parent() === this
+      return child.parent === this
         ? Matrix3x3.compose(child.__testMatrix, child.localMatrix)
         : Matrix3x3.compose(invertParent, child.worldMatrix)
     }

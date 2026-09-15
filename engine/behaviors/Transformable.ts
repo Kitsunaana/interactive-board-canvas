@@ -1,6 +1,6 @@
 import { isNumber, isObject } from "lodash"
 import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
-import type { GetBoundsParams } from "../world/sim-object"
+import type { GetBoundsParams, SimObject } from "../world/sim-object"
 
 export type TransformOperation = "scale" | "skew" | "rotate" | "translate"
 
@@ -68,7 +68,6 @@ export abstract class Transformable {
   public abstract getBounds(params: GetBoundsParams): Rectangle
   public abstract applyDeltaTransform(deltaMatrix: Matrix3x3): void
   public abstract updateWorldTransform(): void
-  public abstract parent(): Transformable | null
 
   public abstract localMatrix: Matrix3x3
   public abstract worldMatrix: Matrix3x3
@@ -131,8 +130,9 @@ export abstract class Transformable {
     this.applyDeltaTransform(delta)
   }
 
+  public abstract parent: SimObject | null
   public translate(distance: PointData): void {
-    const parent = this.parent();
+    const parent = this.parent;
 
     this.applyDeltaTransform(Transformable.getTranslateDeltaMatrix({
       distance,

@@ -1,4 +1,4 @@
-﻿import { LayerV2 } from "../LayerV2";
+﻿import { Layer } from "../LayerV2";
 import { Point } from "../maths";
 
 export const VELOCITY_SCALE = 1.0
@@ -24,7 +24,7 @@ type LevelRenderProps = {
   end: Point
 }
 
-export class Background extends LayerV2 {
+export class Background extends Layer {
   private static LEVELS: Array<Level> = [
     { size: BASE_GRID_SIZE, minScale: 2.0 },
     { size: BASE_GRID_SIZE * 2, minScale: 1.0 },
@@ -54,9 +54,6 @@ export class Background extends LayerV2 {
 
   public constructor() {
     super()
-
-    this.bindEvents()
-    // this.subscribe(this)
 
     window.addEventListener("wheel", (event) => {
       this._handleChangeZoom(event)
@@ -121,15 +118,15 @@ export class Background extends LayerV2 {
   }
 
   public render(): void {
-    const context = this.getContext()
-    const hitContext = this.getHitContext()
-    const sizes = this.sizes()
+    const context = this.context
+    const hitContext = this.hitContext
+    const sizes = this.sizes
 
     context.clearRect(0, 0, sizes.width, sizes.height)
 
     context.save()
     this.tracePath(context)
-    this.children().forEach((child) => {
+    this.children.forEach((child) => {
       child.render(context)
       child.renderHit(hitContext)
     })
@@ -137,8 +134,8 @@ export class Background extends LayerV2 {
   }
 
   public renderHit(): void {
-    const context = this.getHitContext()
-    const sizes = this.sizes()
+    const context = this.hitContext
+    const sizes = this.sizes
 
     context.clearRect(0, 0, sizes.width, sizes.height)
 
@@ -146,7 +143,7 @@ export class Background extends LayerV2 {
     context.fillStyle = this.getHitColor(this)
     context.fillRect(0, 0, sizes.width, sizes.height)
     this._applyCameraToContext(context)
-    this.children().forEach((child) => child.renderHit(context))
+    this.children.forEach((child) => child.renderHit(context))
     context.restore()
   }
 
@@ -197,7 +194,7 @@ export class Background extends LayerV2 {
   private _getVisibleWorldBounds(): [Point, Point] {
     return [
       this.screenToWorld(Point.zero()),
-      this.screenToWorld(Point.fromSize(this.sizes())),
+      this.screenToWorld(Point.fromSize(this.sizes)),
     ]
   }
 

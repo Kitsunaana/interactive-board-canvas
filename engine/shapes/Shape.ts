@@ -1,3 +1,4 @@
+import { isNil } from "lodash";
 import { Rectangle, type PointData } from "../maths";
 import { SimObject } from "../world/sim-object";
 
@@ -34,7 +35,7 @@ export abstract class Shape extends SimObject {
   public hitFillStrokeShape(context: CanvasRenderingContext2D) {
     context.save()
 
-    const hitColor = this.getLayerOrThrow().getHitColor(this)
+    const hitColor = this.layer.getHitColor(this)
 
     context.lineWidth = this.hitLineWidth
     context.strokeStyle = hitColor

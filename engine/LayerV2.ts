@@ -1,10 +1,10 @@
-import { isEmpty, isNull, isUndefined } from "lodash";
+import { isUndefined } from "lodash";
 import rough from 'roughjs';
 import { RoughCanvas } from "roughjs/bin/canvas";
 import { Group } from './Group';
 import * as Primitive from "./maths";
 import { Shape } from './shapes/Shape';
-import { type Sizes, Stage } from "./Stage";
+import { type Sizes } from "./Stage";
 import { type GetBoundsParams, type GetPointsParams, SimObject } from "./world/sim-object";
 
 declare global {
@@ -15,26 +15,32 @@ declare global {
 
 export type Child = Group | Shape
 
-export class LayerV2 extends SimObject {
-  public getBounds(params?: GetBoundsParams): Primitive.Rectangle {
-    return new Primitive.Rectangle(0, 0, 1, 1)
+function betweenSaveAndRestore(this: any, drawCallback: () => void) {
+  this.context.save()
+  drawCallback()
+  this.context.restore()
+}
+
+export class Layer extends SimObject {
+  public static isLayer(candidate: unknown): candidate is Layer {
+    return candidate instanceof Layer
   }
 
   public getPoints(params?: GetPointsParams): Array<Primitive.PointData> {
-    return []
+    throw new Error("Method is not implemented")
+  }
+
+  public getBounds(params?: GetBoundsParams): Primitive.Rectangle {
+    throw new Error("Method is not implemented")
   }
 
   public getUnrotateBounds(): Primitive.Rectangle {
-    return new Primitive.Rectangle(0, 0, 1, 1)
+    throw new Error("Method is not implemented")
   }
 
-  public updateAfterTransform(): void {
+  public updateAfterTransform(): void { }
 
-  }
-
-  protected readonly _type = "Layer"
-
-  private _stage: Stage | null = null
+  public type: string = "Layer"
 
   private readonly _canvas: HTMLCanvasElement
   private readonly _context: CanvasRenderingContext2D
@@ -43,8 +49,6 @@ export class LayerV2 extends SimObject {
   private readonly _hitColorsToNodes = new Map<string, SimObject>()
   private readonly _nodesToHitColors = new Map<string, string>()
 
-  protected readonly _children: Array<Child> = []
-
   private _lastHitColorId = 0
   private _rc: RoughCanvas
 
@@ -52,100 +56,62 @@ export class LayerV2 extends SimObject {
     return this._rc
   }
 
+  public get worldPointer(): Primitive.Point {
+    return this.screenToWorld(this.stage.absolutePositionCursor)
+  }
+
+  public get sizes() {
+    return {
+      width: this._canvas.width,
+      height: this._canvas.height,
+    }
+  }
+
+  public set sizes(value: Sizes) {
+    this._canvas.width = value.width
+    this._canvas.height = value.height
+    this._hitCanvas.width = value.width
+    this._hitCanvas.height = value.height
+  }
+
   public constructor() {
     super()
 
     this._canvas = document.createElement("canvas")
     this._context = this._canvas.getContext("2d", { alpha: true }) as CanvasRenderingContext2D
+
     this._hitCanvas = document.createElement("canvas")
     this._hitContext = this._hitCanvas.getContext("2d", {
       willReadFrequently: true,
       alpha: true,
     }) as CanvasRenderingContext2D
 
-    this._context.betweenSaveAndRestore = (drawCallback: () => void) => {
-      this._context.save()
-      drawCallback()
-      this._context.restore()
-    }
-
-    this._hitContext.betweenSaveAndRestore = (drawCallback: () => void) => {
-      this._hitContext.save()
-      drawCallback()
-      this._hitContext.restore()
-    }
+    this._hitContext.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._hitContext })
+    this._context.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._context })
 
     this._rc = rough.canvas(this._canvas)
   }
+
+  public update(time: number) { }
 
   public screenToWorld(point: Primitive.Point): Primitive.Point {
     return point
   }
 
-  public get worldPointer(): Primitive.Point {
-    return this.screenToWorld(this.getStageOrThrow().absolutePositionCursor)
-  }
-
-  public update(time: number) { }
-
-  public getCanvas(): HTMLCanvasElement {
+  public get canvas(): HTMLCanvasElement {
     return this._canvas
   }
 
-  public getContext(): CanvasRenderingContext2D {
-    return this._context
-  }
-
-  public getHitCanvas(): HTMLCanvasElement {
+  public get hitCanvas(): HTMLCanvasElement {
     return this._hitCanvas
   }
 
-  public getHitContext(): CanvasRenderingContext2D {
+  public get context(): CanvasRenderingContext2D {
+    return this._context
+  }
+
+  public get hitContext(): CanvasRenderingContext2D {
     return this._hitContext
-  }
-
-  public getStageOrThrow(): Stage {
-    const stage = this.stage()
-    if (isNull(stage)) throw new Error("Layer не добавлен ни в один слой")
-    return stage
-  }
-
-  public children(): Array<Child>
-  public children(...list: Array<Child>): void
-  public children(...list: Array<Child>): Array<Child> | void {
-    if (isEmpty(list)) return this._children
-
-    list.forEach((child) => {
-      this._children.push(child)
-
-      child.layer(this)
-      child.fire("addToParent")
-    })
-  }
-
-  public stage(): Stage | null
-  public stage(stage: Stage): void
-  public stage(stage?: Stage): Stage | null | void {
-    if (isUndefined(stage)) return this._stage
-
-    this._stage = stage
-    this.sizes(stage.sizes)
-  }
-
-  public sizes(): Sizes
-  public sizes(sizes: Sizes): void
-  public sizes(sizes?: Sizes): Sizes | void {
-    if (isUndefined(sizes)) {
-      return {
-        width: this._canvas.width,
-        height: this._canvas.height,
-      }
-    }
-
-    this._canvas.width = sizes.width
-    this._canvas.height = sizes.height
-    this._hitCanvas.width = sizes.width
-    this._hitCanvas.height = sizes.height
   }
 
   public getHitColor(shape: SimObject): string {
@@ -161,7 +127,7 @@ export class LayerV2 extends SimObject {
   }
 
   public getIntersection(point: Primitive.PointData): SimObject | null {
-    const sizes = this.sizes()
+    const sizes = this.sizes
 
     const x = Math.floor(point.x)
     const y = Math.floor(point.y)
@@ -173,27 +139,34 @@ export class LayerV2 extends SimObject {
     const pixel = this._hitContext.getImageData(x, y, 1, 1).data
     if (pixel[3] === 0) return null
 
-    const color = LayerV2._toHitColor(pixel[0], pixel[1], pixel[2])
+    const color = Layer._toHitColor(pixel[0], pixel[1], pixel[2])
 
     return this._hitColorsToNodes.get(color) ?? null
   }
 
   public render(): void {
-    const sizes = this.sizes()
-    const context = this.getContext()
-    const hitContext = this.getHitContext()
+    const sizes = this.sizes
+    const context = this.context
 
     context.clearRect(0, 0, sizes.width, sizes.height)
-    hitContext.clearRect(0, 0, sizes.width, sizes.height)
 
-    this.children().forEach((child) => {
+    this.children.forEach((child) => {
       child.render(context)
-      child.renderHit(hitContext)
     })
   }
 
-  public renderHit(context: CanvasRenderingContext2D): void {
-    this.children().forEach((child) => child.renderHit(context))
+  public renderHit(): void {
+    const sizes = this.sizes
+    const context = this.hitContext
+
+    context.clearRect(0, 0, sizes.width, sizes.height)
+
+    context.fillStyle = this.getHitColor(this)
+    context.fillRect(0, 0, sizes.width, sizes.height)
+
+    this.children.forEach((child) => {
+      child.renderHit(context)
+    })
   }
 
   private _createUniqueHitColor(): string {
@@ -201,7 +174,7 @@ export class LayerV2 extends SimObject {
     const g = Math.floor(Math.random() * 255)
     const b = Math.floor(Math.random() * 255)
 
-    return LayerV2._toHitColor(r, g, b)
+    return Layer._toHitColor(r, g, b)
 
     while (this._lastHitColorId < 0xffffff) {
       this._lastHitColorId += 1
@@ -210,7 +183,7 @@ export class LayerV2 extends SimObject {
       const green = (this._lastHitColorId >> 8) & 255
       const blue = this._lastHitColorId & 255
 
-      const color = LayerV2._toHitColor(red, green, blue)
+      const color = Layer._toHitColor(red, green, blue)
 
       if (!this._hitColorsToNodes.has(color)) {
         return color

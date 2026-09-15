@@ -14,8 +14,7 @@ export class RotateTransformOperation {
 
     const pointerPosition = pointFromEvent(event.evt)
 
-    this.node
-      .getLayerOrThrow()
+    this.node.layer
       .screenToWorld(pointerPosition)
       .copyTo(pointerPosition)
 
@@ -30,8 +29,7 @@ export class RotateTransformOperation {
     const originRotate = this.node.getInWorldOriginPosition("rotate")
     const pointerPosition = pointFromEvent(event)
 
-    this.node
-      .getLayerOrThrow()
+    this.node.layer
       .screenToWorld(pointerPosition)
       .copyTo(pointerPosition)
 

@@ -57,13 +57,7 @@ export class PolygonShape extends Shape {
     const origin = bounds.point()
 
     this._initialPoints = _initialPoints
-
     this._pointsToTrace = this.computePointsToTraceWithTension(this._initialPoints);
-
-    // this.eventBus.on()
-
-    this.bindEvents()
-    this.subscribe(this)
   }
 
   public get position() {
@@ -232,10 +226,27 @@ export class PolygonShape extends Shape {
       return
     }
 
-    for (let i = 1; i < length; i += 3) {
-      const cp1 = this.pointsToTrace[i]
-      const cp2 = this.pointsToTrace[i + 1]
-      const p = this.pointsToTrace[i + 2]
+    for (let i = 3; i < points.length; i += 3) {
+      const prevOut = points[i - 1]
+      const currentIn = points[i + 1]
+      const currentAnchor = points[i]
+
+      context.bezierCurveTo(
+        prevOut.x,
+        prevOut.y,
+        currentIn.x,
+        currentIn.y,
+        currentAnchor.x,
+        currentAnchor.y
+      )
+    }
+
+    return
+    for (let i = 0; i < length; i += 3) {
+      const cp1 = points[i]                  // out
+      const cp2 = points[(i + 1) % length]   // in
+      const p = points[(i + 2) % length]     // anchor
+      // anchor in out
 
       context.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y)
     }

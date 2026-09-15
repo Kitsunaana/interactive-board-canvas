@@ -44,9 +44,6 @@ export class EllipseShape extends Shape {
 
     this._pointsToTrace = this._initialPoints.map(p => ({ ...p }))
 
-    this.bindEvents()
-    this.subscribe(this)
-
     // this.position = new Point(_x, _y)
   }
 

@@ -1,9 +1,8 @@
-import { isEmpty } from "lodash"
 import { type EventObject } from "./behaviors/EventBehavior"
-import { LayerV2 } from "./LayerV2"
+import { Layer } from "./LayerV2"
 import { Point, Rectangle, type PointData } from "./maths"
 import { getPointFromEvent } from "./shared/point"
-import { type GetBoundsParams, SimObject } from "./world/sim-object"
+import { SimObject, type GetBoundsParams, type GetPointsParams } from "./world/sim-object"
 
 export interface StageConfig {
   draggable: boolean
@@ -20,6 +19,7 @@ type EventTargetNode = SimObject
 
 type PointerState = {
   downTarget: EventTargetNode | null
+  clickTarget: EventTargetNode | null  
   hoverTarget: EventTargetNode | null
   lastTapTarget: EventTargetNode | null
   lastTapTime: number
@@ -56,14 +56,18 @@ const getPointerLocalPosition = (event: PointerEvent) => {
 }
 
 export class Stage extends SimObject {
-  protected _type = "Stage"
+  public type: string = "Stage"
 
   public content: HTMLDivElement = document.createElement("div")
 
+  public getPoints(params?: GetPointsParams): Array<PointData> {
+    return []
+  }
+
   public readonly absolutePositionCursor = new Point()
   public readonly sizes: Sizes = {
-    width: 0,
     height: 0,
+    width: 0,
   }
 
   private readonly _pointerStates = new Map<number, PointerState>()
@@ -84,6 +88,12 @@ export class Stage extends SimObject {
     this._RAF()
   }
 
+  public updateAfterTransform(): void { }
+
+  public renderHit(_context: CanvasRenderingContext2D): void { }
+
+  public render(_context: CanvasRenderingContext2D): void { }
+
   public getBounds(_params?: GetBoundsParams): Rectangle {
     return new Rectangle(0, 0, 0, 0)
   }
@@ -92,41 +102,27 @@ export class Stage extends SimObject {
     return new Rectangle(0, 0, 0, 0)
   }
 
-  public updateAfterTransform(): void { }
-
-  public parent(): SimObject | null {
-    return null
+  public get children(): Array<Layer> {
+    return this._children as unknown as Array<Layer>
   }
 
-  public getType(): string {
-    return this._type
-  }
-
-  public renderHit(_context: CanvasRenderingContext2D): void { }
-
-  public render(_context: CanvasRenderingContext2D): void { }
-
-  public children(): Array<LayerV2>
-  public children(...list: Array<LayerV2>): void
-  public children(...list: Array<LayerV2>): Array<LayerV2> | void {
-    if (isEmpty(list)) return this._children as Array<LayerV2>
-
+  public appendChild(...list: Array<Layer>): void {
     list.forEach((layer) => {
       this._children.push(layer)
 
-      this.content.appendChild(layer.getCanvas())
-      this.content.appendChild(layer.getHitCanvas())
+      this.content.appendChild(layer.canvas)
+      this.content.appendChild(layer.hitCanvas)
 
-      layer.stage(this)
+      layer.sizes = this.sizes
+      layer.parent = this
     })
   }
 
   private _RAF(time: number = 0): void {
-    this.children().forEach((layer) => {
+    this.children.forEach((layer) => {
       layer.update(time)
-
       layer.render()
-      layer.renderHit(layer.getHitContext())
+      layer.renderHit()
     })
 
     requestAnimationFrame(this._RAF.bind(this))
@@ -195,6 +191,8 @@ export class Stage extends SimObject {
     const state = this._getPointerState(event.pointerId)
 
     state.downTarget = target
+    state.clickTarget = null  
+
     this._dispatchEventSequence(target, ["pointerdown"], event)
   }
 
@@ -203,6 +201,10 @@ export class Stage extends SimObject {
     const state = this._getPointerState(event.pointerId)
 
     this._dispatchEventSequence(target, ["pointerup"], event)
+
+    if (state.downTarget === target) {
+      state.clickTarget = target
+    }
 
     if (event.pointerType === "touch" && state.downTarget === target) {
       const now = Date.now()
@@ -224,6 +226,7 @@ export class Stage extends SimObject {
 
     this._dispatchEventSequence(target, ["pointercancel"], event)
     state.downTarget = null
+    state.clickTarget = null  
   }
 
   private _dispatchPointerLeave(event: PointerEvent): void {
@@ -242,11 +245,9 @@ export class Stage extends SimObject {
     const state = this._getPointerState(pointerId)
     const target = this._resolveTargetForMouseEvent(event)
 
-    if (state.downTarget !== target) return
+    if (state.clickTarget !== target) return
 
     this._dispatchEventSequence(target, [mouseEventName, pointerEventName], event)
-
-    if (state.hoverTarget === null) state.downTarget = null
   }
 
   private _dispatchFromDomEvent(eventName: string, event: MouseEvent | PointerEvent): void {
@@ -361,7 +362,7 @@ export class Stage extends SimObject {
   }
 
   private _findTopmostTarget(point: PointData): EventTargetNode | null {
-    const layers = this.children()
+    const layers = this.children
 
     for (let i = layers.length - 1; i >= 0; i -= 1) {
       const match = layers[i].getIntersection(point)
@@ -377,6 +378,7 @@ export class Stage extends SimObject {
     if (!state) {
       state = {
         downTarget: null,
+        clickTarget: null,  
         hoverTarget: null,
         lastTapTarget: null,
         lastTapTime: 0,
@@ -400,4 +402,3 @@ export class Stage extends SimObject {
     return [target, ...target.getAllParents()]
   }
 }
-

@@ -1,27 +1,18 @@
-import { defaultTo, isEmpty, isNull, isUndefined } from "lodash";
+import { isEmpty, isNull, isUndefined } from "lodash";
 import { nanoid } from "nanoid";
 import { Mixin } from "ts-mixer";
 import { Draggable } from "../behaviors/Draggable";
 import { EventBehavior } from "../behaviors/EventBehavior";
 import { Transformable } from "../behaviors/Transformable";
+import { createRoute, EventEmitter } from "../EventBus";
 import { Group } from "../Group";
-import type { LayerV2 as Layer } from "../LayerV2";
+import type { Layer } from "../LayerV2";
 import { Matrix3x3, Point, type PointData, type Rectangle } from "../maths";
-import type { Sizes } from "../Stage";
-import { createRoute, EventEmitter } from "../EventBus"
+import type { Stage } from "../Stage";
+import { DragBehavior } from "../behaviors/drag-behavior";
 
 export type GetBoundsParams = {
   skipTransform?: boolean
-}
-
-export type CacheConfig = {
-  x?: number
-  y?: number
-  width?: number
-  height?: number
-  offset?: number
-  drawBorder?: boolean
-  imageSmoothingEnabled?: boolean
 }
 
 export type GetPointsParams = {
@@ -29,36 +20,72 @@ export type GetPointsParams = {
   applyCachedTransform?: boolean
 }
 
-export abstract class SimObject extends Mixin(Transformable, Draggable, EventBehavior) {
+const ERROR_MESSAGES = {
+  WITHOUT_PARENT_FOR_GET_LAYER: "The SimObject has not been added to any Group or Layer",
+  NOT_FOUND_LAYER: "SimObject not added to the layer",
+
+  WITHOUT_PARENT_FOR_GET_STAGE: "SimObject Layer not added to the Stage",
+  NOT_FOUND_STAGE: "SimObject Layer not added to the Stage",
+}
+
+export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
+  public abstract getPoints(params?: GetPointsParams): Array<PointData>
   public abstract getBounds(params?: GetBoundsParams): Rectangle
   public abstract getUnrotateBounds(): Rectangle
   public abstract updateAfterTransform(): void
-  public abstract getPoints(params?: GetPointsParams): Array<PointData>
+
+  _translate = Point.zero()
+
+  protected _children: Array<SimObject> = []
+
+  public readonly type: string = "SimObject"
 
   public classList: Array<string> = []
   public id: string = nanoid()
 
-  public isCached: boolean = false
-  public isCacheDirty: boolean = true
-
   public __testMatrix: Matrix3x3 = Matrix3x3.identity()
-
   public cachedMatrix: Matrix3x3 = Matrix3x3.identity()
   public worldMatrix: Matrix3x3 = Matrix3x3.identity()
   public localMatrix: Matrix3x3 = Matrix3x3.identity()
-
-  public visible: boolean = true
-
-  protected _children: Array<SimObject> = []
-  protected _parent: SimObject | null = null
-  protected _layer: Layer | null = null
+  
+  private _parent: SimObject | null = null
 
   public isListening: boolean = true
+  public visible: boolean = true
 
-  public eventBus = new EventEmitter()
-  public eventRoutes = {
-    changePosition: createRoute("changePosition"),
-    finishDrag: createRoute("finishDrag"),
+  public dragBehavior: DragBehavior = new DragBehavior(this)
+
+  public emitter = new EventEmitter()
+  public routes = {
+    ...this.dragBehavior.routes,
+    addChild: createRoute("addChild").withParams<{ child: SimObject }>(),
+    addToParent: createRoute("addToParent"),
+  }
+
+  // @ts-ignore
+  public set parent(node: SimObject | null) {
+    this._parent = node
+    this.emitter.emit(this.routes.addToParent())
+  }
+
+  public get parent() {
+    return this._parent
+  }
+
+  public get layer() {
+    return this._getFirstParentByType<Layer>({
+      withoutParent: ERROR_MESSAGES.WITHOUT_PARENT_FOR_GET_LAYER,
+      notFoundObject: ERROR_MESSAGES.NOT_FOUND_LAYER,
+      type: "Layer",
+    })
+  }
+
+  public get stage() {
+    return this._getFirstParentByType<Stage>({
+      withoutParent: ERROR_MESSAGES.WITHOUT_PARENT_FOR_GET_STAGE,
+      notFoundObject: ERROR_MESSAGES.NOT_FOUND_STAGE,
+      type: "Stage",
+    })
   }
 
   public applyDeltaTransform(deltaMatrix: Matrix3x3): void {
@@ -69,8 +96,8 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   }
 
   public updateWorldTransform(): void {
-    const parent = this.parent()
-    const children = this.children()
+    const parent = this.parent
+    const children = this.children
 
     if (parent) this.worldMatrix = Matrix3x3.multiply(parent.worldMatrix, this.localMatrix)
     else this.worldMatrix = this.localMatrix.clone()
@@ -81,48 +108,26 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
     children.forEach((child) => child.updateWorldTransform())
   }
 
-  public addClassname(classname: string): void {
-    if (this.includeClassname(classname)) return
-    this.classList.push(classname)
+  public addName(name: string): void {
+    if (this.includeName(name)) return
+    this.classList.push(name)
   }
 
-  public includeClassname(classname: string): boolean {
-    return this.classList.includes(classname)
+  public includeName(name: string): boolean {
+    return this.classList.includes(name)
   }
 
-  public children(): Array<SimObject>
-  public children(...list: Array<SimObject>): void
-  public children(...list: Array<SimObject>): Array<SimObject> | void {
-    if (isEmpty(list)) return this._children
+  public get children(): Array<SimObject> {
+    return this._children
+  }
 
+  public appendChild(...list: Array<SimObject>) {
     list.forEach((child) => {
       this._children.push(child)
-      this.fire("addChild", { child })
+      this.emitter.emit(this.routes.addChild({ child }))
 
-      child.parent(this)
+      child.parent = this
     })
-  }
-
-  public parent(): SimObject | null
-  public parent(parent: SimObject): void
-  public parent(parent?: SimObject): SimObject | null | void {
-    if (isUndefined(parent)) return this._parent
-    this._parent = parent
-  }
-
-  public getLayerOrThrow(): Layer {
-    const layer = this.layer()
-    if (isNull(layer)) throw new Error("23")
-    return layer
-  }
-
-  public layer(): Layer | null
-  public layer(layer: Layer): void
-  public layer(layer?: Layer): Layer | null | void {
-    if (isUndefined(layer)) return this._layer
-
-    this._layer = layer
-    this._children.forEach((child) => child.layer(layer))
   }
 
   public getCornersWithAppliedMatrix(): Array<PointData> {
@@ -137,13 +142,11 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   public findObjectsByName(name: string) {
     return this
       .getFlatListChildren()
-      .filter((child) => child.includeClassname(name))
+      .filter((child) => child.includeName(name))
   }
 
   public getFlatListChildren(): Array<SimObject> {
-    const children = this.children()
-
-    return children.flatMap((child) => (
+    return this.children.flatMap((child) => (
       Group.isGroup(child)
         ? this.getFlatListChildren.call(child)
         : child
@@ -151,7 +154,7 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   }
 
   public getAllParents<T extends SimObject>(list: Array<T> = []): Array<T> {
-    const parent = this.parent() as unknown as T
+    const parent = this.parent as unknown as T
 
     return isNull(parent)
       ? list
@@ -159,34 +162,24 @@ export abstract class SimObject extends Mixin(Transformable, Draggable, EventBeh
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    this.children().forEach((child) => child.render(context))
+    this.children.forEach((child) => child.render(context))
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {
-    this.children().forEach((child) => child.renderHit(context))
+    this.children.forEach((child) => child.renderHit(context))
   }
 
-  public drawInOffscreen(context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D) {
-    this.children().forEach((child) => child.drawInOffscreen(context))
-  }
+  private _getFirstParentByType<T>({ type, notFoundObject, withoutParent }: {
+    notFoundObject: string
+    withoutParent: string
+    type: string
+  }): T {
+    const parents = this.getAllParents()
+    if (parents.length === 0) throw new Error(withoutParent)
 
-  public onStart(_event: PointerEvent): void {
-    this.beginInteraction("translate")
-    this.fire("startDrag")
-  }
+    const object = parents.find((parent) => parent.type === type)
+    if (isUndefined(object)) throw new Error(notFoundObject)
 
-  public onProcess(_event: PointerEvent): void {
-    this.updateInteraction(this._translate)
-    this.getAllParents().forEach((parent) => parent.updateAfterTransform?.())
-    this.eventBus.emit(this.eventRoutes.changePosition())
-    this.fire("processDrag")
-  }
-
-  public onFinish(__event: PointerEvent): void {
-    this.endInteraction()
-    this.getAllParents().forEach((parent) => parent.updateAfterTransform?.())
-    this.eventBus.emit(this.eventRoutes.finishDrag())
-    this.fire("finishDrag")
+    return object as unknown as T
   }
 }
-

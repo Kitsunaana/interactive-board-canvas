@@ -54,7 +54,7 @@ const toEventTokens = (eventNames?: string): ParsedEventToken[] => {
 }
 
 export abstract class EventBehavior {
-  public abstract parent(): SimObject | null
+  public abstract parent: SimObject | null
 
   private readonly _listenersMap: Map<string, Array<ListenerEntry>> = new Map()
 
@@ -129,7 +129,7 @@ export abstract class EventBehavior {
     this._fire(eventType, namespace, evt)
 
     if (bubble && !evt.cancelBubble) {
-      this.parent()?.fire(eventType, evt, true)
+      this.parent?.fire(eventType, evt, true)
     }
 
     return this

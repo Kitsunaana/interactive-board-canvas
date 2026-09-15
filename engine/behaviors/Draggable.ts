@@ -23,14 +23,14 @@ export abstract class Draggable {
   }
 
   public subscribe(target: EventBehavior): void {
-    target.on("pointerdown", this._handleDown)
+    // target.on("pointerdown", this._handleDown)
   }
 
   public unsubscribe(target: EventBehavior): void {
-    target.off("pointerdown", this._handleDown)
+    // target.off("pointerdown", this._handleDown)
 
-    window.removeEventListener("pointermove", this._handleMove)
-    window.removeEventListener("pointerup", this._handleUp)
+    // window.removeEventListener("pointermove", this._handleMove)
+    // window.removeEventListener("pointerup", this._handleUp)
   }
 
   protected bindEvents() {
@@ -54,8 +54,8 @@ export abstract class Draggable {
 
     this.onFinish(event)
 
-    window.removeEventListener("pointermove", this._handleMove)
-    window.removeEventListener("pointerup", this._handleUp)
+    // window.removeEventListener("pointermove", this._handleMove)
+    // window.removeEventListener("pointerup", this._handleUp)
   }
 
   private _handleDown(event: EventObject): void {
@@ -65,8 +65,8 @@ export abstract class Draggable {
 
     this.onStart(event.evt as PointerEvent)
 
-    window.addEventListener("pointermove", this._handleMove)
-    window.addEventListener("pointerup", this._handleUp)
+    // window.addEventListener("pointermove", this._handleMove)
+    // window.addEventListener("pointerup", this._handleUp)
   }
 
   private _getPointerPosition(event: PointerEvent) {
@@ -74,8 +74,7 @@ export abstract class Draggable {
 
     if (this instanceof SimObject) {
       try {
-        const layer = this.getLayerOrThrow()
-        layer
+        this.layer
           .screenToWorld(point)
           .copyTo(point)
       } catch (error) { }

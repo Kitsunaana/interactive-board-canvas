@@ -1,62 +1,20 @@
 import { CubicBezierPathCreator } from "./editors/cubic-bezier-path-creator";
-import { CubicBezierPathV2 } from "./editors/cubic-bezier-path-v2";
 import { Group } from "./Group";
 import "./index.css";
-import { LayerV2 } from "./LayerV2";
-import { Point } from "./maths";
-import { EllipseShape } from "./shapes/Ellipse";
+import { Layer } from "./LayerV2";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
-import { Background } from "./world/BG";
 import { Transformer } from "./world/TransformerV2";
 
-; 
 const stage = new Stage({
   height: window.innerHeight,
   width: window.innerWidth / 2,
   draggable: false,
 });
 
-const layer = new LayerV2();
+const layer = new Layer();
 
-const points1 = [
-  { x: 200, y: 200 },
-  { x: 300, y: 200 },
-  { x: 300, y: 120 },
-];
-const points2 = [
-  { x: 400, y: 400 },
-  { x: 420, y: 300 },
-  { x: 440, y: 350 },
-  { x: 500, y: 300 },
-  { x: 500, y: 400 },
-];
-
-const points3 = [
-  { x: 45, y: 90 },
-  { x: 45, y: 75 },
-  { x: 60, y: 60 },
-  { x: 75, y: 45 },
-  { x: 90, y: 45 },
-  { x: 105, y: 45 },
-  { x: 120, y: 45 },
-  { x: 135, y: 60 },
-  { x: 150, y: 75 },
-  { x: 150, y: 90 },
-  { x: 150, y: 105 },
-  { x: 150, y: 120 },
-  { x: 135, y: 135 },
-  { x: 120, y: 150 },
-  { x: 105, y: 150 },
-  { x: 90, y: 150 },
-  { x: 75, y: 150 },
-  { x: 60, y: 135 },
-  { x: 45, y: 120 },
-  { x: 45, y: 105 },
-  { x: 45, y: 90 },
-];
-
-const points4 = [
+const points_1 = [
   { x: 60, y: 120 },
   { x: 60, y: 75 },
   { x: 90, y: 75 },
@@ -65,242 +23,40 @@ const points4 = [
   { x: 135, y: 105 },
   { x: 90, y: 105 },
   { x: 90, y: 120 },
-  // { x: 60, y: 120 },
-  // { x: 100, y: 200 }, { x: 200, y: 200 }, { x: 300, y: 200 }, { x: 300, y: 100 }, { x: 100, y: 100 }, { x: 100, y: 200 }
 ];
 
-const polygonShape1 = new PolygonShape({
-  initialPoints: points2,
+const points_2 = [
+  { x: 200, y: 200 },
+  { x: 300, y: 200 },
+  { x: 300, y: 120 },
+];
+
+const points_3 = [
+  { x: 400, y: 400 },
+  { x: 420, y: 300 },
+  { x: 440, y: 350 },
+  { x: 500, y: 300 },
+  { x: 500, y: 400 },
+];
+
+const polygonShape_3 = new PolygonShape({
+  initialPoints: points_3,
   sketchStyle: false,
+  draggable: true,
   lineWidth: 1,
   tension: 0.0,
-  draggable: true
 });
 
-// polygonShape1.scale({ x: 2, y: 1 })
-// polygonShape1.rotate(0.3)
+const polygonShape_1 = new PolygonShape({ initialPoints: points_1, lineWidth: 10 });
+const polygonShape_2 = new PolygonShape({ initialPoints: points_2, tension: 0.1 });
 
-const polygonShape2 = new PolygonShape({ initialPoints: points4, lineWidth: 10 });
-const polygonShape3 = new PolygonShape({ initialPoints: points1, tension: 0.0 });
-
-polygonShape2.closed = false
-polygonShape1.addClassname("test")
-polygonShape2.tension = 0.2
-
-// const transformer = new Transformer()
 const transformer = new Transformer()
 const group = new Group()
-// const transformer = group
 
-const ellipseTest = new EllipseShape(600, 300, 40, 20)
+// group.appendChild(polygonShape_3, polygonShape_1)
+// transformer.appendChild(group, polygonShape_2)
 
-// group.children(polygonShape2, polygonShape3)
-// group.children(polygonShape2, polygonShape3)
-// group.rotate(0.3)
-// group.children(polygonShape1)
+const creator = new CubicBezierPathCreator(layer)
 
-// transformer.children(group)
-// polygonShape1.subscribe(polygonShape1)
-// polygonShape2.subscribe(polygonShape2)
-// polygonShape3.subscribe(polygonShape3)
-
-
-group.children(polygonShape1, polygonShape2)
-
-// group.beginInteraction("scale")
-// group.scale({ x: 1.1, y: 1 })
-
-// layer.children(group)
-transformer.children(group, polygonShape3)
-// transformer.children(polygonShape1)
-
-// transformer.scale(new Point(0.5, 1))
-// transformer.rotate(-0.3)
-// transformer.translate({ x: 100, y: 100 })
-
-// polygonShape1.translate({ x: 100, y: 0 })
-
-// polygonShape1.translate({ x: 140, y: 140 })
-
-// polygonShape1.scale({ x: 2, y: 2 })
-
-// polygonShape1.rotate(0.4)
-
-// group.rotate(0.6)
-// transformer.rotate(0.3)
-// polygonShape2.rotate(0.4)
-// polygonShape2.scale({ x: 1.6, y: 1.3 })
-// polygonShape2.translate({ x: 0, y: 200 })
-
-// transformer.translate({ x: 100, y: 0 })
-
-// const testGroupToTransform = new Group()
-// testGroupToTransform.children(polygonShape2, polygonShape3)
-
-// testGroupToTransform.rotate(0.5)
-// polygonShape3.rotate(0.4)
-
-// testGroupToTransform.scale({ x: 1.5, y: 1 })
-
-// testGroupToTransform.rotate(0.2)
-// polygonShape3.scale(new Point(1.4, 1))
-// testGroupToTransform.rotate(0.2)
-
-// polygonShape3.translate({ x: 100, y: 10 })
-// testGroupToTransform.translate({ x: 0, y: 60 })
-
-// polygonShape3.rotate(0.3)
-// testGroupToTransform.scale(new Point(1.9, 1))
-
-// polygonShape2.scale(new Point(1, 1.6))
-
-// polygonShape3.beginInteraction("rotate")
-let angle = 0.005
-
-// group.rotate(0.1)
-// group.rotate(0.1)
-// group.rotate(0.1)
-
-
-
-const run = () => {
-  // transformer.rotate(angle)
-  // group.rotate(angle)
-  // polygonShape1.rotate(angle)
-  // polygonShape1.invalidateCache()
-}
-
-setInterval(() => {
-  run()
-}, 10)
-
-setTimeout(() => {
-}, 2000)
-
-// testGroupToTransform.rotate(0.5)
-// polygonShape3.scale(new Point(2.5, 1))
-// polygonShape3.rotate(0.4)
-// testGroupToTransform.rotate(0.2)
-// testGroupToTransform.scale(new Point(1.3, 1.2))
-// testGroupToTransform.rotate(0.1)
-
-// polygonShape1.rotate(0.2)
-// testGroupToTransform.children(polygonShape1)
-// polygonShape1.rotate(0.5)
-// polygonShape1.scale(new Point(1.5, 1))
-
-// testGroupToTransform.rotate(0.0)
-
-// layer.add(testGroupToTransform)
-
-const circleShape1 = new EllipseShape(500, 600, 40, 60);
-
-layer.children(transformer)
-stage.children(layer);
-
-transformer.bindEvents()
-transformer.subscribe(transformer)
-
-// const bg = new Background()
-// stage.children(bg)
-
-// bg.children(transformer)
-
-const qew = [
-  {
-    "x": 516,
-    "y": 190
-  },
-  {
-    "x": 516,
-    "y": 190
-  },
-  {
-    "x": 516,
-    "y": 190
-  },
-  {
-    "x": 372,
-    "y": 312
-  },
-  {
-    "x": 144,
-    "y": 184
-  },
-  {
-    "x": 600,
-    "y": 440
-  },
-  {
-    "x": 499,
-    "y": 488
-  },
-  {
-    "x": 821,
-    "y": 615
-  },
-  {
-    "x": 177,
-    "y": 361
-  },
-  {
-    "x": 158,
-    "y": 474
-  },
-  {
-    "x": 156,
-    "y": 467
-  },
-  {
-    "x": 160,
-    "y": 481
-  }
-]
-
-const nextShape = new PolygonShape({
-  initialPoints: qew, //.slice(0, 12),
-  // initialPoints: points2,
-  // initialPoints: [{x: 30, y: 30}, { x: 220, y: 140 }, { x: 180, y: 10 }, { x: 120, y: 160 }],
-  name: "test",
-  closed: false,
-  // tension: 0.1,
-  cubic: true,
-  fillColor: "none"
-})
-
-const nextCircle = new EllipseShape(0, 0, 20, 20)
-
-const radius = new Point(50, 50)
-nextCircle.radius(radius)
-
-let time = 0
-setInterval(() => {
-  time++
-  radius.x = radius.y = Math.abs(Math.sin(time / 100)) * 59
-
-  // console.log(radius.array())
-
-  nextCircle.radius(radius)
-}, 16)
-
-// nextShape.translate({ x: 200, y: 200 })
-// nextShape.rotate(0.4)
-
-// nextShape.position = new Point(0, 0)
-
-// bg.children(nextCircle)
-
-// const cubic = new CubicBezierPathV2()
-// bg.children(nextShape)
-// bg.children(cubic)
-
-// nextShape.position = new Point(150, 50)
-// nextShape.scale({ x: 2, y: 2 })
-
-// new Cubic()
-
-// nextShape.fillColor = "rgba(104, 54, 212, 0.2)"
-
-// cubic.fromShape(nextShape)
-
-// new CubicBezierPathCreator(bg)
+// layer.appendChild(transformer)
+stage.appendChild(layer)

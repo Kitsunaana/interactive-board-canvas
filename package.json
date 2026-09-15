@@ -35,6 +35,7 @@
     "react-merge-refs": "^3.0.2",
     "react-rxjs": "^2.0.8",
     "reflect-metadata": "^0.2.2",
+    "roughjs": "^4.6.6",
     "rxjs": "^7.8.2",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.17",
