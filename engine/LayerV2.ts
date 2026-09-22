@@ -5,7 +5,8 @@ import { Group } from './Group';
 import * as Primitive from "./maths";
 import { Shape } from './shapes/Shape';
 import { type Sizes } from "./Stage";
-import { type GetBoundsParams, type GetPointsParams, SimObject } from "./world/sim-object";
+import { type GetBoundsParams, type GetPointsParams } from "./world/sim-object";
+import { Container, Node } from "./world/reqt";
 
 declare global {
   interface CanvasRenderingContext2D {
@@ -21,7 +22,7 @@ function betweenSaveAndRestore(this: any, drawCallback: () => void) {
   this.context.restore()
 }
 
-export class Layer extends SimObject {
+export class Layer extends Container {
   public static isLayer(candidate: unknown): candidate is Layer {
     return candidate instanceof Layer
   }
@@ -46,7 +47,7 @@ export class Layer extends SimObject {
   private readonly _context: CanvasRenderingContext2D
   private readonly _hitCanvas: HTMLCanvasElement
   private readonly _hitContext: CanvasRenderingContext2D
-  private readonly _hitColorsToNodes = new Map<string, SimObject>()
+  private readonly _hitColorsToNodes = new Map<string, Node>()
   private readonly _nodesToHitColors = new Map<string, string>()
 
   private _lastHitColorId = 0
@@ -114,7 +115,7 @@ export class Layer extends SimObject {
     return this._hitContext
   }
 
-  public getHitColor(shape: SimObject): string {
+  public getHitColor(shape: Node): string {
     const current = this._nodesToHitColors.get(shape.id)
     if (current) return current
 
@@ -126,7 +127,7 @@ export class Layer extends SimObject {
     return next
   }
 
-  public getIntersection(point: Primitive.PointData): SimObject | null {
+  public getIntersection(point: Primitive.PointData): Node | null {
     const sizes = this.sizes
 
     const x = Math.floor(point.x)

@@ -1,27 +1,22 @@
-import { drawOriginPoint } from "./behaviors/Transformable"
 import { Matrix3x3, Polygon, Rectangle } from "./maths"
-import { PolygonShape } from "./shapes/Polygon"
 import { Shape } from "./shapes/Shape"
-import { type GetPointsParams, SimObject, type GetBoundsParams } from "./world/sim-object"
+import { Container } from "./world/reqt"
+import { type GetBoundsParams, type GetPointsParams } from "./world/sim-object"
 
-export class Group extends SimObject {
+export class Group extends Container {
   public static isGroup(candidate: unknown): candidate is Group {
     return candidate instanceof Group
   }
 
   public type: string = "Group"
 
-  public isDrawOriginPosition: boolean = false
-  public isDrawCorners: boolean = false
-  public isDrawBounds: boolean = false
-
   public constructor() {
     super()
 
-    this.emitter.on(this.routes.addChild, ({payload}) => {
+    this.custom_events.on(this.custom_events.routes.addChild, ({ payload }) => {
       const child = payload.child
 
-      child.__testMatrix = Matrix3x3.invert(this.worldMatrix) ?? Matrix3x3.identity()
+      child.transform.__testMatrix = Matrix3x3.invert(this.transform.worldMatrix) ?? Matrix3x3.identity()
       child.updateWorldTransform()
     })
   }
@@ -55,31 +50,25 @@ export class Group extends SimObject {
   }
 
   public getUnrotateBounds(): Rectangle {
-    const currentAngle = Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
-    const unrotate = Matrix3x3.aroundOrigin(this.getInLocalOriginPosition("rotate"), () => {
+    const currentAngle = Math.atan2(this.transform.worldMatrix.b, this.transform.worldMatrix.a)
+    const unrotate = Matrix3x3.aroundOrigin(this.transform.getInLocalOriginPosition("rotate"), () => {
       return Matrix3x3.rotate(-currentAngle)
     })
 
     const points = this.getFlatListChildren().flatMap((shape) => {
       const matrix = Matrix3x3.compose(unrotate, shape.worldMatrix)
-      return shape.getPoints().map((point) => matrix.applyToPoint(point))
+      
+      return shape
+        .getPoints()
+        .map((point) => matrix.applyToPoint(point))
     })
 
     return Polygon.getBounds(points)
   }
 
-  public render(context: CanvasRenderingContext2D): void {
-    // this.cachedMatrix.applyToContext(context)
-    super.render(context)
-
-    if (this.isDrawOriginPosition) this._drawOriginPositions(context)
-    if (this.isDrawCorners) this._drawCorners(context)
-    if (this.isDrawBounds) this._drawBounds(context)
-  }
-
   private _getMatrixToChildForComputeBounds(params: GetBoundsParams, child: Shape): Matrix3x3 {
     if (params.skipTransform) {
-      const invertParent = Matrix3x3.invert(this.localMatrix) ?? Matrix3x3.identity()
+      const invertParent = Matrix3x3.invert(this.transform.localMatrix) ?? Matrix3x3.identity()
 
       return child.parent === this
         ? Matrix3x3.compose(child.__testMatrix, child.localMatrix)
@@ -87,28 +76,6 @@ export class Group extends SimObject {
     }
 
     return child.worldMatrix
-  }
-
-  private _drawCorners(context: CanvasRenderingContext2D): void {
-    const corners = this.getCornersWithAppliedMatrix()
-
-    context.beginPath()
-    PolygonShape.prototype._traceLinearPath.call({ _pointsToTrace: corners }, context)
-    context.closePath()
-    context.stroke()
-  }
-
-  private _drawBounds(context: CanvasRenderingContext2D): void {
-    const bounds = this.getBounds({ skipTransform: false })
-    context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-  }
-
-  private _drawOriginPositions(context: CanvasRenderingContext2D): void {
-    const scaleOrigin = this.getInWorldOriginPosition("scale")
-    const rotateOrigin = this.getInWorldOriginPosition("rotate")
-
-    drawOriginPoint(context, rotateOrigin, "rotate")
-    drawOriginPoint(context, scaleOrigin, "scale")
   }
 }
 

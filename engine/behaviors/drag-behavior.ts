@@ -1,7 +1,7 @@
 import { createRoute } from "../EventBus";
 import { Point } from "../maths";
 import { pointFromEvent } from "../shared/point";
-import type { SimObject } from "../world/sim-object";
+import type { Node } from "../world/reqt";
 import type { EventObject } from "./EventBehavior";
 
 export class DragBehavior {
@@ -41,16 +41,16 @@ export class DragBehavior {
     return this.startPosition.add(this.delta)
   }
 
-  public constructor(private readonly _object: SimObject) {
+  public constructor(private readonly node: Node) {
     this.bindEvents()
   }
 
   public subscribe(): void {
-    this._object.on("pointerdown", this.start)
+    this.node.system_events.on("pointerdown", this.start)
   }
 
   public unsubscribe(): void {
-    this._object.off("pointerdown", this.start)
+    this.node.system_events.off("pointerdown", this.start)
 
     window.removeEventListener("pointermove", this.process)
     window.removeEventListener("pointerup", this.finish)
@@ -69,13 +69,13 @@ export class DragBehavior {
     if (this._isDragging) return
     this._isDragging = true
 
-    const position = this._object.layer.screenToWorld(pointFromEvent(event.evt))
+    const position = this.node.layer.screenToWorld(pointFromEvent(event.evt))
 
     this._startPosition.copyFrom(position)
     this._currentPosition.copyFrom(position)
 
-    this._deltaBetweenStartAndObjectPositions.copyFrom(this._startPosition.sub(this._object.position))
-    this._object.emitter.emit(this.routes.startDrag())
+    this._deltaBetweenStartAndObjectPositions.copyFrom(this._startPosition.sub(this.node.position))
+    this.node.custom_events.emit(this.routes.startDrag())
 
     window.addEventListener("pointermove", this.process)
     window.addEventListener("pointerup", this.finish)
@@ -84,18 +84,18 @@ export class DragBehavior {
   public process(event: PointerEvent): void {
     if (this._isDragging === false) return
 
-    const position = this._object.layer.screenToWorld(pointFromEvent(event))
+    const position = this.node.layer.screenToWorld(pointFromEvent(event))
     const nextPosition = position.sub(this._deltaBetweenStartAndObjectPositions)
 
     this._currentPosition.copyFrom(nextPosition)
-    this._object.emitter.emit(this.routes.processDrag())
+    this.node.custom_events.emit(this.routes.processDrag())
   }
 
   public finish(event: PointerEvent): void {
     if (this._isDragging === false) return
 
     this._isDragging = false
-    this._object.emitter.emit(this.routes.finishDrag())
+    this.node.custom_events.emit(this.routes.finishDrag())
 
     window.removeEventListener("pointermove", this.process)
     window.removeEventListener("pointerup", this.finish)

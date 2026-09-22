@@ -1,91 +1,138 @@
-import { Matrix3x3, Point, type PointData, Polygon, Rectangle } from "../maths";
+import { isNull } from "lodash";
+import { Transformer } from "../behaviors/TransformerV4";
+import { Bounds, Circle, Matrix3x3, type PointData, Rectangle } from "../maths";
+import { Shape, type ShapeConfig } from "../world/reqt";
 import { type GetBoundsParams } from "../world/sim-object";
-import { Shape } from "./Shape";
+
+
+export type CircleShapeConfig = {
+  x: number
+  y: number
+  radius: number
+}
+
+function getCircleBoundingBox(circle: Circle, worldMatrix: Matrix3x3): Rectangle {
+  const matrix = worldMatrix.toArray()
+
+  const a = matrix[0]
+  const b = matrix[1]
+  const c = matrix[2]
+  const d = matrix[3]
+  const e = matrix[4]
+  const f = matrix[5]
+
+  const cx = a * circle.x + c * circle.y + e
+  const cy = b * circle.x + d * circle.y + f
+
+  const ux = a * circle.radius
+  const uy = b * circle.radius
+
+  const vx = c * circle.radius
+  const vy = d * circle.radius
+
+  const extentX = Math.hypot(ux, vx)
+  const extentY = Math.hypot(uy, vy)
+
+  const bounds = new Bounds(
+    cx - extentX,
+    cy - extentY,
+    cx + extentX,
+    cy + extentY
+  )
+
+  return bounds.rectangle
+}
+
+export type CircleConfig = ShapeConfig & {
+  x: number
+  y: number
+  radius: number
+}
 
 export class CircleShape extends Shape {
   public static isCirlce(candidate: unknown): candidate is CircleShape {
     return candidate instanceof CircleShape
   }
 
-  public static computePointsToTrace(x: number, y: number, radius: number): Array<PointData> {
-    return [
-      { x: x - radius, y: y - radius },
-      { x: x + radius, y: y - radius },
-      { x: x + radius, y: y + radius },
-      { x: x - radius, y: y + radius },
-    ]
-  }
-
-  public _initialPoints: Array<PointData>
-  public _pointsToTrace: Array<PointData>
+  private readonly _initRadius: number
+  private _bounds: Rectangle | null = null
 
   public isListening: boolean = true
 
-  public constructor(private _x: number, private _y: number, private _radius: number) {
-    super()
+  public constructor({ x, y, radius, ...other }: CircleConfig) {
+    super(other)
 
-    this._initialPoints = CircleShape.computePointsToTrace(_x, _y, _radius)
-    this._pointsToTrace = this._initialPoints.map((point) => ({ ...point }))
+    this._initRadius = radius
+
+    this.position = { x, y }
+    this.transform.scale = this._overrideScale.bind(this)
   }
 
-  public get position(): Point {
-    return this.getBounds().center.add(this._translate)
+  private _overrideScale(value: PointData) {
+    Transformer.prototype.scale.call(this.transform, {
+      x: value.x,
+      y: value.x
+    })
   }
 
-  public set position(nextPos: PointData) {
-    this.translate(Point.fromData(nextPos).sub(this.position))
+  public get bounds() {
+    if (isNull(this._bounds)) this._bounds = this.getBounds()
+    return this._bounds
+  }
+
+  public get radius() {
+    return this.getBounds().width / 2
   }
 
   public getPoints(): Array<PointData> {
-    return this._initialPoints
+    return this.getBounds().getCorners()
   }
 
   public updateAfterTransform(): void {
-    if (!this.isInteracting) {
-      const matrix = this.worldMatrix
-
-      this._initialPoints = CircleShape.computePointsToTrace(this._x, this._y, this._radius)
-      this._pointsToTrace = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
-    }
-  }
-
-  public radius(value: number) {
-    this._radius = value
-    this.updateAfterTransform()
+    this._bounds = null
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    if (!this.visible) return
-    context.betweenSaveAndRestore(() => super.render(context))
+    // if (!this.visible) return
+    context.betweenSaveAndRestore(() => {
+      this.tracePath(context)
+      this.fillStrokeShape(context)
+
+    })
+
+    if (!this.hasName("@@_SYSTEM_UI")) {
+      const bounds = this.getBounds({})
+      // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    }
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {
-    if (!this.visible) return
-    if (this.isListening) context.betweenSaveAndRestore(() => super.renderHit(context))
+    // if (!this.visible) return
+    if (this.isListening) context.betweenSaveAndRestore(() => {
+      this.tracePath(context)
+      this.fillStrokeHitShape(context)
+    })
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
-    if (params.skipTransform) return new Polygon(this._pointsToTrace).getBounds()
-    const points = this._initialPoints.map((point) => this.worldMatrix.applyToPoint(point))
-    return new Polygon(points).getBounds()
+    if (params.skipTransform) return new Circle(0, 0, this._initRadius).getBounds()
+
+    const matrix = this.transform.worldMatrix
+    const bounds = getCircleBoundingBox(new Circle(0, 0, this._initRadius), matrix)
+
+    return bounds
   }
 
   public getUnrotateBounds(): Rectangle {
-    const rotateOrigin = this.getInWorldOriginPosition("rotate")
-    const unrotate = Matrix3x3.aroundOrigin(rotateOrigin, () => Matrix3x3.rotate(-this.getCurrentAngle()))
-    const matrix = Matrix3x3.compose(unrotate, this.worldMatrix)
-
-    return new Polygon(this._pointsToTrace.map(matrix.applyToPoint.bind(matrix))).getBounds()
+    return this.getBounds()
   }
 
   public tracePath(context: CanvasRenderingContext2D): void {
-    const bounds = this.getBounds().center
-    const radius = this._radius
-
-    // console.log(bounds.x, bounds.y)
+    const position = this.position
+    const radius = this.radius
 
     context.beginPath()
-    context.arc(bounds.x, bounds.y, radius, 0, Math.PI * 2, false)
+    context.arc(position.x + radius, position.y + radius, radius, 0, Math.PI * 2, false)
     context.closePath()
   }
 }

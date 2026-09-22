@@ -1,3 +1,5 @@
+import { isNumber } from "lodash"
+
 export interface SizeData {
   width: number
   height: number
@@ -38,6 +40,10 @@ export class Point implements PointLike {
 
   public constructor(public x: number = 0, public y: number = 0) { }
 
+  public isZero(): boolean {
+    return this.x === 0 && this.y === 0
+  }
+
   public clone(): Point {
     return new Point(this.x, this.y)
   }
@@ -69,8 +75,11 @@ export class Point implements PointLike {
     return new Point(this.x - point.x, this.y - point.y)
   }
 
-  public div(point: PointData): Point {
-    return new Point(this.x / point.x, this.y / point.y)
+  public div(value: number): Point
+  public div(value: PointData): Point
+  public div(value: PointData | number): Point {
+    if (isNumber(value)) return new Point(this.x / value, this.y / value)
+    return new Point(this.x / value.x, this.y / value.y)
   }
 
   public mul(point: PointData): Point {
@@ -89,7 +98,8 @@ export class Point implements PointLike {
     return Math.hypot(this.x, this.y)
   }
 
-  public lengthSquared(): number {
+  public lengthSquared(point?: PointData): number {
+    if (point) return this.x * point.x + this.y * point.y
     return this.x * this.x + this.y * this.y;
   }
 

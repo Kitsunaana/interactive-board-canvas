@@ -1,7 +1,7 @@
-import { isEmpty, isNull, isUndefined } from "lodash";
+import { isNull, isUndefined } from "lodash";
 import { nanoid } from "nanoid";
 import { Mixin } from "ts-mixer";
-import { Draggable } from "../behaviors/Draggable";
+import { DragBehavior } from "../behaviors/drag-behavior";
 import { EventBehavior } from "../behaviors/EventBehavior";
 import { Transformable } from "../behaviors/Transformable";
 import { createRoute, EventEmitter } from "../EventBus";
@@ -9,7 +9,6 @@ import { Group } from "../Group";
 import type { Layer } from "../LayerV2";
 import { Matrix3x3, Point, type PointData, type Rectangle } from "../maths";
 import type { Stage } from "../Stage";
-import { DragBehavior } from "../behaviors/drag-behavior";
 
 export type GetBoundsParams = {
   skipTransform?: boolean
@@ -47,7 +46,7 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
   public cachedMatrix: Matrix3x3 = Matrix3x3.identity()
   public worldMatrix: Matrix3x3 = Matrix3x3.identity()
   public localMatrix: Matrix3x3 = Matrix3x3.identity()
-  
+
   private _parent: SimObject | null = null
 
   public isListening: boolean = true
@@ -169,9 +168,9 @@ export abstract class SimObject extends Mixin(Transformable, EventBehavior) {
     this.children.forEach((child) => child.renderHit(context))
   }
 
-  private _getFirstParentByType<T>({ type, notFoundObject, withoutParent }: {
-    notFoundObject: string
-    withoutParent: string
+  protected _getFirstParentByType<T>({ type, notFoundObject, withoutParent }: {
+    notFoundObject?: string
+    withoutParent?: string
     type: string
   }): T {
     const parents = this.getAllParents()

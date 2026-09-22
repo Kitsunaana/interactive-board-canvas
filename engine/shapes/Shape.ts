@@ -57,4 +57,3 @@ export abstract class Shape extends SimObject {
     this.hitFillStrokeShape(context)
   }
 }
-''

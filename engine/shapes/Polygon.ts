@@ -1,14 +1,9 @@
 import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths";
+import { Shape, type ShapeConfig } from "../world/reqt";
 import { type GetPointsParams, type GetBoundsParams } from "../world/sim-object";
-import { Shape } from "./Shape";
 
-type PolygonConfig = {
+export type PolygonConfig = ShapeConfig & {
   initialPoints: Array<PointData>
-  sketchStyle?: boolean
-  strokeColor?: string
-  draggable?: boolean
-  fillColor?: string
-  lineWidth?: number
   tension?: number
   closed?: boolean
   cubic?: boolean
@@ -17,11 +12,6 @@ type PolygonConfig = {
 const mergeConfigWithDefaultValues = ({ tension, closed, cubic, initialPoints, ...config }: PolygonConfig) => {
   return {
     ...config,
-    sketchStyle: config.sketchStyle ?? false,
-    strokeColor: config.strokeColor ?? "black",
-    fillColor: config.fillColor ?? "skyblue",
-    draggable: config.draggable ?? false,
-    lineWidth: config.lineWidth ?? 1,
 
     _initialPoints: initialPoints ?? [],
     _tension: tension ?? 0,
@@ -49,7 +39,7 @@ export class PolygonShape extends Shape {
   public constructor(params: PolygonConfig) {
     const { _initialPoints, ...config } = mergeConfigWithDefaultValues(params)
 
-    super();
+    super(config);
 
     Object.assign(this, config)
 
@@ -60,18 +50,8 @@ export class PolygonShape extends Shape {
     this._pointsToTrace = this.computePointsToTraceWithTension(this._initialPoints);
   }
 
-  public get position() {
-    return this.getBounds().point()
-  }
-
   public get pointsToTrace() {
     return this._pointsToTrace
-  }
-
-  public set position(nextPos: PointData) {
-    const currentPosition = this.getBounds().point()
-    const delta = Point.fromData(nextPos).sub(currentPosition)
-    this.translate(delta)
   }
 
   public get closed() {
@@ -83,24 +63,24 @@ export class PolygonShape extends Shape {
   }
 
   public set closed(value: boolean) {
-    this._closed = value
-    this.updateAfterTransform()
+    // this._closed = value
+    // this.updateAfterTransform()
   }
 
   public set tension(value: number) {
-    this._tension = value
-    this.updateAfterTransform()
+    // this._tension = value
+    // this.updateAfterTransform()
   }
 
   public update(_time: number): void {
   }
 
   public updateAfterTransform(): void {
-    if (!this.isInteracting) {
-      const matrix = this.worldMatrix
-      const transformedPoints = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
-      this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
-    }
+    // if (!this.isInteracting) {
+    //   const matrix = this.worldMatrix
+    //   const transformedPoints = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
+    //   this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
+    // }
   }
 
   public getPoints(params: GetPointsParams = {}): Array<PointData> {
@@ -108,11 +88,11 @@ export class PolygonShape extends Shape {
     const points = this._initialPoints.concat(curveExtrema)
 
     if (params.applyTransform) {
-      const matrix = this.worldMatrix.clone()
+      const matrix = this.transform.worldMatrix.clone()
 
       if (params.applyCachedTransform) {
-        const parentsMatrix = this.getAllParents().map((p) => p.cachedMatrix)
-        const nextMatrix = Matrix3x3.compose(...parentsMatrix, this.cachedMatrix, this.worldMatrix)
+        const parentsMatrix = this.getAllParents().map((p) => p.transform.cachedMatrix)
+        const nextMatrix = Matrix3x3.compose(...parentsMatrix, this.transform.cachedMatrix, this.transform.worldMatrix)
 
         matrix.copyFrom(nextMatrix)
       }
@@ -124,8 +104,8 @@ export class PolygonShape extends Shape {
   }
 
   public setPoints(points: Array<PointData>) {
-    this.worldMatrix = Matrix3x3.identity()
-    this.localMatrix = Matrix3x3.identity()
+    this.transform.worldMatrix = Matrix3x3.identity()
+    this.transform.localMatrix = Matrix3x3.identity()
 
     this._initialPoints = points.map((point) => ({ ...point }))
     this._pointsToTrace = this._initialPoints
@@ -167,11 +147,11 @@ export class PolygonShape extends Shape {
   }
 
   public getUnrotateBounds(): Rectangle {
-    const origin = this.getInLocalOriginPosition("rotate")
-    const currentAngle = -this.getCurrentAngle()
+    const origin = this.transform.getInLocalOriginPosition("rotate")
+    const currentAngle = -this.transform.getCurrentAngle()
     const unrotate = Matrix3x3.aroundOrigin(origin, () => Matrix3x3.rotate(currentAngle))
 
-    const composed = Matrix3x3.compose(unrotate, this.worldMatrix)
+    const composed = Matrix3x3.compose(unrotate, this.transform.worldMatrix)
 
     const transformedPoints = this._initialPoints.map(composed.applyToPoint.bind(composed))
     const curveExtrema = Polygon.computeTensionedCurveExtrema(transformedPoints, this.tension)
@@ -180,15 +160,25 @@ export class PolygonShape extends Shape {
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    if (!this.visible) return
+    // if (!this.visible) return
 
-    context.betweenSaveAndRestore(() => super.render(context))
+    context.betweenSaveAndRestore(() => {
+      this.tracePath(context)
+      this.fillStrokeShape(context)
+    })
+  }
+
+  public renderHit(context: CanvasRenderingContext2D): void {
+    context.betweenSaveAndRestore(() => {
+      this.tracePath(context)
+      this.fillStrokeHitShape(context)
+    })
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     const points = params.skipTransform
       ? this._initialPoints
-      : this._initialPoints.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
+      : this._initialPoints.map(this.transform.worldMatrix.applyToPoint.bind(this.transform.worldMatrix))
 
     const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension)
     const allPoints = points.concat(curveExtrema)

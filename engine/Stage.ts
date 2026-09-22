@@ -2,7 +2,8 @@ import { type EventObject } from "./behaviors/EventBehavior"
 import { Layer } from "./LayerV2"
 import { Point, Rectangle, type PointData } from "./maths"
 import { getPointFromEvent } from "./shared/point"
-import { SimObject, type GetBoundsParams, type GetPointsParams } from "./world/sim-object"
+import { Container, Node } from "./world/reqt"
+import { type GetBoundsParams, type GetPointsParams } from "./world/sim-object"
 
 export interface StageConfig {
   draggable: boolean
@@ -15,7 +16,7 @@ export type Sizes = {
   height: number
 }
 
-type EventTargetNode = SimObject
+type EventTargetNode = Node
 
 type PointerState = {
   downTarget: EventTargetNode | null
@@ -55,7 +56,7 @@ const getPointerLocalPosition = (event: PointerEvent) => {
   })
 }
 
-export class Stage extends SimObject {
+export class Stage extends Container {
   public type: string = "Stage"
 
   public content: HTMLDivElement = document.createElement("div")
@@ -71,6 +72,14 @@ export class Stage extends SimObject {
   }
 
   private readonly _pointerStates = new Map<number, PointerState>()
+
+  public get children() {
+    return super.children as Array<Layer>
+  }
+
+  public get parent() {
+    return null
+  }
 
   public constructor(config: StageConfig) {
     super()
@@ -102,13 +111,9 @@ export class Stage extends SimObject {
     return new Rectangle(0, 0, 0, 0)
   }
 
-  public get children(): Array<Layer> {
-    return this._children as unknown as Array<Layer>
-  }
-
   public appendChild(...list: Array<Layer>): void {
     list.forEach((layer) => {
-      this._children.push(layer)
+      this.children.push(layer)
 
       this.content.appendChild(layer.canvas)
       this.content.appendChild(layer.hitCanvas)
@@ -280,7 +285,7 @@ export class Stage extends SimObject {
     domEvent: MouseEvent | PointerEvent,
     bubble: boolean
   ): void {
-    target.fire(
+    target.system_events.fire(
       eventName,
       {
         target,

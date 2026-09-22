@@ -1,10 +1,10 @@
-import { CubicBezierPathCreator } from "./editors/cubic-bezier-path-creator";
 import { Group } from "./Group";
 import "./index.css";
 import { Layer } from "./LayerV2";
+import { CircleShape } from "./shapes/Circle";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
-import { Transformer } from "./world/TransformerV2";
+import { LinearGradientGroup } from "./world/LinearGradientGroup";
 
 const stage = new Stage({
   height: window.innerHeight,
@@ -50,13 +50,31 @@ const polygonShape_3 = new PolygonShape({
 const polygonShape_1 = new PolygonShape({ initialPoints: points_1, lineWidth: 10 });
 const polygonShape_2 = new PolygonShape({ initialPoints: points_2, tension: 0.1 });
 
-const transformer = new Transformer()
+// const transformer = new Transformer()
 const group = new Group()
 
 // group.appendChild(polygonShape_3, polygonShape_1)
 // transformer.appendChild(group, polygonShape_2)
 
-const creator = new CubicBezierPathCreator(layer)
+// const creator = new CubicBezierPathCreator(layer)
+stage.draggable.unsubscribe()
+layer.draggable.unsubscribe()
 
 // layer.appendChild(transformer)
 stage.appendChild(layer)
+
+const testShape = new CircleShape({ x: 100, y: 100, radius: 150 })
+const linearGradientGroup = new LinearGradientGroup()
+
+testShape.position = {
+  x: 100,
+  y: 60,
+}
+
+testShape.transform.translate({ x: 10, y: 20 })
+testShape.transform.scale({ x: 1.5, y: 2 })
+
+linearGradientGroup.appendChild(testShape)
+layer.appendChild(linearGradientGroup)
+
+// testShape.transform.rotate(0.6)

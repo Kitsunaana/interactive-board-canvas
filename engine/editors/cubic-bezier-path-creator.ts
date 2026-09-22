@@ -10,7 +10,7 @@ export class CubicBezierPathCreator {
   private _dragStartPointer: Point = Point.zero()
   private _prevHandlersLength: number = 0
   private _extendingPath: boolean = false
-  
+
   private __path: CubicBezierPath | null = null
   private __activeControlIndex: number | null = null
   private __isDrawingMode: boolean = false
@@ -73,7 +73,12 @@ export class CubicBezierPathCreator {
     this._dragStartPointer.copyFrom(pointer)
 
     const handler = this._path.buildAndPushHandler(this._path.anchorCount, [pointer, pointer, pointer])
-    handler.anchor.extendPathFromLastAnchorCallback = this._extendPathFromLastAnchor.bind(this)
+
+    handler.anchor.emitter.on(handler.anchor.extendPathRoute, ({ payload }) => {
+      this.__path = payload
+      this._extendingPath = true
+      this._isDrawingMode = true
+    })
 
     if (this.__isDrawingMode) {
       this._activeControlIndex = this._path.anchorCount - 1
@@ -122,7 +127,8 @@ export class CubicBezierPathCreator {
         const segmentPoints = points.slice(i, i + 6)
 
         if (segmentPoints.length === 6) {
-          this._path.buildAndPushSegment(i / 3, segmentPoints)
+          const segment = this._path.createSegment(segmentPoints)
+          this._path.appendSegmentChild(segment)
         }
       }
 
@@ -132,21 +138,5 @@ export class CubicBezierPathCreator {
 
       this._prevHandlersLength = handlers.length
     }
-  }
-
-  private _extendPathFromLastAnchor({ target }: EventObject, pathId: string): void {
-    const path = this.layer.children.find((child) => child.id === pathId) as CubicBezierPath | undefined
-
-    if (!path) return
-
-    const handlers = path.childrenRecord.handlers
-    const isLast = handlers[handlers.length - 1].anchor === target
-
-    if (!isLast) return
-
-    this.__path = path
-    this._extendingPath = true
-
-    this._isDrawingMode = true
   }
 }

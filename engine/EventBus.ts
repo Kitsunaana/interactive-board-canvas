@@ -27,7 +27,7 @@ export const createRoute = <Type extends string, Value = void>(key: Type): Event
 }
 
 export class EventEmitter {
-  private _listeners = new Map<string, Set<Listener>>()
+  protected _listeners = new Map<string, Set<Listener>>()
 
   public on<Type extends string, Value>(
     eventCreator: EventCreator<Type, Value>,
