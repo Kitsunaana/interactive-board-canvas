@@ -4,7 +4,8 @@ import { Layer } from "./LayerV2";
 import { CircleShape } from "./shapes/Circle";
 import { PolygonShape } from "./shapes/Polygon";
 import { Stage } from "./Stage";
-import { LinearGradientGroup } from "./world/LinearGradientGroup";
+import { LinearGradientGroup } from "./world/GradientControls/LinearGradientGroup";
+import { RadialGradientGroup } from "./world/GradientControls/RadialGradientGroup";
 
 const stage = new Stage({
   height: window.innerHeight,
@@ -63,7 +64,7 @@ layer.draggable.unsubscribe()
 // layer.appendChild(transformer)
 stage.appendChild(layer)
 
-const testShape = new CircleShape({ x: 100, y: 100, radius: 150 })
+const testShape = new CircleShape({ x: 0, y: 0, radius: 150 })
 const linearGradientGroup = new LinearGradientGroup()
 
 testShape.position = {
@@ -71,7 +72,7 @@ testShape.position = {
   y: 60,
 }
 
-testShape.transform.translate({ x: 10, y: 20 })
+// testShape.transform.translate({ x: 10, y: 20 })
 testShape.transform.scale({ x: 1.5, y: 2 })
 
 linearGradientGroup.appendChild(testShape)

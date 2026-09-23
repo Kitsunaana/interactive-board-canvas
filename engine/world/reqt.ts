@@ -1,13 +1,14 @@
 import { isNull, isUndefined } from "lodash"
+import { nanoid } from "nanoid"
+import { DragBehavior } from "../behaviors/drag-behavior"
 import { EventBehavior } from "../behaviors/EventBehavior_v2"
 import { Transformer } from "../behaviors/TransformerV4"
 import { createRoute, EventEmitter } from "../EventBus"
-import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
-import type { GetBoundsParams } from "./sim-object"
 import type { Layer } from "../LayerV2"
+import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
 import type { Stage } from "../Stage"
-import { nanoid } from "nanoid"
-import { DragBehavior } from "../behaviors/drag-behavior"
+import type { GetBoundsParams } from "./sim-object"
+import { GradientData } from "./GradientData"
 
 interface NodeToCustomEventsImpl {
   parent: NodeToCustomEventsImpl | null
@@ -252,48 +253,14 @@ const fillShapeConfigDefaulValues = (config: ShapeConfig): Required<ShapeConfig>
   }
 }
 
-export class LinearGradientData {
-  public record: Record<string, Point>
 
-  public constructor(
-    public startRelativePosition: Point,
-    public endRelativePosition: Point,
-    public steps: Array<readonly [number, string]>
-  ) {
-    this.record = {
-      startControl: this.startRelativePosition,
-      endControl: this.endRelativePosition,
-    }
-  }
-
-
-  public getAbsolutePositions(bounds: Rectangle) {
-    const sizes = Point.fromSize(bounds)
-    const position = bounds.point()
-
-    const start = this.startRelativePosition.mul(sizes).add(position)
-    const end = this.endRelativePosition.mul(sizes).add(position)
-
-    return [start, end]
-  }
-
-  public compute(context: CanvasRenderingContext2D, shape: Shape) {
-    const bounds = shape.getBounds({})
-    const [start, end] = this.getAbsolutePositions(bounds)
-
-    const gradient = context.createLinearGradient(...start.array(), ...end.array())
-    this.steps.forEach(([t, color]) => gradient.addColorStop(t, color))
-
-    return gradient
-  }
-}
 
 export abstract class Shape extends Node {
   public strokeStyle: string = "black"
   public fillStyle: string = "skyblue"
   public lineWidth: number = 1
 
-  public linearGradient: LinearGradientData | null = null
+  public gradient: GradientData | null = null
 
   public constructor({ names, ...params }: ShapeConfig) {
     super({ names })
@@ -307,10 +274,10 @@ export abstract class Shape extends Node {
     context.fillStyle = this.fillStyle
     context.strokeStyle = this.strokeStyle
 
-    if (this.linearGradient) context.fillStyle = this.linearGradient.compute(context, this)
-
     context.fill()
     context.stroke()
+
+    this.gradient?.applyToContext(context, this)
   }
 
   protected fillStrokeHitShape(context: CanvasRenderingContext2D) {

@@ -4,7 +4,6 @@ import { Bounds, Circle, Matrix3x3, type PointData, Rectangle } from "../maths";
 import { Shape, type ShapeConfig } from "../world/reqt";
 import { type GetBoundsParams } from "../world/sim-object";
 
-
 export type CircleShapeConfig = {
   x: number
   y: number
@@ -97,7 +96,6 @@ export class CircleShape extends Shape {
     context.betweenSaveAndRestore(() => {
       this.tracePath(context)
       this.fillStrokeShape(context)
-
     })
 
     if (!this.hasName("@@_SYSTEM_UI")) {

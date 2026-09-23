@@ -1,5 +1,5 @@
 import * as _ from "lodash"
-import { Point, type PointData } from "../maths"
+import { Point, Rectangle, type PointData } from "../maths"
 
 export const distance = (a: PointData, b: PointData) => Math.hypot(b.x - a.x, b.y - a.y)
 
@@ -13,3 +13,19 @@ export const getPointFromEvent = (event: PointerEvent | MouseEvent): PointData =
   x: event.clientX,
   y: event.clientY,
 })
+
+export const getNormalizedPosition = (point: PointData, relative: Rectangle): Point => {
+  const sizes = Point.fromSize(relative)
+
+  return Point.fromData(point)
+    .sub(relative)
+    .div(sizes)
+}
+
+export const getAbsolutePosition = (point: Point, relative: Rectangle): Point => {
+  const sizes = Point.fromSize(relative)
+
+  return point
+    .mul(sizes)
+    .add(relative)
+}
