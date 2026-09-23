@@ -1,6 +1,6 @@
 import { isNumber, isObject } from "lodash"
 import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
-import type { GetBoundsParams } from "../world/sim-object"
+import type { GetBoundsParams } from "../core/Node"
 
 export type TransformOperation = "scale" | "skew" | "rotate" | "translate"
 

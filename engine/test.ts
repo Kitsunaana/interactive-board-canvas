@@ -1,9 +1,9 @@
-import { Group } from "./Group";
+import { Stage } from "./core/Stage";
+import { Layer } from "./core/Layer";
+import { Group } from "./core/Group";
 import "./index.css";
-import { Layer } from "./LayerV2";
 import { CircleShape } from "./shapes/Circle";
 import { PolygonShape } from "./shapes/Polygon";
-import { Stage } from "./Stage";
 import { LinearGradientGroup } from "./world/GradientControls/LinearGradientGroup";
 import { RadialGradientGroup } from "./world/GradientControls/RadialGradientGroup";
 
@@ -42,8 +42,6 @@ const points_3 = [
 
 const polygonShape_3 = new PolygonShape({
   initialPoints: points_3,
-  sketchStyle: false,
-  draggable: true,
   lineWidth: 1,
   tension: 0.0,
 });

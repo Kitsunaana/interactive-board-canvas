@@ -1,6 +1,6 @@
+import type { Shape } from "../core/Shape"
 import { Matrix3x3, Point, Rectangle } from "../maths"
 import { angleBetweenPoints, getAbsolutePosition } from "../shared/point"
-import type { Shape } from "./reqt"
 
 export abstract class GradientData {
   public abstract steps: Array<readonly [number, string]>

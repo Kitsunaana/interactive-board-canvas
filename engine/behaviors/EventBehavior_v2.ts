@@ -1,4 +1,4 @@
-import { Node } from "../world/reqt"
+import type { Node } from "../core/Node"
 
 type EventHandler<EventPayload = EventObject<any>> = (event: EventPayload) => void
 
@@ -55,10 +55,10 @@ const toEventTokens = (eventNames?: string): ParsedEventToken[] => {
 
 interface NodeToEventBehaviorImpl {
   parent: NodeToEventBehaviorImpl | null
-  system_events: EventBehavior
+  events: EventBehaviorV2
 }
 
-export class EventBehavior {
+export class EventBehaviorV2 {
   private readonly _listenersMap: Map<string, Array<ListenerEntry>> = new Map()
 
   public constructor(private readonly node: NodeToEventBehaviorImpl) {}
@@ -134,7 +134,7 @@ export class EventBehavior {
     this._fire(eventType, namespace, evt)
 
     if (bubble && !evt.cancelBubble) {
-      this.node.parent?.system_events.fire(eventType, evt, true)
+      this.node.parent?.events.fire(eventType, evt, true)
     }
 
     return this

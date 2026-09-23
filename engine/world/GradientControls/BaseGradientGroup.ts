@@ -1,11 +1,11 @@
 import { isUndefined } from "lodash";
-import { Group } from "../../Group";
 import { Matrix3x3, Point, type PointData } from "../../maths";
 import { type CircleConfig, CircleShape } from "../../shapes/Circle";
 import { angleBetweenPoints, pointFromEvent } from "../../shared/point";
 import type { EventObject } from "../../behaviors/EventBehavior_v2";
-import { Shape } from "../reqt";
 import { PolygonShape } from "../../shapes/Polygon";
+import { Group } from "../../core/Group";
+import { Shape } from "../../core/Shape";
 
 export const SYSTEM_UI = "@@_SYSTEM_UI"
 export const RADIUS = 6
@@ -34,7 +34,7 @@ export abstract class BaseGradientGroup extends Group {
   public readonly startHandle = this.createHandle({ names: ["startControl"] })
   public readonly endHandle = this.createHandle({ names: ["endControl"] })
 
-  connectionLine = new PolygonShape({
+  public readonly connectionLine = new PolygonShape({
     strokeStyle: "#d9d9d9",
     fillStyle: "white",
     names: [SYSTEM_UI],
@@ -164,7 +164,7 @@ export abstract class BaseGradientGroup extends Group {
   }
 
   public attachStepHandleDragEvents(stepHandle: CircleShape): CircleShape {
-    stepHandle.custom_events.on(stepHandle.draggable.routes.processDrag, () => {
+    stepHandle.emitter.on(stepHandle.draggable.routes.processDrag, () => {
       const cursorPosition = this.layer.worldPointer.sub({ x: RADIUS, y: RADIUS })
       const start = this.startHandle.position
       const end = this.endHandle.position

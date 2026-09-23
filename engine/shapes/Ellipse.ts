@@ -1,7 +1,7 @@
 import { Matrix3x3, Point, type PointData, Rectangle } from "../maths";
 import { Ellipse } from "../maths/Ellipse";
+import { Shape } from "../world/reqt";
 import { type GetBoundsParams } from "../world/sim-object";
-import { Shape } from "./Shape";
 
 export class EllipseShape extends Shape {
   public static isEllipse(candidate: unknown): candidate is EllipseShape {

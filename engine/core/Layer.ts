@@ -1,12 +1,11 @@
-import { isUndefined } from "lodash";
 import rough from 'roughjs';
 import { RoughCanvas } from "roughjs/bin/canvas";
-import { Group } from './Group';
-import * as Primitive from "./maths";
-import { Shape } from './shapes/Shape';
+import { Point, type PointData, Rectangle } from '../maths';
+import { Container } from "./Container";
+import type { Group } from './Group';
+import { type GetBoundsParams, type GetPointsParams, type Node } from "./Node";
+import type { Shape } from "./Shape";
 import { type Sizes } from "./Stage";
-import { type GetBoundsParams, type GetPointsParams } from "./world/sim-object";
-import { Container, Node } from "./world/reqt";
 
 declare global {
   interface CanvasRenderingContext2D {
@@ -27,15 +26,15 @@ export class Layer extends Container {
     return candidate instanceof Layer
   }
 
-  public getPoints(params?: GetPointsParams): Array<Primitive.PointData> {
+  public getPoints(params?: GetPointsParams): Array<PointData> {
     throw new Error("Method is not implemented")
   }
 
-  public getBounds(params?: GetBoundsParams): Primitive.Rectangle {
+  public getBounds(params?: GetBoundsParams): Rectangle {
     throw new Error("Method is not implemented")
   }
 
-  public getUnrotateBounds(): Primitive.Rectangle {
+  public getUnrotateBounds(): Rectangle {
     throw new Error("Method is not implemented")
   }
 
@@ -57,7 +56,7 @@ export class Layer extends Container {
     return this._rc
   }
 
-  public get worldPointer(): Primitive.Point {
+  public get worldPointer(): Point {
     return this.screenToWorld(this.stage.absolutePositionCursor)
   }
 
@@ -95,7 +94,7 @@ export class Layer extends Container {
 
   public update(time: number) { }
 
-  public screenToWorld(point: Primitive.Point): Primitive.Point {
+  public screenToWorld(point: Point): Point {
     return point
   }
 
@@ -127,7 +126,7 @@ export class Layer extends Container {
     return next
   }
 
-  public getIntersection(point: Primitive.PointData): Node | null {
+  public getIntersection(point: PointData): Node | null {
     const sizes = this.sizes
 
     const x = Math.floor(point.x)

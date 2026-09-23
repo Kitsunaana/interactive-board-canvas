@@ -28,11 +28,11 @@ type GetRotateDeltaMatrixParams = {
 }
 
 type GetTranslateDeltaMatrixParams = {
-  parent: Transformable | null,
+  parent: Transformable__DELETE | null,
   distance: PointData
 }
 
-export abstract class Transformable {
+export abstract class Transformable__DELETE {
   public static getOriginInOriginalSpace({ bounds, origin }: GetOriginInOriginalSpaceParams) {
     return {
       x: bounds.x + bounds.width * origin.x,
@@ -115,7 +115,7 @@ export abstract class Transformable {
   }
 
   public rotate(angle: number) {
-    this.applyDeltaTransform(Transformable.getRotateDeltaMatrix({
+    this.applyDeltaTransform(Transformable__DELETE.getRotateDeltaMatrix({
       origin: this.getInLocalOriginPosition("rotate"),
       angle,
     }))
@@ -125,7 +125,7 @@ export abstract class Transformable {
     const origin = this.getInLocalOriginPosition("scale")
     const angle = this.getCurrentAngle()
 
-    const delta = Transformable.getScaleDeltaMatrix({ origin, angle, scale })
+    const delta = Transformable__DELETE.getScaleDeltaMatrix({ origin, angle, scale })
 
     this.applyDeltaTransform(delta)
   }
@@ -134,7 +134,7 @@ export abstract class Transformable {
   public translate(distance: PointData): void {
     const parent = this.parent;
 
-    this.applyDeltaTransform(Transformable.getTranslateDeltaMatrix({
+    this.applyDeltaTransform(Transformable__DELETE.getTranslateDeltaMatrix({
       distance,
       parent,
     }))

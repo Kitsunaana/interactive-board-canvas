@@ -1,8 +1,8 @@
+import type { Node } from "../core/Node";
 import { createRoute } from "../EventBus";
 import { Point } from "../maths";
 import { pointFromEvent } from "../shared/point";
-import type { Node } from "../world/reqt";
-import type { EventObject } from "./EventBehavior";
+import type { EventObject } from "./EventBehavior_v2";
 
 export class DragBehavior {
   public readonly routes = {
@@ -46,11 +46,11 @@ export class DragBehavior {
   }
 
   public subscribe(): void {
-    this.node.system_events.on("pointerdown", this.start)
+    this.node.events.on("pointerdown", this.start)
   }
 
   public unsubscribe(): void {
-    this.node.system_events.off("pointerdown", this.start)
+    this.node.events.off("pointerdown", this.start)
 
     window.removeEventListener("pointermove", this.process)
     window.removeEventListener("pointerup", this.finish)
@@ -75,7 +75,7 @@ export class DragBehavior {
     this._currentPosition.copyFrom(position)
 
     this._deltaBetweenStartAndObjectPositions.copyFrom(this._startPosition.sub(this.node.position))
-    this.node.custom_events.emit(this.routes.startDrag())
+    this.node.emitter.emit(this.routes.startDrag())
 
     window.addEventListener("pointermove", this.process)
     window.addEventListener("pointerup", this.finish)
@@ -88,14 +88,14 @@ export class DragBehavior {
     const nextPosition = position.sub(this._deltaBetweenStartAndObjectPositions)
 
     this._currentPosition.copyFrom(nextPosition)
-    this.node.custom_events.emit(this.routes.processDrag())
+    this.node.emitter.emit(this.routes.processDrag())
   }
 
   public finish(event: PointerEvent): void {
     if (this._isDragging === false) return
 
     this._isDragging = false
-    this.node.custom_events.emit(this.routes.finishDrag())
+    this.node.emitter.emit(this.routes.finishDrag())
 
     window.removeEventListener("pointermove", this.process)
     window.removeEventListener("pointerup", this.finish)

@@ -1,8 +1,8 @@
 import { isNull } from "lodash";
 import { Transformer } from "../behaviors/TransformerV4";
 import { Bounds, Circle, Matrix3x3, type PointData, Rectangle } from "../maths";
-import { Shape, type ShapeConfig } from "../world/reqt";
-import { type GetBoundsParams } from "../world/sim-object";
+import { Shape, type ShapeConfig } from "../core/Shape";
+import { type GetBoundsParams } from "../core/Node";
 
 export type CircleShapeConfig = {
   x: number

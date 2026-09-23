@@ -1,7 +1,7 @@
-import { Matrix3x3, Polygon, Rectangle } from "./maths"
-import { Shape } from "./shapes/Shape"
-import { Container } from "./world/reqt"
-import { type GetBoundsParams, type GetPointsParams } from "./world/sim-object"
+import { Matrix3x3, Polygon, Rectangle } from "../maths"
+import { Container } from "./Container"
+import { routes, type GetBoundsParams, type GetPointsParams } from "./Node"
+import { Shape } from "./Shape"
 
 export class Group extends Container {
   public static isGroup(candidate: unknown): candidate is Group {
@@ -13,7 +13,7 @@ export class Group extends Container {
   public constructor() {
     super()
 
-    this.custom_events.on(this.custom_events.routes.addChild, ({ payload }) => {
+    this.emitter.on(routes.addChild, ({ payload }) => {
       const child = payload.child
 
       child.transform.__testMatrix = Matrix3x3.invert(this.transform.worldMatrix) ?? Matrix3x3.identity()
@@ -57,7 +57,7 @@ export class Group extends Container {
 
     const points = this.getFlatListChildren().flatMap((shape) => {
       const matrix = Matrix3x3.compose(unrotate, shape.worldMatrix)
-      
+
       return shape
         .getPoints()
         .map((point) => matrix.applyToPoint(point))
@@ -71,7 +71,7 @@ export class Group extends Container {
       const invertParent = Matrix3x3.invert(this.transform.localMatrix) ?? Matrix3x3.identity()
 
       return child.parent === this
-        ? Matrix3x3.compose(child.__testMatrix, child.localMatrix)
+        ? Matrix3x3.compose(child.transform.__testMatrix, child.localMatrix)
         : Matrix3x3.compose(invertParent, child.worldMatrix)
     }
 

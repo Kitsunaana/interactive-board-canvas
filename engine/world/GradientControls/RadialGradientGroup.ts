@@ -2,9 +2,10 @@ import { isNil } from "lodash";
 import { Matrix3x3, Point } from "../../maths";
 import { CircleShape } from "../../shapes/Circle";
 import { BaseGradientGroup, RADIUS, SYSTEM_UI, getRandomColor } from "./BaseGradientGroup";
-import { Shape } from "../reqt";
 import { angleBetweenPoints, getAbsolutePosition, getNormalizedPosition } from "../../shared/point";
 import { LinearGradientData, RadialGradientData } from "../GradientData";
+import { Shape } from "../../core/Shape";
+import { routes } from "../../core/Node";
 
 export class RadialGradientGroup extends BaseGradientGroup {
   public readonly radiusHandle = this.createHandle()
@@ -33,11 +34,11 @@ export class RadialGradientGroup extends BaseGradientGroup {
     this.attachCenterHandleDragStart()
     this.attachCenterHandleDragProcess()
 
-    this.connectionLine.system_events.on("dblclick", this.handleConnectionLineDoubleClick.bind(this))
-    this.custom_events.on(this.custom_events.routes.addChild, (this.onTargetShapeAdded.bind(this)))
+    this.connectionLine.events.on("dblclick", this.handleConnectionLineDoubleClick.bind(this))
+    this.emitter.on(routes.addChild, (this.onTargetShapeAdded.bind(this)))
   }
 
-  public onTargetShapeAdded({ payload }: ReturnType<typeof this.custom_events.routes.addChild>): void {
+  public onTargetShapeAdded({ payload }: ReturnType<typeof routes.addChild>): void {
     const addedChild = payload.child
     if (addedChild.hasName(SYSTEM_UI) || !(addedChild instanceof Shape)) return
 
@@ -95,14 +96,14 @@ export class RadialGradientGroup extends BaseGradientGroup {
   }
 
   public attachCenterHandleDragStart(): void {
-    this.startHandle.custom_events.on(this.startHandle.draggable.routes.startDrag, () => {
+    this.startHandle.emitter.on(this.startHandle.draggable.routes.startDrag, () => {
       this.centerDragStartState.radiusHandle = this.radiusHandle.position
       this.centerDragStartState.endHandle = this.endHandle.position
     })
   }
 
   public attachCenterHandleDragProcess(): void {
-    this.startHandle.custom_events.on(this.startHandle.draggable.routes.processDrag, () => {
+    this.startHandle.emitter.on(this.startHandle.draggable.routes.processDrag, () => {
       this.startHandle.position = this.startHandle.draggable.nextPosition
 
       const targetBounds = this.targetShape.getBounds({})
@@ -124,14 +125,14 @@ export class RadialGradientGroup extends BaseGradientGroup {
   }
 
   public attachOrbitalDragStart(handle: CircleShape, opposite: CircleShape) {
-    handle.custom_events.on(handle.draggable.routes.startDrag, () => {
+    handle.emitter.on(handle.draggable.routes.startDrag, () => {
       this.orbitalDragState.initAngle = angleBetweenPoints(this.startHandle.position, handle.position)
       this.orbitalDragState.initRadiusPosition = opposite.position
     })
   }
 
   public attachOrbitalDragProcess(handle: CircleShape, opposite: CircleShape) {
-    handle.custom_events.on(handle.draggable.routes.processDrag, () => {
+    handle.emitter.on(handle.draggable.routes.processDrag, () => {
       handle.position = handle.draggable.nextPosition
 
       const targetBounds = this.targetShape.getBounds({})

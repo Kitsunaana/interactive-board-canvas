@@ -1,6 +1,6 @@
+import { type GetBoundsParams, type GetPointsParams } from "../core/Node";
+import { Shape, type ShapeConfig } from "../core/Shape";
 import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths";
-import { Shape, type ShapeConfig } from "../world/reqt";
-import { type GetPointsParams, type GetBoundsParams } from "../world/sim-object";
 
 export type PolygonConfig = ShapeConfig & {
   initialPoints: Array<PointData>

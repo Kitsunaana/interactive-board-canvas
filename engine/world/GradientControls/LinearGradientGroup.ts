@@ -4,7 +4,8 @@ import { CircleShape } from "../../shapes/Circle";
 import { getAbsolutePosition, getNormalizedPosition } from "../../shared/point";
 import { BaseGradientGroup, getRandomColor, RADIUS, SYSTEM_UI } from "./BaseGradientGroup";
 import { LinearGradientData, RadialGradientData } from "../GradientData";
-import { Shape } from "../reqt";
+import { Shape } from "../../core/Shape";
+import { routes } from "../../core/Node";
 
 export class LinearGradientGroup extends BaseGradientGroup {
   public constructor() {
@@ -13,11 +14,11 @@ export class LinearGradientGroup extends BaseGradientGroup {
     this.attachHandleDragEvents(this.startHandle)
     this.attachHandleDragEvents(this.endHandle)
 
-    this.connectionLine.system_events.on("dblclick", this.handleConnectionLineDoubleClick.bind(this))
-    this.custom_events.on(this.custom_events.routes.addChild, this.onTargetShapeAdded.bind(this))
+    this.connectionLine.events.on("dblclick", this.handleConnectionLineDoubleClick.bind(this))
+    this.emitter.on(routes.addChild, this.onTargetShapeAdded.bind(this))
   }
 
-  public onTargetShapeAdded({ payload }: ReturnType<typeof this.custom_events.routes.addChild>): void {
+  public onTargetShapeAdded({ payload }: ReturnType<typeof routes.addChild>): void {
     const addedChild = payload.child
 
     if (addedChild.hasName(SYSTEM_UI) || !(addedChild instanceof Shape)) return
@@ -31,7 +32,7 @@ export class LinearGradientGroup extends BaseGradientGroup {
   }
 
   public attachHandleDragEvents(handle: CircleShape): CircleShape {
-    handle.custom_events.on(handle.draggable.routes.processDrag, () => {
+    handle.emitter.on(handle.draggable.routes.processDrag, () => {
       handle.position = handle.draggable.nextPosition
 
       this.connectionLine.setPoints(this.calculateConnectionLineVertices())

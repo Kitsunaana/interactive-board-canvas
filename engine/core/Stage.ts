@@ -1,9 +1,9 @@
-import { type EventObject } from "./behaviors/EventBehavior"
-import { Layer } from "./LayerV2"
-import { Point, Rectangle, type PointData } from "./maths"
-import { getPointFromEvent } from "./shared/point"
-import { Container, Node } from "./world/reqt"
-import { type GetBoundsParams, type GetPointsParams } from "./world/sim-object"
+import { type EventObject } from "../behaviors/EventBehavior_v2"
+import { Point, Rectangle, type PointData } from "../maths"
+import { getPointFromEvent } from "../shared/point"
+import { Container } from "./Container"
+import type { Layer } from "./Layer"
+import type { Node, GetBoundsParams, GetPointsParams } from "./Node"
 
 export interface StageConfig {
   draggable: boolean
@@ -285,7 +285,7 @@ export class Stage extends Container {
     domEvent: MouseEvent | PointerEvent,
     bubble: boolean
   ): void {
-    target.system_events.fire(
+    target.events.fire(
       eventName,
       {
         target,

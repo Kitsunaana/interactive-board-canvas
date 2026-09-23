@@ -53,7 +53,7 @@ const toEventTokens = (eventNames?: string): ParsedEventToken[] => {
     .filter((token) => token.eventType || token.namespace)
 }
 
-export abstract class EventBehavior {
+export abstract class EventBehavior__DELETE {
   public abstract parent: SimObject | null
 
   private readonly _listenersMap: Map<string, Array<ListenerEntry>> = new Map()
