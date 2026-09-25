@@ -76,11 +76,11 @@ export class PolygonShape extends Shape {
   }
 
   public updateAfterTransform(): void {
-    // if (!this.isInteracting) {
-    //   const matrix = this.worldMatrix
-    //   const transformedPoints = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
-    //   this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
-    // }
+    if (!this.isInteracting) {
+      const matrix = this.worldMatrix
+      const transformedPoints = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
+      this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
+    }
   }
 
   public getPoints(params: GetPointsParams = {}): Array<PointData> {
@@ -163,8 +163,24 @@ export class PolygonShape extends Shape {
     // if (!this.visible) return
 
     context.betweenSaveAndRestore(() => {
+      this.cachedMatrix.applyToContext(context)
       this.tracePath(context)
       this.fillStrokeShape(context)
+    })
+
+    context.betweenSaveAndRestore(() => {
+      this.cachedMatrix.applyToContext(context)
+
+      const corners = this
+        .getBounds({ skipTransform: true })
+        .getCorners()
+        .map((p) => this.worldMatrix.applyToPoint(p))
+
+      context.beginPath()
+      context.moveTo(corners[0].x, corners[0].y)
+      corners.forEach((p) => context.lineTo(p.x, p.y))
+      context.closePath()
+      context.stroke()
     })
   }
 
@@ -178,7 +194,7 @@ export class PolygonShape extends Shape {
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     const points = params.skipTransform
       ? this._initialPoints
-      : this._initialPoints.map(this.transform.worldMatrix.applyToPoint.bind(this.transform.worldMatrix))
+      : this._initialPoints.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
 
     const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension)
     const allPoints = points.concat(curveExtrema)
@@ -215,6 +231,8 @@ export class PolygonShape extends Shape {
 
       return
     }
+
+    console.log(this)
 
     for (let i = 3; i < points.length; i += 3) {
       const prevOut = points[i - 1]

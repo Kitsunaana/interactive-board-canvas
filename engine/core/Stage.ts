@@ -104,7 +104,7 @@ export class Stage extends Container {
   public render(_context: CanvasRenderingContext2D): void { }
 
   public getBounds(_params?: GetBoundsParams): Rectangle {
-    return new Rectangle(0, 0, 0, 0)
+    return new Rectangle(0, 0, 100, 100)
   }
 
   public getUnrotateBounds(): Rectangle {
@@ -120,6 +120,8 @@ export class Stage extends Container {
 
       layer.sizes = this.sizes
       layer.parent = this
+      
+      layer.stage_v2 = this
     })
   }
 

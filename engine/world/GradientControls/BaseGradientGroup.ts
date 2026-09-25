@@ -6,6 +6,7 @@ import type { EventObject } from "../../behaviors/EventBehavior_v2";
 import { PolygonShape } from "../../shapes/Polygon";
 import { Group } from "../../core/Group";
 import { Shape } from "../../core/Shape";
+import { routes } from "../../core/Node";
 
 export const SYSTEM_UI = "@@_SYSTEM_UI"
 export const RADIUS = 6
@@ -164,7 +165,7 @@ export abstract class BaseGradientGroup extends Group {
   }
 
   public attachStepHandleDragEvents(stepHandle: CircleShape): CircleShape {
-    stepHandle.emitter.on(stepHandle.draggable.routes.processDrag, () => {
+    stepHandle.emitter.on(routes.processDrag, () => {
       const cursorPosition = this.layer.worldPointer.sub({ x: RADIUS, y: RADIUS })
       const start = this.startHandle.position
       const end = this.endHandle.position

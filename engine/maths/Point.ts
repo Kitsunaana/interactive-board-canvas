@@ -125,4 +125,12 @@ export class Point implements PointLike {
   public sign(): Point {
     return new Point(Math.sign(this.x), Math.sign(this.y))
   }
+
+  public atan2YX(): number {
+    return Math.atan2(this.y, this.x)
+  }
+
+  public atan2XY(): number {
+    return Math.atan2(this.x, this.y)
+  }
 }

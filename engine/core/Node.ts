@@ -3,7 +3,7 @@ import { EventBehaviorV2 } from "../behaviors/EventBehavior_v2"
 import { createRoute, EventEmitter } from "../EventBus"
 import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
 import { nanoid } from "nanoid"
-import { DragBehavior } from "../behaviors/drag-behavior"
+import { DRAG_ROUTES, DragBehavior } from "../behaviors/drag-behavior"
 import { Transformer } from "../behaviors/TransformerV4"
 import type { Layer } from "./Layer"
 import type { Stage } from "./Stage"
@@ -13,6 +13,7 @@ interface NodeToCustomEventsImpl {
 }
 
 export const routes = {
+  ...DRAG_ROUTES,
   addChild: createRoute("addChild").withParams<{ child: Node }>(),
   addToParent: createRoute("addToParent").withParams<{ parent: Container }>(),
   removeChild: createRoute("removeChild").withParams<{ child: Node }>(),
@@ -47,8 +48,12 @@ export abstract class Node {
   public abstract render(context: CanvasRenderingContext2D): void
   public abstract renderHit(context: CanvasRenderingContext2D): void
   public abstract getPoints(params?: GetPointsParams): Array<PointData>
-  public abstract getBounds(params: GetBoundsParams): Rectangle
+  public abstract getBounds(params?: GetBoundsParams): Rectangle
+  public abstract getUnrotateBounds(params?: GetBoundsParams): Rectangle
   public abstract updateAfterTransform(): void
+
+  public abstract layer_v2: Layer
+  public abstract stage_v2: Stage
 
   private _dataAttributeMap: Map<string, unknown> = new Map()
   private _parent: Container | null = null
@@ -57,10 +62,25 @@ export abstract class Node {
   public readonly id: string = nanoid()
   public readonly type: string = "Node"
 
+  public isVisible: boolean = true
+  public isListening: boolean = true
+
   public readonly transform: Transformer = new Transformer(this)
   public readonly draggable: DragBehavior = new DragBehavior(this)
   public readonly events: EventBehaviorV2 = new EventBehaviorV2(this)
   public readonly emitter: CustomEvents = new CustomEvents(this)
+
+  public _prevBounds: Rectangle | null = null
+  public isDirtyBounds: boolean = true
+
+  public get bounds() {
+    if (this.isDirtyBounds || this._prevBounds === null) {
+      this._prevBounds = this.getBounds()
+      this.isDirtyBounds = false
+    }
+    
+    return this._prevBounds
+  }
 
   public set parent(parent: Container | null) {
     this._parent = parent
@@ -113,14 +133,17 @@ export abstract class Node {
 
   public set worldMatrix(matrix: Matrix3x3) {
     this.transform.worldMatrix = matrix
+    this.isDirtyBounds = true
   }
 
   public set localMatrix(matrix: Matrix3x3) {
     this.transform.localMatrix = matrix
+    this.isDirtyBounds = true
   }
 
   public set cachedMatrix(matrix: Matrix3x3) {
     this.transform.cachedMatrix = matrix
+    this.isDirtyBounds = true
   }
 
   public get isInteracting() {

@@ -1,8 +1,9 @@
 import { isNull } from "lodash";
 import { Transformer } from "../behaviors/TransformerV4";
-import { Bounds, Circle, Matrix3x3, type PointData, Rectangle } from "../maths";
+import { Bounds, Circle, Matrix3x3, Point, type PointData, Rectangle } from "../maths";
 import { Shape, type ShapeConfig } from "../core/Shape";
 import { type GetBoundsParams } from "../core/Node";
+import { drawOriginPoint } from "../behaviors/Transformable";
 
 export type CircleShapeConfig = {
   x: number
@@ -39,7 +40,9 @@ function getCircleBoundingBox(circle: Circle, worldMatrix: Matrix3x3): Rectangle
     cy + extentY
   )
 
-  return bounds.rectangle
+  const rectangle = bounds.rectangle
+
+  return rectangle
 }
 
 export type CircleConfig = ShapeConfig & {
@@ -83,8 +86,19 @@ export class CircleShape extends Shape {
     return this.getBounds().width / 2
   }
 
+  public get position(): Point {
+    return this.getBounds({}).center
+  }
+
+  public set position(nextPos: PointData) {
+    this.transform.translate(Point.fromData(nextPos).sub(this.position))
+  }
+
   public getPoints(): Array<PointData> {
-    return this.getBounds().getCorners()
+    // const bounds = this.getBounds()
+    // const max = Math.max(...bounds.getCorners().map(c => c.x))
+    // console.log(max)
+    return this.getBounds({ skipTransform: true }).getCorners()
   }
 
   public updateAfterTransform(): void {
@@ -98,9 +112,13 @@ export class CircleShape extends Shape {
       this.fillStrokeShape(context)
     })
 
-    if (!this.hasName("@@_SYSTEM_UI")) {
-      const bounds = this.getBounds({})
-      // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    context.betweenSaveAndRestore(() => {
+      // drawOriginPoint(context, this.position, `${this.x}:${this.y}`)
+    })
+
+    if (this.hasName("@@_SYSTEM_UI")) {
+      const bounds = this.getBounds({ skipTransform: true })
+      context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
     }
   }
 
@@ -113,7 +131,13 @@ export class CircleShape extends Shape {
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
-    if (params.skipTransform) return new Circle(0, 0, this._initRadius).getBounds()
+    if (params.skipTransform) {
+      const bounds = new Circle(0, 0, this._initRadius).getBounds()
+      // const position = this.position
+      // bounds.x += position.x
+      // bounds.y += position.y
+      return bounds
+    }
 
     const matrix = this.transform.worldMatrix
     const bounds = getCircleBoundingBox(new Circle(0, 0, this._initRadius), matrix)
@@ -130,7 +154,7 @@ export class CircleShape extends Shape {
     const radius = this.radius
 
     context.beginPath()
-    context.arc(position.x + radius, position.y + radius, radius, 0, Math.PI * 2, false)
+    context.arc(position.x, position.y, radius, 0, Math.PI * 2, false)
     context.closePath()
   }
 }

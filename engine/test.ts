@@ -6,6 +6,8 @@ import { CircleShape } from "./shapes/Circle";
 import { PolygonShape } from "./shapes/Polygon";
 import { LinearGradientGroup } from "./world/GradientControls/LinearGradientGroup";
 import { RadialGradientGroup } from "./world/GradientControls/RadialGradientGroup";
+import { Transformer } from "./world/TransformerV2";
+import { RotateAndSkewSingleTransformer } from "./RotateAndSkewSingleTransformer";
 
 const stage = new Stage({
   height: window.innerHeight,
@@ -47,13 +49,17 @@ const polygonShape_3 = new PolygonShape({
 });
 
 const polygonShape_1 = new PolygonShape({ initialPoints: points_1, lineWidth: 10 });
-const polygonShape_2 = new PolygonShape({ initialPoints: points_2, tension: 0.1 });
+const polygonShape_2 = new PolygonShape({ initialPoints: points_2, tension: 0.0 });
 
-// const transformer = new Transformer()
-const group = new Group()
+const transformer = new Transformer()
+const group1 = new Group()
+const group2 = new Group()
 
-// group.appendChild(polygonShape_3, polygonShape_1)
-// transformer.appendChild(group, polygonShape_2)
+// group1.appendChild(polygonShape_3, polygonShape_2)
+// group2.appendChild(group1, polygonShape_1)
+// transformer.appendChild(group2)
+
+// layer.appendChild(polygonShape_3)
 
 // const creator = new CubicBezierPathCreator(layer)
 stage.draggable.unsubscribe()
@@ -62,7 +68,7 @@ layer.draggable.unsubscribe()
 // layer.appendChild(transformer)
 stage.appendChild(layer)
 
-const testShape = new CircleShape({ x: 0, y: 0, radius: 150 })
+const testShape = new CircleShape({ x: 0, y: 0, radius: 50 })
 const linearGradientGroup = new LinearGradientGroup()
 
 testShape.position = {
@@ -72,8 +78,21 @@ testShape.position = {
 
 // testShape.transform.translate({ x: 10, y: 20 })
 testShape.transform.scale({ x: 1.5, y: 2 })
+// polygonShape_3.transform.skew({ x: 0.0, y: 0.5 })
+// polygonShape_3.transform.skew({ x: -0.6, y: 0.0 })
 
-linearGradientGroup.appendChild(testShape)
-layer.appendChild(linearGradientGroup)
+// linearGradientGroup.appendChild(testShape)
+// layer.appendChild(testShape)
 
 // testShape.transform.rotate(0.6)
+
+const qwe = new RotateAndSkewSingleTransformer()
+const groupVRDK = new Group()
+groupVRDK.appendChild(polygonShape_3, polygonShape_2)
+qwe.appendChild(groupVRDK)
+layer.appendChild(qwe)
+
+// polygonShape_3.transform.rotate(0.4)
+// polygonShape_3.transform.scale({ x: 1.5, y: 1.0 })
+
+

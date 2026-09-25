@@ -1,7 +1,31 @@
+import type { Layer } from "./Layer"
 import { Node, routes } from "./Node"
+import type { Stage } from "./Stage"
 
 export abstract class Container extends Node {
   private _children: Array<Node> = []
+
+  private _stage_v2: Stage | null = null
+  public get stage_v2() {
+    return this._stage_v2!
+  }
+  public set stage_v2(parent: Stage) {
+    this._stage_v2 = parent
+    this.children.forEach((child) => {
+      child.stage_v2 = parent
+    })
+  }
+
+  private _layer_v2: Layer | null = null
+  public get layer_v2() {
+    return this._layer_v2!
+  }
+  public set layer_v2(parent: Layer) {
+    this._layer_v2 = parent
+    this.children.forEach((child) => {
+      child.layer_v2 = parent
+    })
+  }
 
   public get children() {
     return this._children
@@ -17,12 +41,12 @@ export abstract class Container extends Node {
 
   public updateWorldTransform(): void {
     super.updateWorldTransform()
-    this.children.forEach(this.updateWorldTransform.call)
+    this.children.forEach((child) => child.updateWorldTransform())
   }
 
   public destroy() {
     super.destroy()
-    this.children.forEach(this.destroy.call)
+    this.children.forEach((child) => this.destroy())
   }
 
   public removeChild(child: Node) {

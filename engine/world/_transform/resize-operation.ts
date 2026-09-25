@@ -1,12 +1,12 @@
 import { isNil } from "lodash";
-import type { EventObject } from "../../behaviors/EventBehavior";
+import type { EventObject } from "../../behaviors/EventBehavior_v2";
 import { drawOriginPoint } from "../../behaviors/Transformable";
 import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
-import { Shape } from "../../shapes/Shape";
 import { pointFromEvent } from "../../shared/point";
-import { SimObject } from "../sim-object";
 import { Transformer } from "../TransformerV2";
 import type { Corner, Edge } from "./transform-operation.interface";
+import { Node } from "../../core/Node";
+import { Shape } from "../../core/Shape";
 
 type ResizeHandler = Corner | Edge
 
@@ -23,7 +23,7 @@ export class ResizeTransformOperation {
   private _pickedHandler: Corner | Edge | null = null;
   private _proportional: boolean = false
 
-  public constructor(public context: Transformer, public node: SimObject) { }
+  public constructor(public context: Transformer, public node: Node) { }
 
   public debugRender(context: CanvasRenderingContext2D): void {
     context.betweenSaveAndRestore(() => {
@@ -37,7 +37,7 @@ export class ResizeTransformOperation {
   public startTransform(event: EventObject<PointerEvent>): void {
     this.context.transformState = "resize"
 
-    const handler = event.target.classList[0] as ResizeHandler
+    const handler = event.target.getDataAttr("handler") as ResizeHandler
     this._pickedHandler = this._getEffectiveSide(handler)
 
     this._setInitialState();
@@ -45,8 +45,10 @@ export class ResizeTransformOperation {
     this._setHandlePosition(this._pickedHandler);
     this._setWorldPivot();
 
-    this.node.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
-    this.node.beginInteraction("scale");
+    const scaleOrigin = this._getRelativeOriginScale(this._pickedHandler)
+
+    this.node.transform.setOrigin("scale", scaleOrigin);
+    this.node.transform.beginInteraction("scale");
 
     const mergedResizeHandlers = Object
       .keys(this.context.resizeHandlerShapes)
@@ -66,7 +68,8 @@ export class ResizeTransformOperation {
 
     this._proportional = event.shiftKey
 
-    this.node.setOrigin("scale", this._getRelativeOriginScale(this._pickedHandler));
+    const scaleOrigin = this._getRelativeOriginScale(this._pickedHandler)
+    this.node.transform.setOrigin("scale", scaleOrigin);
 
     const cursorPosition = this.node.layer
       .screenToWorld(pointFromEvent(event))
@@ -74,7 +77,7 @@ export class ResizeTransformOperation {
 
     this._setTransformScale(cursorPosition, this._pickedHandler);
 
-    this.node.updateInteraction(this._transformScale);
+    this.node.transform.updateInteraction(this._transformScale);
     this.context.updateHandlersPosition()
   }
 
@@ -84,8 +87,8 @@ export class ResizeTransformOperation {
     if (this._transformScale.x === 0) this._transformScale.x = 0.001
     if (this._transformScale.y === 0) this._transformScale.y = 0.001
 
-    this.node.updateInteraction(this._transformScale)
-    this.node.endInteraction();
+    this.node.transform.updateInteraction(this._transformScale)
+    this.node.transform.endInteraction();
 
     this.context.updateHandlersPosition()
 
@@ -105,7 +108,7 @@ export class ResizeTransformOperation {
 
   private _setWorldPivot(): void {
     const pivotPosition = this._pivotPosition.clone();
-    const currentAngle = this.node.getCurrentAngle()
+    const currentAngle = this.node.transform.getCurrentAngle()
 
     const rotated = Matrix3x3.rotate(currentAngle).applyToPoint(pivotPosition);
     const world = this._obbWorldCenter.add(rotated);
@@ -134,7 +137,7 @@ export class ResizeTransformOperation {
   private _setTransformScale(currentPointer: Point, side: Edge | Corner): void {
     const worldMatrix = Matrix3x3.compose(
       Matrix3x3.translate(this._obbWorldCenter.x, this._obbWorldCenter.y),
-      Matrix3x3.rotate(this.node.getCurrentAngle()),
+      Matrix3x3.rotate(this.node.transform.getCurrentAngle()),
     );
 
     const localMatrix = Matrix3x3.invert(worldMatrix) ?? Matrix3x3.identity();

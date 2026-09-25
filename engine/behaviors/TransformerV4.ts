@@ -98,7 +98,7 @@ export class Transformer {
   public setInitialRelativeOrigins(): void {
     this.currentRelativeOrigins.rotate.set(0.5, 0.5)
     this.currentRelativeOrigins.scale.set(0.0, 0.0)
-    this.currentRelativeOrigins.skew.set(1.0, 1.0)
+    this.currentRelativeOrigins.skew.set(0.5, 0.5)
   }
 
   public setOrigin(operation: TransformOperation, relativeOrigin: PointData): void {
@@ -145,8 +145,11 @@ export class Transformer {
     this.node.applyDeltaTransform(deltaMatrix)
   }
 
-  public skew(_skew: PointData): void {
-    // TODO
+  public skew(value: PointData): void {
+    const origin = this.getInLocalOriginPosition("skew")
+    const deltaMatrix = Matrix3x3.aroundOrigin(origin, () => Matrix3x3.skew(value.x, value.y))
+    
+    this.node.applyDeltaTransform(deltaMatrix)
   }
 
   public beginInteraction(type: TransformOperation): void {

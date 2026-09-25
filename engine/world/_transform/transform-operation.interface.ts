@@ -1,7 +1,7 @@
-import type { EventObject } from "../../behaviors/EventBehavior";
-import { Group } from "../../Group";
-import type { Layer } from "../../LayerV2";
-import type { SimObject } from "../sim-object";
+import type { EventObject } from "../../behaviors/EventBehavior_v2";
+import type { Group } from "../../core/Group";
+import type { Layer } from "../../core/Layer";
+import type { Node } from "../../core/Node";
 
 export type TransformState = "idle" | "resize" | "rotate"
 export type Corner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
@@ -19,7 +19,7 @@ export interface TransformOperationModel {
 export interface TransformContext {
   transformState: TransformState
   context: Group & {
-    box: SimObject
+    box: Node
   }
 
   updateHandlersPosition(): void

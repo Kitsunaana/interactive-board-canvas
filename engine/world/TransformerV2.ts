@@ -1,16 +1,17 @@
 import { isNil } from "lodash"
-import { Transformable, type TransformOperation } from "../behaviors/Transformable"
-import { Group } from "../Group"
-import { Layer } from "../LayerV2"
+import { type TransformOperation } from "../behaviors/Transformable"
 import { Matrix3x3, Point, type PointData, Polygon } from "../maths"
 import { CircleShape } from "../shapes/Circle"
 import { PolygonShape } from "../shapes/Polygon"
-import { Shape } from "../shapes/Shape"
 import { mapKeys } from "../utils"
 import { ResizeTransformOperation } from "./_transform/resize-operation"
 import { RotateTransformOperation } from "./_transform/rotate-operation"
 import type { Corner, Edge, TransformState } from "./_transform/transform-operation.interface"
-import { SimObject } from "./sim-object"
+import { Group } from "../core/Group"
+import { Node, routes } from "../core/Node"
+import { Shape } from "../core/Shape"
+import { getOriginInOriginalSpace, getRotateDeltaMatrix, getScaleDeltaMatrix, getTranslateDeltaMatrix } from "../behaviors/TransformerV4"
+import { Layer } from "../core/Layer"
 
 export class Transformer extends Group {
   public static OFFSET_BETWEEN_SHAPES_AND_AABB = 7
@@ -32,18 +33,18 @@ export class Transformer extends Group {
   public resizeOperation: ResizeTransformOperation
 
   public readonly rotateHandlerShapes: Record<Corner, CircleShape> = {
-    bottomRight: new CircleShape(0, 0, Transformer.ROTATE_HANDLER_RADIUS),
-    bottomLeft: new CircleShape(0, 0, Transformer.ROTATE_HANDLER_RADIUS),
-    topRight: new CircleShape(0, 0, Transformer.ROTATE_HANDLER_RADIUS),
-    topLeft: new CircleShape(0, 0, Transformer.ROTATE_HANDLER_RADIUS),
+    bottomRight: new CircleShape({ x: 0, y: 0, radius: Transformer.ROTATE_HANDLER_RADIUS }),
+    bottomLeft: new CircleShape({ x: 0, y: 0, radius: Transformer.ROTATE_HANDLER_RADIUS }),
+    topRight: new CircleShape({ x: 0, y: 0, radius: Transformer.ROTATE_HANDLER_RADIUS }),
+    topLeft: new CircleShape({ x: 0, y: 0, radius: Transformer.ROTATE_HANDLER_RADIUS }),
   }
 
   public readonly resizeHandlerShapes = {
     corner: {
-      bottomRight: new CircleShape(0, 0, Transformer.RESIZE_HANDLER_RADIUS),
-      bottomLeft: new CircleShape(0, 0, Transformer.RESIZE_HANDLER_RADIUS),
-      topRight: new CircleShape(0, 0, Transformer.RESIZE_HANDLER_RADIUS),
-      topLeft: new CircleShape(0, 0, Transformer.RESIZE_HANDLER_RADIUS),
+      bottomRight: new CircleShape({ x: 0, y: 0, radius: Transformer.RESIZE_HANDLER_RADIUS }),
+      bottomLeft: new CircleShape({ x: 0, y: 0, radius: Transformer.RESIZE_HANDLER_RADIUS }),
+      topRight: new CircleShape({ x: 0, y: 0, radius: Transformer.RESIZE_HANDLER_RADIUS }),
+      topLeft: new CircleShape({ x: 0, y: 0, radius: Transformer.RESIZE_HANDLER_RADIUS }),
     },
 
     edge: {
@@ -58,11 +59,11 @@ export class Transformer extends Group {
     return this.children.length === 1
   }
 
-  private get _child(): SimObject {
+  private get _child(): Node {
     return this.children[0]
   }
 
-  public get node(): SimObject {
+  public get node(): Node {
     if (this._isSingle) return this._child
     return this
   }
@@ -92,7 +93,7 @@ export class Transformer extends Group {
     this.rotateOperation = new RotateTransformOperation(this, this.node)
     this.resizeOperation = new ResizeTransformOperation(this, this.node)
 
-    this.emitter.on(this.routes.addToParent, this._afterAddToParentCallback.bind(this))
+    this.emitter.on(routes.addToParent, this._afterAddToParentCallback.bind(this))
   }
 
   private _afterAddToParentCallback(): void {
@@ -103,11 +104,11 @@ export class Transformer extends Group {
     this.updateHandlersPosition()
 
     this.children.forEach((child) => {
-      child.emitter.on(child.routes.processDrag, () => {
+      child.emitter.on(routes.processDrag, () => {
         this.hideSystemUiControls()
       })
 
-      child.emitter.on(child.routes.finishDrag, () => {
+      child.emitter.on(routes.finishDrag, () => {
         this.updateHandlersPosition()
         this.showSystemUiControls()
       })
@@ -121,23 +122,23 @@ export class Transformer extends Group {
   public hideSystemUiControls(): void {
     this
       .getSystemUiShapes()
-      .forEach((shape) => shape.visible = false)
+      .forEach((shape) => shape.isVisible = false)
   }
 
   public showSystemUiControls(): void {
     this
       .getSystemUiShapes()
-      .forEach((shape) => shape.visible = true)
+      .forEach((shape) => shape.isVisible = true)
   }
 
   public beginInteraction(type: TransformOperation): void {
-    super.beginInteraction(type)
-    this.children.forEach((child) => child.beginInteraction(type))
+    this.transform.beginInteraction(type)
+    this.children.forEach((child) => child.transform.beginInteraction(type))
   }
 
   public endInteraction(): void {
-    super.endInteraction()
-    this.children.forEach((child) => child.endInteraction())
+    this.transform.endInteraction()
+    this.children.forEach((child) => child.transform.endInteraction())
   }
 
   public removeTransformHandlersToWindow(): void {
@@ -159,20 +160,20 @@ export class Transformer extends Group {
 
   public addHandlersToLayer(layer: Layer): void {
     mapKeys(this.rotateHandlerShapes, (handler, shape) => {
-      shape.on("pointerdown", this.rotateOperation.startTransform.bind(this.rotateOperation))
-      shape.addName(handler)
+      shape.events.on("pointerdown", this.rotateOperation.startTransform.bind(this.rotateOperation))
+      shape.setDataAttr("handler", handler)
       layer.appendChild(shape)
     })
 
     mapKeys(this.resizeHandlerShapes.edge, (handler, shape) => {
-      shape.on("pointerdown", this.resizeOperation.startTransform.bind(this.resizeOperation))
-      shape.addName(handler)
+      shape.events.on("pointerdown", this.resizeOperation.startTransform.bind(this.resizeOperation))
+      shape.setDataAttr("handler", handler)
       layer.appendChild(shape)
     })
 
     mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
-      shape.on("pointerdown", this.resizeOperation.startTransform.bind(this.resizeOperation))
-      shape.addName(handler)
+      shape.events.on("pointerdown", this.resizeOperation.startTransform.bind(this.resizeOperation))
+      shape.setDataAttr("handler", handler)
       layer.appendChild(shape)
     })
 
@@ -185,12 +186,15 @@ export class Transformer extends Group {
     const resizePositions = this.computeTransformHandlerPositions(Transformer.OFFSET_BETWEEN_SHAPES_AND_AABB)
     const rotatePositions = this.computeTransformHandlerPositions(padding)
 
-    mapKeys(this.rotateHandlerShapes, (handler, shape) => {
-      shape.position = rotatePositions.corner[handler]
-    })
+    const resizePadding = new Point(Transformer.RESIZE_HANDLER_RADIUS, Transformer.RESIZE_HANDLER_RADIUS)
+    const rotatePadding = new Point(Transformer.ROTATE_HANDLER_RADIUS, Transformer.ROTATE_HANDLER_RADIUS)
 
+    mapKeys(this.rotateHandlerShapes, (handler, shape) => {
+      shape.position = rotatePositions.corner[handler].sub(rotatePadding)
+    })
+ 
     mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
-      shape.position = resizePositions.corner[handler]
+      shape.position = resizePositions.corner[handler].sub(resizePadding)
     })
 
     mapKeys(this.resizeHandlerShapes.edge, (handler, shape) => {
@@ -199,37 +203,37 @@ export class Transformer extends Group {
   }
 
   public translate(distance: PointData): void {
-    if (this._isSingle) return this._child.translate(distance)
+    if (this._isSingle) return this._child.transform.translate(distance)
     this._tempOriginRotate = null
 
     this.children.forEach((child) => {
       const parent = child.parent
-      const deltaMatrix = Transformable.getTranslateDeltaMatrix({ distance, parent })
+      const deltaMatrix = getTranslateDeltaMatrix({ distance, parent })
 
       child.applyDeltaTransform(deltaMatrix)
     })
   }
 
   public rotate(angle: number): void {
-    if (this._isSingle) return this._child.rotate(angle)
+    if (this._isSingle) return this._child.transform.rotate(angle)
     if (isNil(this._tempOriginRotate)) this._setTempOriginRotate()
 
     this.children.forEach((child) => {
       const origin = this._tempOriginRotate!
-      const deltaMatrix = Transformable.getRotateDeltaMatrix({ origin, angle })
+      const deltaMatrix = getRotateDeltaMatrix({ origin, angle })
 
       child.applyDeltaTransform(deltaMatrix)
     })
   }
 
   public scale(scale: Point): void {
-    if (this._isSingle) return this._child.scale(scale)
+    if (this._isSingle) return this._child.transform.scale(scale)
     this._tempOriginRotate = null
 
     this.children.forEach((child) => {
       const angle = 0
-      const origin = this.getInLocalOriginPosition("scale")
-      const deltaMatrix = Transformable.getScaleDeltaMatrix({ origin, angle, scale })
+      const origin = this.transform.getInLocalOriginPosition("scale")
+      const deltaMatrix = getScaleDeltaMatrix({ origin, angle, scale })
 
       child.applyDeltaTransform(deltaMatrix)
     })
@@ -284,7 +288,7 @@ export class Transformer extends Group {
 
     const currentAngle = Math.atan2(matrixForAngle.b, matrixForAngle.a)
 
-    const originRotate = composed.applyToPoint(this.node.getOriginInOriginalSpace("rotate"))
+    const originRotate = composed.applyToPoint(this.node.transform.getOriginInOriginalSpace("rotate"))
     const unrotate = Matrix3x3.aroundOrigin(originRotate, () => Matrix3x3.rotate(-currentAngle))
     const rotate = Matrix3x3.aroundOrigin(originRotate, () => Matrix3x3.rotate(currentAngle))
 
@@ -311,7 +315,7 @@ export class Transformer extends Group {
   }
 
   private _setTempOriginRotate(): void {
-    const origin = Transformable.getOriginInOriginalSpace({
+    const origin = getOriginInOriginalSpace({
       bounds: this.getBounds({ skipTransform: false }),
       origin: Point
         .one()

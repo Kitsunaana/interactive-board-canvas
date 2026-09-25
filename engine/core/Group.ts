@@ -1,4 +1,5 @@
 import { Matrix3x3, Polygon, Rectangle } from "../maths"
+import { CircleShape } from "../shapes/Circle"
 import { Container } from "./Container"
 import { routes, type GetBoundsParams, type GetPointsParams } from "./Node"
 import { Shape } from "./Shape"
@@ -23,12 +24,37 @@ export class Group extends Container {
 
   public updateAfterTransform(): void { }
 
+  public render(context: CanvasRenderingContext2D): void {
+    context.save()
+    this.cachedMatrix.applyToContext(context)
+    super.render(context)
+    context.restore()
+
+    if (this.hasName("@@_SYSTEM_UI")) return
+
+    context.betweenSaveAndRestore(() => {
+      this.cachedMatrix.applyToContext(context)
+
+      const corners = this
+        .getBounds({ skipTransform: true })
+        .getCorners()
+        .map((p) => this.worldMatrix.applyToPoint(p))
+
+      context.beginPath()
+      context.moveTo(corners[0].x, corners[0].y)
+      corners.forEach((p) => context.lineTo(p.x, p.y))
+      context.closePath()
+      context.stroke()
+    })
+
+  }
+
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     const points = this
       .getFlatListChildren()
       .flatMap((child) => {
         const matrix = this._getMatrixToChildForComputeBounds(params, child)
-
+        
         return child
           .getPoints()
           .map(matrix.applyToPoint.bind(matrix))
@@ -68,7 +94,7 @@ export class Group extends Container {
 
   private _getMatrixToChildForComputeBounds(params: GetBoundsParams, child: Shape): Matrix3x3 {
     if (params.skipTransform) {
-      const invertParent = Matrix3x3.invert(this.transform.localMatrix) ?? Matrix3x3.identity()
+      const invertParent = Matrix3x3.invert(this.localMatrix) ?? Matrix3x3.identity()
 
       return child.parent === this
         ? Matrix3x3.compose(child.transform.__testMatrix, child.localMatrix)

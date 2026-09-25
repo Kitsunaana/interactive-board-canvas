@@ -1,16 +1,16 @@
-import type { EventObject } from "../../behaviors/EventBehavior"
+import type { EventObject } from "../../behaviors/EventBehavior_v2"
+import { Node } from "../../core/Node"
 import { pointFromEvent } from "../../shared/point"
-import { SimObject } from "../sim-object"
 import type { Transformer } from "../TransformerV2"
 
 export class RotateTransformOperation {
   private _initialPointerAngle: number = 0
 
-  public constructor(public context: Transformer, public node: SimObject) { }
+  public constructor(public context: Transformer, public node: Node) { }
 
   public startTransform(event: EventObject<PointerEvent>): void {
     this.context.transformState = "rotate"
-    this.node.beginInteraction("rotate");
+    this.node.transform.beginInteraction("rotate");
 
     const pointerPosition = pointFromEvent(event.evt)
 
@@ -18,7 +18,7 @@ export class RotateTransformOperation {
       .screenToWorld(pointerPosition)
       .copyTo(pointerPosition)
 
-    const originRotate = this.node.getInWorldOriginPosition("rotate")
+    const originRotate = this.node.transform.getInWorldOriginPosition("rotate")
     const direction = pointerPosition.sub(originRotate)
     const currentAngle = Math.atan2(direction.y, direction.x)
 
@@ -26,7 +26,7 @@ export class RotateTransformOperation {
   }
 
   public processTransform(event: PointerEvent): void {
-    const originRotate = this.node.getInWorldOriginPosition("rotate")
+    const originRotate = this.node.transform.getInWorldOriginPosition("rotate")
     const pointerPosition = pointFromEvent(event)
 
     this.node.layer
@@ -37,12 +37,12 @@ export class RotateTransformOperation {
     const currentAngle = Math.atan2(direction.y, direction.x)
     const targetRotation = currentAngle - this._initialPointerAngle
 
-    this.node.updateInteraction(targetRotation)
+    this.node.transform.updateInteraction(targetRotation)
     this.context.updateHandlersPosition()
   }
 
   public finishTransform(): void {
-    this.node.endInteraction()
+    this.node.transform.endInteraction()
 
     this.context.updateHandlersPosition()
     this.context.transformState = "idle"

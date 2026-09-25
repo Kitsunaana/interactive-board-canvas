@@ -32,7 +32,7 @@ export class LinearGradientGroup extends BaseGradientGroup {
   }
 
   public attachHandleDragEvents(handle: CircleShape): CircleShape {
-    handle.emitter.on(handle.draggable.routes.processDrag, () => {
+    handle.emitter.on(routes.processDrag, () => {
       handle.position = handle.draggable.nextPosition
 
       this.connectionLine.setPoints(this.calculateConnectionLineVertices())

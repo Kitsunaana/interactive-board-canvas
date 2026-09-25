@@ -96,20 +96,20 @@ export class RadialGradientGroup extends BaseGradientGroup {
   }
 
   public attachCenterHandleDragStart(): void {
-    this.startHandle.emitter.on(this.startHandle.draggable.routes.startDrag, () => {
+    this.startHandle.emitter.on(routes.startDrag, () => {
       this.centerDragStartState.radiusHandle = this.radiusHandle.position
       this.centerDragStartState.endHandle = this.endHandle.position
     })
   }
 
   public attachCenterHandleDragProcess(): void {
-    this.startHandle.emitter.on(this.startHandle.draggable.routes.processDrag, () => {
+    this.startHandle.emitter.on(routes.processDrag, () => {
       this.startHandle.position = this.startHandle.draggable.nextPosition
 
       const targetBounds = this.targetShape.getBounds({})
 
       const dragDelta = this.startHandle.draggable.delta
-      const relativeDragDelta = this.startHandle.draggable.deltaBetweenStartAndObjectPositions
+      const relativeDragDelta = this.startHandle.draggable.startOffset
 
       this.endHandle.position = this.centerDragStartState.endHandle.add(dragDelta).add(relativeDragDelta)
       this.radiusHandle.position = this.centerDragStartState.radiusHandle.add(dragDelta).add(relativeDragDelta)
@@ -125,14 +125,14 @@ export class RadialGradientGroup extends BaseGradientGroup {
   }
 
   public attachOrbitalDragStart(handle: CircleShape, opposite: CircleShape) {
-    handle.emitter.on(handle.draggable.routes.startDrag, () => {
+    handle.emitter.on(routes.startDrag, () => {
       this.orbitalDragState.initAngle = angleBetweenPoints(this.startHandle.position, handle.position)
       this.orbitalDragState.initRadiusPosition = opposite.position
     })
   }
 
   public attachOrbitalDragProcess(handle: CircleShape, opposite: CircleShape) {
-    handle.emitter.on(handle.draggable.routes.processDrag, () => {
+    handle.emitter.on(routes.processDrag, () => {
       handle.position = handle.draggable.nextPosition
 
       const targetBounds = this.targetShape.getBounds({})

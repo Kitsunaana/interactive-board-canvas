@@ -30,7 +30,8 @@ export class Matrix3x3 {
   }
 
   public static skew(kx: number, ky: number): Matrix3x3 {
-    return new Matrix3x3(1, Math.tan(ky), Math.tan(kx), 1, 0, 0)
+    // return new Matrix3x3(1, Math.tan(ky), Math.tan(kx), 1, 0, 0)
+    return new Matrix3x3(1, ky, kx, 1, 0, 0)
   }
 
   public static multiply(m1: Matrix3x3, m2: Matrix3x3): Matrix3x3 {

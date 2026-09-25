@@ -31,7 +31,7 @@ export class Layer extends Container {
   }
 
   public getBounds(params?: GetBoundsParams): Rectangle {
-    throw new Error("Method is not implemented")
+    return new Rectangle(0, 0, 50, 50)
   }
 
   public getUnrotateBounds(): Rectangle {
@@ -112,6 +112,14 @@ export class Layer extends Container {
 
   public get hitContext(): CanvasRenderingContext2D {
     return this._hitContext
+  }
+
+  public appendChild(...list: Array<Node>): void {
+    super.appendChild(...list)
+
+    list.forEach((child) => {
+      child.layer_v2 = this
+    })
   }
 
   public getHitColor(shape: Node): string {

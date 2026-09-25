@@ -4,16 +4,16 @@ import { Point } from "../maths";
 import { pointFromEvent } from "../shared/point";
 import type { EventObject } from "./EventBehavior_v2";
 
-export class DragBehavior {
-  public readonly routes = {
-    processDrag: createRoute("processDrag"),
-    finishDrag: createRoute("finishDrag"),
-    startDrag: createRoute("startDrag"),
-  }
+export const DRAG_ROUTES = {
+  processDrag: createRoute("processDrag").withParams<{ target: Node }>(),
+  finishDrag: createRoute("finishDrag").withParams<{ target: Node }>(),
+  startDrag: createRoute("startDrag").withParams<{ target: Node }>(),
+}
 
-  private _deltaBetweenStartAndObjectPositions: Point = Point.zero()
+export class DragBehavior {
   private _currentPosition: Point = Point.zero()
   private _startPosition: Point = Point.zero()
+  private _startOffset: Point = Point.zero()
 
   private _isDragging: boolean = false
 
@@ -29,8 +29,8 @@ export class DragBehavior {
     return this._currentPosition
   }
 
-  public get deltaBetweenStartAndObjectPositions() {
-    return this._deltaBetweenStartAndObjectPositions
+  public get startOffset() {
+    return this._startOffset
   }
 
   public get delta() {
@@ -62,10 +62,25 @@ export class DragBehavior {
     this.start = this.start.bind(this)
   }
 
+  public startDrag() {
+    this._isDragging = true
+
+    const position = this.node.position
+
+    this._startPosition.copyFrom(position)
+    this._currentPosition.copyFrom(position)
+    this._startOffset.copyFrom(Point.zero())
+  }
+
+  public finishDrag() {
+    this._isDragging = false
+    this.reset()
+  }
+
   public start(event: EventObject<PointerEvent>): void {
     event.stopPropagation()
     this.reset()
-    
+
     if (this._isDragging) return
     this._isDragging = true
 
@@ -74,8 +89,8 @@ export class DragBehavior {
     this._startPosition.copyFrom(position)
     this._currentPosition.copyFrom(position)
 
-    this._deltaBetweenStartAndObjectPositions.copyFrom(this._startPosition.sub(this.node.position))
-    this.node.emitter.emit(this.routes.startDrag())
+    this._startOffset.copyFrom(this._startPosition.sub(this.node.position))
+    this.node.emitter.emit(DRAG_ROUTES.startDrag({ target: this.node }))
 
     window.addEventListener("pointermove", this.process)
     window.addEventListener("pointerup", this.finish)
@@ -85,24 +100,24 @@ export class DragBehavior {
     if (this._isDragging === false) return
 
     const position = this.node.layer.screenToWorld(pointFromEvent(event))
-    const nextPosition = position.sub(this._deltaBetweenStartAndObjectPositions)
+    const nextPosition = position.sub(this._startOffset)
 
     this._currentPosition.copyFrom(nextPosition)
-    this.node.emitter.emit(this.routes.processDrag())
+    this.node.emitter.emit(DRAG_ROUTES.processDrag({ target: this.node }))
   }
 
   public finish(event: PointerEvent): void {
     if (this._isDragging === false) return
 
     this._isDragging = false
-    this.node.emitter.emit(this.routes.finishDrag())
+    this.node.emitter.emit(DRAG_ROUTES.finishDrag({ target: this.node }))
 
     window.removeEventListener("pointermove", this.process)
     window.removeEventListener("pointerup", this.finish)
   }
 
   public reset() {
-    this._deltaBetweenStartAndObjectPositions = Point.zero()
+    this._startOffset = Point.zero()
     this._currentPosition = Point.zero()
     this._startPosition = Point.zero()
   }
