@@ -1,22 +1,21 @@
-import { isNil } from "lodash"
-import { type TransformOperation } from "../behaviors/Transformable"
+import { isNil, times } from "lodash"
+import { drawOriginPoint, type TransformOperation } from "../behaviors/Transformable"
 import { Matrix3x3, Point, type PointData, Polygon } from "../maths"
 import { CircleShape } from "../shapes/Circle"
 import { PolygonShape } from "../shapes/Polygon"
 import { mapKeys } from "../utils"
 import { ResizeTransformOperation } from "./_transform/resize-operation"
-import { RotateTransformOperation } from "./_transform/rotate-operation"
 import type { Corner, Edge, TransformState } from "./_transform/transform-operation.interface"
 import { Group } from "../core/Group"
 import { Node, routes } from "../core/Node"
 import { Shape } from "../core/Shape"
 import { getOriginInOriginalSpace, getRotateDeltaMatrix, getScaleDeltaMatrix, getTranslateDeltaMatrix } from "../behaviors/TransformerV4"
 import { Layer } from "../core/Layer"
+import { SYSTEM_UI } from "./GradientControls/BaseGradientGroup"
 
 export class Transformer extends Group {
   public static OFFSET_BETWEEN_SHAPES_AND_AABB = 7
   public static RESIZE_HANDLER_RADIUS = 5
-  public static ROTATE_HANDLER_RADIUS = 9
 
   public static isTransformer(candidate: unknown): candidate is Transformer {
     return candidate instanceof Transformer
@@ -28,16 +27,8 @@ export class Transformer extends Group {
   private _processTransform = (_event: PointerEvent) => { }
   private _finishTransform = (_event: PointerEvent) => { }
 
-  public activeOperation: RotateTransformOperation | ResizeTransformOperation | null = null
-  public rotateOperation: RotateTransformOperation
+  public activeOperation: ResizeTransformOperation | null = null
   public resizeOperation: ResizeTransformOperation
-
-  public readonly rotateHandlerShapes: Record<Corner, CircleShape> = {
-    bottomRight: new CircleShape({ x: 0, y: 0, radius: Transformer.ROTATE_HANDLER_RADIUS }),
-    bottomLeft: new CircleShape({ x: 0, y: 0, radius: Transformer.ROTATE_HANDLER_RADIUS }),
-    topRight: new CircleShape({ x: 0, y: 0, radius: Transformer.ROTATE_HANDLER_RADIUS }),
-    topLeft: new CircleShape({ x: 0, y: 0, radius: Transformer.ROTATE_HANDLER_RADIUS }),
-  }
 
   public readonly resizeHandlerShapes = {
     corner: {
@@ -75,7 +66,6 @@ export class Transformer extends Group {
   public set transformState(next: TransformState) {
     this.activeOperation = ({
       idle: null,
-      rotate: this.rotateOperation,
       resize: this.resizeOperation,
     })[next]
 
@@ -90,18 +80,24 @@ export class Transformer extends Group {
   public constructor() {
     super()
 
-    this.rotateOperation = new RotateTransformOperation(this, this.node)
+    this.addName(SYSTEM_UI)
+
     this.resizeOperation = new ResizeTransformOperation(this, this.node)
 
-    this.emitter.on(routes.addToParent, this._afterAddToParentCallback.bind(this))
+    this.emitter.on(routes.addChild, this._afterAddToParentCallback.bind(this))
+
   }
 
-  private _afterAddToParentCallback(): void {
-    this.rotateOperation.node = this.node
+  private _afterAddToParentCallback({ payload }: ReturnType<typeof routes.addChild>): void {
+    const addedNode = payload.child
+    if (addedNode.hasName(SYSTEM_UI)) return
+
     this.resizeOperation.node = this.node
 
     this.addHandlersToLayer(this.layer)
     this.updateHandlersPosition()
+
+    // console.log(payload)
 
     this.children.forEach((child) => {
       child.emitter.on(routes.processDrag, () => {
@@ -116,7 +112,7 @@ export class Transformer extends Group {
   }
 
   public getSystemUiShapes(): Array<Shape> {
-    return [this.rotateHandlerShapes, ...Object.values(this.resizeHandlerShapes)].flatMap(Object.values)
+    return Object.values(this.resizeHandlerShapes).flatMap(Object.values)
   }
 
   public hideSystemUiControls(): void {
@@ -159,21 +155,17 @@ export class Transformer extends Group {
   }
 
   public addHandlersToLayer(layer: Layer): void {
-    mapKeys(this.rotateHandlerShapes, (handler, shape) => {
-      shape.events.on("pointerdown", this.rotateOperation.startTransform.bind(this.rotateOperation))
-      shape.setDataAttr("handler", handler)
-      layer.appendChild(shape)
-    })
-
     mapKeys(this.resizeHandlerShapes.edge, (handler, shape) => {
       shape.events.on("pointerdown", this.resizeOperation.startTransform.bind(this.resizeOperation))
       shape.setDataAttr("handler", handler)
+      shape.addName(SYSTEM_UI)
       layer.appendChild(shape)
     })
 
     mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
       shape.events.on("pointerdown", this.resizeOperation.startTransform.bind(this.resizeOperation))
       shape.setDataAttr("handler", handler)
+      shape.addName(SYSTEM_UI)
       layer.appendChild(shape)
     })
 
@@ -181,20 +173,10 @@ export class Transformer extends Group {
   }
 
   public updateHandlersPosition(): void {
-    const padding = Transformer.OFFSET_BETWEEN_SHAPES_AND_AABB + Transformer.RESIZE_HANDLER_RADIUS * 2
-
     const resizePositions = this.computeTransformHandlerPositions(Transformer.OFFSET_BETWEEN_SHAPES_AND_AABB)
-    const rotatePositions = this.computeTransformHandlerPositions(padding)
 
-    const resizePadding = new Point(Transformer.RESIZE_HANDLER_RADIUS, Transformer.RESIZE_HANDLER_RADIUS)
-    const rotatePadding = new Point(Transformer.ROTATE_HANDLER_RADIUS, Transformer.ROTATE_HANDLER_RADIUS)
-
-    mapKeys(this.rotateHandlerShapes, (handler, shape) => {
-      shape.position = rotatePositions.corner[handler].sub(rotatePadding)
-    })
- 
     mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
-      shape.position = resizePositions.corner[handler].sub(resizePadding)
+      shape.position = resizePositions.corner[handler]
     })
 
     mapKeys(this.resizeHandlerShapes.edge, (handler, shape) => {
@@ -233,13 +215,33 @@ export class Transformer extends Group {
     this.children.forEach((child) => {
       const angle = 0
       const origin = this.transform.getInLocalOriginPosition("scale")
-      const deltaMatrix = getScaleDeltaMatrix({ origin, angle, scale })
+      const deltaMatrix = getScaleDeltaMatrix({
+        transform: child.worldMatrix.getLinearMatrix(),
+        origin,
+        angle,
+        scale,
+      })
 
       child.applyDeltaTransform(deltaMatrix)
     })
   }
 
   public render(context: CanvasRenderingContext2D): void {
+    const scaleOrigin = this.node.transform.getInWorldOriginPosition("scale")
+
+    drawOriginPoint(context, scaleOrigin, "scale")
+
+    // const bounds = this.node.getBounds({ skipTransform: true })
+    const bounds = this.node.getUnrotateBounds()
+
+    this.activeOperation?.debugRender(context)
+
+    context.betweenSaveAndRestore(() => {
+      context.lineWidth = 4
+      context.strokeStyle = "blue"
+      // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    })
+
     if (this.node === this) {
       this.children.forEach((child) => {
         context.betweenSaveAndRestore(() => {
@@ -249,7 +251,7 @@ export class Transformer extends Group {
       })
     } else {
       context.betweenSaveAndRestore(() => {
-        this.node.cachedMatrix.applyToContext(context)
+        // this.node.cachedMatrix.applyToContext(context)
         super.render(context)
       })
     }
@@ -279,27 +281,24 @@ export class Transformer extends Group {
 
   private _getPositionsForActionAppliedToSingleNode(padding: number): Array<Point> {
     const composed = Matrix3x3.compose(this.node.cachedMatrix, this.node.worldMatrix)
+    const orientation = this.node.worldMatrix.getResizeBasis()
 
-    const matrixForAngle = ({
-      rotate: composed,
-      idle: this.node.worldMatrix,
-      resize: this.node.worldMatrix,
-    })[this.transformState]
+    const origin = composed.applyToPoint(this.node.transform.getOriginInOriginalSpace("rotate"))
 
-    const currentAngle = Math.atan2(matrixForAngle.b, matrixForAngle.a)
+    const orientationAroundOrigin = Matrix3x3.aroundOrigin(origin, () => orientation)
 
-    const originRotate = composed.applyToPoint(this.node.transform.getOriginInOriginalSpace("rotate"))
-    const unrotate = Matrix3x3.aroundOrigin(originRotate, () => Matrix3x3.rotate(-currentAngle))
-    const rotate = Matrix3x3.aroundOrigin(originRotate, () => Matrix3x3.rotate(currentAngle))
+    const inverseOrientation = Matrix3x3.invert(orientationAroundOrigin) ?? Matrix3x3.identity()
 
-    const matrix = Matrix3x3.compose(unrotate, composed)
+    const matrix = Matrix3x3.compose(inverseOrientation, composed)
+
     const bounds = this.node.getBounds({ skipTransform: true })
-    const corners = bounds.getCorners()
-    const points = corners.map(matrix.applyToPoint.bind(matrix))
-    const scaledBounds = Polygon.getBounds(points).padding(padding)
-    const nextCorners = scaledBounds.getCorners()
 
-    return nextCorners.map(rotate.applyToPoint.bind(rotate))
+    const points = bounds.getCorners().map(matrix.applyToPoint.bind(matrix))
+    const scaledBounds = Polygon.getBounds(points).padding(padding)
+
+    return scaledBounds
+      .getCorners()
+      .map(orientationAroundOrigin.applyToPoint.bind(orientationAroundOrigin))
   }
 
   private _getPositionsWhenActionAppliedToSetOfNodes(padding: number): Array<Point> {

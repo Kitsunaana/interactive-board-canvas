@@ -30,7 +30,6 @@ export class Matrix3x3 {
   }
 
   public static skew(kx: number, ky: number): Matrix3x3 {
-    // return new Matrix3x3(1, Math.tan(ky), Math.tan(kx), 1, 0, 0)
     return new Matrix3x3(1, ky, kx, 1, 0, 0)
   }
 
@@ -114,5 +113,43 @@ export class Matrix3x3 {
 
   public toArray(): [number, number, number, number, number, number] {
     return [this.a, this.b, this.c, this.d, this.e, this.f]
+  }
+
+  public getLinearMatrix(): Matrix3x3 {
+    return new Matrix3x3(
+      this.a,
+      this.b,
+      this.c,
+      this.d,
+      0,
+      0,
+    )
+  }
+
+  public getResizeBasis(): Matrix3x3 {
+    const { a, b, c, d } = this
+
+    const scaleX = Math.hypot(a, b)
+
+    if (scaleX < 1e-10) return Matrix3x3.identity()
+
+    const cos = a / scaleX
+    const sin = b / scaleX
+
+    const det = a * d - b * c
+    const scaleY = det / scaleX
+
+    if (Math.abs(scaleY) < 1e-10) return Matrix3x3.identity()
+
+    const shear = (cos * c + sin * d) / scaleY;
+
+    return new Matrix3x3(
+      cos,
+      sin,
+      cos * shear - sin,
+      sin * shear + cos,
+      0,
+      0,
+    )
   }
 }

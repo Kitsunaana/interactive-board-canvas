@@ -95,9 +95,6 @@ export class CircleShape extends Shape {
   }
 
   public getPoints(): Array<PointData> {
-    // const bounds = this.getBounds()
-    // const max = Math.max(...bounds.getCorners().map(c => c.x))
-    // console.log(max)
     return this.getBounds({ skipTransform: true }).getCorners()
   }
 
@@ -111,15 +108,6 @@ export class CircleShape extends Shape {
       this.tracePath(context)
       this.fillStrokeShape(context)
     })
-
-    context.betweenSaveAndRestore(() => {
-      // drawOriginPoint(context, this.position, `${this.x}:${this.y}`)
-    })
-
-    if (this.hasName("@@_SYSTEM_UI")) {
-      const bounds = this.getBounds({ skipTransform: true })
-      context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-    }
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {

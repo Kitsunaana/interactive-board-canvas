@@ -169,6 +169,11 @@ export class PolygonShape extends Shape {
     })
 
     context.betweenSaveAndRestore(() => {
+      const bounds = this.getBounds({})
+      // console.log(bounds.width)
+      context.strokeStyle = "red"
+      // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+
       this.cachedMatrix.applyToContext(context)
 
       const corners = this
@@ -180,7 +185,7 @@ export class PolygonShape extends Shape {
       context.moveTo(corners[0].x, corners[0].y)
       corners.forEach((p) => context.lineTo(p.x, p.y))
       context.closePath()
-      context.stroke()
+      // context.stroke()
     })
   }
 

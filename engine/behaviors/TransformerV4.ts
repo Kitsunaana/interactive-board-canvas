@@ -20,6 +20,8 @@ type GetScaleDeltaMatrixParams = {
   origin: PointData
   scale: PointData
   angle: number
+
+  transform: Matrix3x3
 }
 
 type GetRotateDeltaMatrixParams = {
@@ -48,18 +50,17 @@ export const getOriginInOriginalSpace = ({ bounds, origin }: GetOriginInOriginal
     .add(bounds)
 }
 
-export const getScaleDeltaMatrix = ({ origin, scale, angle }: GetScaleDeltaMatrixParams) => {
-  return Matrix3x3.aroundOrigin(origin, () => {
-    const rotation = Matrix3x3.rotate(angle)
-    const inverseRotation = Matrix3x3.rotate(-angle)
-    const operation = Matrix3x3.scale(scale.x, scale.y)
-
-    return Matrix3x3.compose(rotation, operation, inverseRotation)
-  })
-}
-
 export const getRotateDeltaMatrix = ({ origin, angle }: GetRotateDeltaMatrixParams) => {
   return Matrix3x3.aroundOrigin(origin, () => Matrix3x3.rotate(angle))
+}
+
+export const getScaleDeltaMatrix = ({ transform, origin, scale }: GetScaleDeltaMatrixParams): Matrix3x3 => {
+  return Matrix3x3.aroundOrigin(origin, () => {
+    const inverse = Matrix3x3.invert(transform)
+    if (!inverse) return Matrix3x3.identity()
+    const operation = Matrix3x3.scale(scale.x, scale.y)
+    return Matrix3x3.compose(transform, operation, inverse)
+  })
 }
 
 export const getTranslateDeltaMatrix = ({ parent, distance }: GetTranslateDeltaMatrixParams) => {
@@ -92,7 +93,15 @@ export class Transformer {
   }
 
   public getCurrentAngle(): number {
-    return Math.atan2(this.worldMatrix.b, this.worldMatrix.a)
+    const a = this.worldMatrix.a
+    const b = this.worldMatrix.b
+
+    const lenX = Math.hypot(a, b)
+
+    const cosTheta = a / lenX
+    const sinTheta = b / lenX
+
+    return Math.atan2(sinTheta, cosTheta)
   }
 
   public setInitialRelativeOrigins(): void {
@@ -133,7 +142,12 @@ export class Transformer {
   public scale(scale: PointData): void {
     const angle = this.getCurrentAngle()
     const origin = this.getInLocalOriginPosition("scale")
-    const delta = getScaleDeltaMatrix({ origin, angle, scale })
+    const delta = getScaleDeltaMatrix({
+      transform: this.node.transform.worldMatrix.getLinearMatrix(),
+      origin,
+      angle,
+      scale,
+    })
 
     this.node.applyDeltaTransform(delta)
   }
@@ -148,7 +162,7 @@ export class Transformer {
   public skew(value: PointData): void {
     const origin = this.getInLocalOriginPosition("skew")
     const deltaMatrix = Matrix3x3.aroundOrigin(origin, () => Matrix3x3.skew(value.x, value.y))
-    
+
     this.node.applyDeltaTransform(deltaMatrix)
   }
 

@@ -47,10 +47,22 @@ export abstract class Shape extends Node {
     Object.assign(this, config)
   }
 
+  public drawBounds: boolean = false
+
   protected fillStrokeShape(context: CanvasRenderingContext2D) {
     context.lineWidth = this.lineWidth
     context.fillStyle = this.fillStyle
     context.strokeStyle = this.strokeStyle
+
+    if (this.drawBounds) {
+      context.betweenSaveAndRestore(() => {
+        const bounds = this.getBounds()
+
+        context.lineWidth = 3
+        context.strokeStyle = "red"
+        context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+      })
+    }
 
     context.fill()
     context.stroke()

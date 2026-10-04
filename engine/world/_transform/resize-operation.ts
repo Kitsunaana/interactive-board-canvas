@@ -1,12 +1,11 @@
 import { isNil } from "lodash";
 import type { EventObject } from "../../behaviors/EventBehavior_v2";
 import { drawOriginPoint } from "../../behaviors/Transformable";
-import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
-import { pointFromEvent } from "../../shared/point";
-import { Transformer } from "../TransformerV2";
-import type { Corner, Edge } from "./transform-operation.interface";
 import { Node } from "../../core/Node";
 import { Shape } from "../../core/Shape";
+import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
+import { Transformer } from "../TransformerV2";
+import type { Corner, Edge } from "./transform-operation.interface";
 
 type ResizeHandler = Corner | Edge
 
@@ -71,10 +70,7 @@ export class ResizeTransformOperation {
     const scaleOrigin = this._getRelativeOriginScale(this._pickedHandler)
     this.node.transform.setOrigin("scale", scaleOrigin);
 
-    const cursorPosition = this.node.layer
-      .screenToWorld(pointFromEvent(event))
-      .sub(this._deltaBetweenCursorAndHandler)
-
+    const cursorPosition = this.node.layer.worldPointer.sub(this._deltaBetweenCursorAndHandler)
     this._setTransformScale(cursorPosition, this._pickedHandler);
 
     this.node.transform.updateInteraction(this._transformScale);
@@ -107,13 +103,36 @@ export class ResizeTransformOperation {
   }
 
   private _setWorldPivot(): void {
-    const pivotPosition = this._pivotPosition.clone();
-    const currentAngle = this.node.transform.getCurrentAngle()
+    const pivotPosition = this._pivotPosition
 
-    const rotated = Matrix3x3.rotate(currentAngle).applyToPoint(pivotPosition);
-    const world = this._obbWorldCenter.add(rotated);
+    const basis = this.node.transform.worldMatrix.getResizeBasis()
+    const transformed = basis.applyToPoint(pivotPosition)
+    const world = this._obbWorldCenter.add(transformed)
 
-    this._worldPivot.copyFrom(world);
+    this._worldPivot.copyFrom(world)
+  }
+
+  private _setTransformScale(currentPointer: Point, side: Edge | Corner): void {
+    const basis = this.node.transform.worldMatrix.getResizeBasis();
+
+    const worldMatrix = Matrix3x3.compose(
+      Matrix3x3.translate(this._obbWorldCenter.x, this._obbWorldCenter.y),
+      basis,
+    )
+
+    const localMatrix = Matrix3x3.invert(worldMatrix) ?? Matrix3x3.identity();
+
+    const localCursor = localMatrix
+      .applyToPoint(currentPointer)
+      .add(this._getPaddingToLocalCursor(side))
+
+    const origVec = this._handlePosition.sub(this._pivotPosition)
+    const cursorVec = localCursor.sub(this._pivotPosition)
+
+    const scaleFactorX = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "x")
+    const scaleFactorY = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "y")
+
+    this._transformScale.set(scaleFactorX, scaleFactorY);
   }
 
   private _computeDeadZoneAdjustedFactor(referenceScale: Point, pointerOffset: Point, axis: keyof PointData): number {
@@ -132,24 +151,6 @@ export class ResizeTransformOperation {
     }
 
     return 1;
-  }
-
-  private _setTransformScale(currentPointer: Point, side: Edge | Corner): void {
-    const worldMatrix = Matrix3x3.compose(
-      Matrix3x3.translate(this._obbWorldCenter.x, this._obbWorldCenter.y),
-      Matrix3x3.rotate(this.node.transform.getCurrentAngle()),
-    );
-
-    const localMatrix = Matrix3x3.invert(worldMatrix) ?? Matrix3x3.identity();
-    const localCursor = localMatrix.applyToPoint(currentPointer).add(this._getPaddingToLocalCursor(side));
-
-    const origVec = this._handlePosition.sub(this._pivotPosition);
-    const cursorVec = localCursor.sub(this._pivotPosition);
-
-    const scaleFactorX = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "x");
-    const scaleFactorY = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "y");
-
-    this._transformScale.set(scaleFactorX, scaleFactorY);
   }
 
   private _getEffectiveSide(side: ResizeHandler): ResizeHandler {

@@ -20,7 +20,7 @@ type EventTargetNode = Node
 
 type PointerState = {
   downTarget: EventTargetNode | null
-  clickTarget: EventTargetNode | null  
+  clickTarget: EventTargetNode | null
   hoverTarget: EventTargetNode | null
   lastTapTarget: EventTargetNode | null
   lastTapTime: number
@@ -120,7 +120,7 @@ export class Stage extends Container {
 
       layer.sizes = this.sizes
       layer.parent = this
-      
+
       layer.stage_v2 = this
     })
   }
@@ -198,7 +198,7 @@ export class Stage extends Container {
     const state = this._getPointerState(event.pointerId)
 
     state.downTarget = target
-    state.clickTarget = null  
+    state.clickTarget = null
 
     this._dispatchEventSequence(target, ["pointerdown"], event)
   }
@@ -233,7 +233,7 @@ export class Stage extends Container {
 
     this._dispatchEventSequence(target, ["pointercancel"], event)
     state.downTarget = null
-    state.clickTarget = null  
+    state.clickTarget = null
   }
 
   private _dispatchPointerLeave(event: PointerEvent): void {
@@ -287,6 +287,9 @@ export class Stage extends Container {
     domEvent: MouseEvent | PointerEvent,
     bubble: boolean
   ): void {
+    // console.log("CALL", eventName)
+    if (eventName === ("pointerup")) {
+    }
     target.events.fire(
       eventName,
       {
@@ -385,7 +388,7 @@ export class Stage extends Container {
     if (!state) {
       state = {
         downTarget: null,
-        clickTarget: null,  
+        clickTarget: null,
         hoverTarget: null,
         lastTapTarget: null,
         lastTapTime: 0,

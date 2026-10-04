@@ -78,7 +78,7 @@ export abstract class Node {
       this._prevBounds = this.getBounds()
       this.isDirtyBounds = false
     }
-    
+
     return this._prevBounds
   }
 
@@ -227,7 +227,7 @@ export abstract class Node {
     parent.appendChild(this.remove())
   }
 
-  public getAllParents<T extends Node>(list: Array<T> = []): Array<T> {
+  public getAllParents<T extends Container>(list: Array<T> = []): Array<T> {
     const parent = this.parent as unknown as T
 
     return isNull(parent)

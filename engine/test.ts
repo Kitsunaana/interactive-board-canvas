@@ -1,13 +1,13 @@
-import { Stage } from "./core/Stage";
-import { Layer } from "./core/Layer";
+import { isNull } from "lodash";
+import { Container } from "./core/Container";
 import { Group } from "./core/Group";
+import { Layer } from "./core/Layer";
+import { Node } from "./core/Node";
+import { Shape } from "./core/Shape";
+import { Stage } from "./core/Stage";
 import "./index.css";
 import { CircleShape } from "./shapes/Circle";
 import { PolygonShape } from "./shapes/Polygon";
-import { LinearGradientGroup } from "./world/GradientControls/LinearGradientGroup";
-import { RadialGradientGroup } from "./world/GradientControls/RadialGradientGroup";
-import { Transformer } from "./world/TransformerV2";
-import { RotateAndSkewSingleTransformer } from "./RotateAndSkewSingleTransformer";
 
 const stage = new Stage({
   height: window.innerHeight,
@@ -51,29 +51,16 @@ const polygonShape_3 = new PolygonShape({
 const polygonShape_1 = new PolygonShape({ initialPoints: points_1, lineWidth: 10 });
 const polygonShape_2 = new PolygonShape({ initialPoints: points_2, tension: 0.0 });
 
-const transformer = new Transformer()
-const group1 = new Group()
-const group2 = new Group()
-
-// group1.appendChild(polygonShape_3, polygonShape_2)
-// group2.appendChild(group1, polygonShape_1)
-// transformer.appendChild(group2)
-
-// layer.appendChild(polygonShape_3)
-
-// const creator = new CubicBezierPathCreator(layer)
 stage.draggable.unsubscribe()
 layer.draggable.unsubscribe()
 
-// layer.appendChild(transformer)
 stage.appendChild(layer)
 
 const testShape = new CircleShape({ x: 0, y: 0, radius: 50 })
-const linearGradientGroup = new LinearGradientGroup()
 
 testShape.position = {
   x: 100,
-  y: 60,
+  y: 260,
 }
 
 // testShape.transform.translate({ x: 10, y: 20 })
@@ -85,14 +72,30 @@ testShape.transform.scale({ x: 1.5, y: 2 })
 // layer.appendChild(testShape)
 
 // testShape.transform.rotate(0.6)
+import { Transformer } from "./world/TransformerV2"
+import {ContextModel} from "./core/SelectionManager";
+// const rotateAndSkewGroup = new RotateAndSkewTransforGroup()
+const resizeTransformer = new Transformer()
 
-const qwe = new RotateAndSkewSingleTransformer()
-const groupVRDK = new Group()
-groupVRDK.appendChild(polygonShape_3, polygonShape_2)
-qwe.appendChild(groupVRDK)
-layer.appendChild(qwe)
+const group5 = new Group()
+const group6 = new Group()
+
+group5.appendChild(polygonShape_1, polygonShape_2)
+group6.appendChild(group5, polygonShape_3)
+
+
+layer.appendChild(group6, testShape, resizeTransformer)
 
 // polygonShape_3.transform.rotate(0.4)
 // polygonShape_3.transform.scale({ x: 1.5, y: 1.0 })
 
 
+/**
+ * InteractionManager
+ * SelectionManager
+ * DragManager
+ * Transformer
+ */
+
+
+new ContextModel(layer)
