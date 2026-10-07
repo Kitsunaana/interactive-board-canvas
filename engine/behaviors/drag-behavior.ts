@@ -42,18 +42,18 @@ export class DragBehavior {
   }
 
   public constructor(private readonly node: Node) {
-    this.bindEvents()
+    // this.bindEvents()
   }
 
   public subscribe(): void {
-    this.node.events.on("pointerdown", this.start)
+    // this.node.on("pointerdown", this.start)
   }
 
   public unsubscribe(): void {
-    this.node.events.off("pointerdown", this.start)
+    // this.node.off("pointerdown", this.start)
 
-    window.removeEventListener("pointermove", this.process)
-    window.removeEventListener("pointerup", this.finish)
+    // window.removeEventListener("pointermove", this.process)
+    // window.removeEventListener("pointerup", this.finish)
   }
 
   public bindEvents(): void {

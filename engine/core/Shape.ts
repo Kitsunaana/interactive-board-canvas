@@ -9,7 +9,7 @@ export type ShapeConfig = NodeConfig & {
   lineWidth?: number
 }
 
-const fillShapeConfigDefaulValues = (config: ShapeConfig): Required<ShapeConfig> => {
+const fillShapeConfigDefaultValues = (config: ShapeConfig): Required<ShapeConfig> => {
   return {
     strokeStyle: "black",
     fillStyle: "skyblue",
@@ -32,18 +32,29 @@ export abstract class Shape extends Node {
 
   public gradient: GradientData | null = null
 
-  private _stage_v2: Stage | null = null
-  public get stage_v2() { return this._stage_v2! }
-  public set stage_v2(parent: Stage) { this._stage_v2 = parent }
+  private _stage: Stage | null = null
+  private _layer: Layer | null = null
+  
+  public get stage() { 
+    return this._stage!
+  }
 
-  private _layer_v2: Layer | null = null
-  public get layer_v2() { return this._layer_v2! }
-  public set layer_v2(parent: Layer) { this._layer_v2 = parent }
+  public get layer() {
+    return this._layer!
+  }
+  
+  public set stage(parent: Stage) { 
+    this._stage = parent
+  }
+  
+  public set layer(parent: Layer) {
+    this._layer = parent 
+  }
 
   public constructor({ names, ...params }: ShapeConfig) {
     super({ names })
 
-    const config = fillShapeConfigDefaulValues(params)
+    const config = fillShapeConfigDefaultValues(params)
     Object.assign(this, config)
   }
 

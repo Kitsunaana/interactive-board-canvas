@@ -28,10 +28,6 @@ export class PolygonShape extends Shape {
   protected _pointsToTrace: Array<PointData> = [];
   protected _initialPoints!: Array<PointData>
 
-  public isDrawOriginPosition: boolean = false
-  public isDrawCorners: boolean = false
-  public isDrawBounds: boolean = false
-
   private _tension: number = 0.0;
   private _closed: boolean = true;
   private _cubic: boolean = false
@@ -43,13 +39,19 @@ export class PolygonShape extends Shape {
 
     Object.assign(this, config)
 
-    const bounds = Polygon.getBounds(_initialPoints)
-    const origin = bounds.point()
+    // const bounds = Polygon.getBounds(_initialPoints)
+    // const origin = bounds.point()
 
     this._initialPoints = _initialPoints
     this._pointsToTrace = this.computePointsToTraceWithTension(this._initialPoints);
   }
 
+  public clone() {
+    return new PolygonShape({
+      initialPoints: this.pointsToTrace
+    })
+  }
+  
   public get pointsToTrace() {
     return this._pointsToTrace
   }
@@ -63,13 +65,9 @@ export class PolygonShape extends Shape {
   }
 
   public set closed(value: boolean) {
-    // this._closed = value
-    // this.updateAfterTransform()
   }
 
   public set tension(value: number) {
-    // this._tension = value
-    // this.updateAfterTransform()
   }
 
   public update(_time: number): void {
@@ -146,6 +144,17 @@ export class PolygonShape extends Shape {
     }, [{ ...points[0] }] as Array<PointData>);
   }
 
+  public getBounds(params: GetBoundsParams = {}): Rectangle {
+    const points = params.skipTransform
+      ? this._initialPoints
+      : this._initialPoints.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
+
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension)
+    const allPoints = points.concat(curveExtrema)
+
+    return Polygon.getBounds(allPoints)
+  }
+
   public getUnrotateBounds(): Rectangle {
     const origin = this.transform.getInLocalOriginPosition("rotate")
     const currentAngle = -this.transform.getCurrentAngle()
@@ -160,32 +169,12 @@ export class PolygonShape extends Shape {
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    // if (!this.visible) return
+    if (!this.isVisible) return
 
     context.betweenSaveAndRestore(() => {
       this.cachedMatrix.applyToContext(context)
       this.tracePath(context)
       this.fillStrokeShape(context)
-    })
-
-    context.betweenSaveAndRestore(() => {
-      const bounds = this.getBounds({})
-      // console.log(bounds.width)
-      context.strokeStyle = "red"
-      // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-
-      this.cachedMatrix.applyToContext(context)
-
-      const corners = this
-        .getBounds({ skipTransform: true })
-        .getCorners()
-        .map((p) => this.worldMatrix.applyToPoint(p))
-
-      context.beginPath()
-      context.moveTo(corners[0].x, corners[0].y)
-      corners.forEach((p) => context.lineTo(p.x, p.y))
-      context.closePath()
-      // context.stroke()
     })
   }
 
@@ -194,17 +183,6 @@ export class PolygonShape extends Shape {
       this.tracePath(context)
       this.fillStrokeHitShape(context)
     })
-  }
-
-  public getBounds(params: GetBoundsParams = {}): Rectangle {
-    const points = params.skipTransform
-      ? this._initialPoints
-      : this._initialPoints.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
-
-    const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension)
-    const allPoints = points.concat(curveExtrema)
-
-    return Polygon.getBounds(allPoints)
   }
 
   public tracePath(context: CanvasRenderingContext2D): void {
@@ -237,8 +215,6 @@ export class PolygonShape extends Shape {
       return
     }
 
-    console.log(this)
-
     for (let i = 3; i < points.length; i += 3) {
       const prevOut = points[i - 1]
       const currentIn = points[i + 1]
@@ -254,15 +230,15 @@ export class PolygonShape extends Shape {
       )
     }
 
-    return
-    for (let i = 0; i < length; i += 3) {
-      const cp1 = points[i]                  // out
-      const cp2 = points[(i + 1) % length]   // in
-      const p = points[(i + 2) % length]     // anchor
-      // anchor in out
-
-      context.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y)
-    }
+        
+    // for (let i = 0; i < length; i += 3) {
+    //   const cp1 = points[i]                  // out
+    //   const cp2 = points[(i + 1) % length]   // in
+    //   const p = points[(i + 2) % length]     // anchor
+    //   // anchor in out
+    //
+    //   context.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y)
+    // }
   }
 
   private _shouldRenderStraightEdges(): boolean {

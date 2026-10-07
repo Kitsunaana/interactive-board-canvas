@@ -34,7 +34,7 @@ export class RadialGradientGroup extends BaseGradientGroup {
     this.attachCenterHandleDragStart()
     this.attachCenterHandleDragProcess()
 
-    this.connectionLine.events.on("dblclick", this.handleConnectionLineDoubleClick.bind(this))
+    this.connectionLine.on("dblclick", this.handleConnectionLineDoubleClick.bind(this))
     this.emitter.on(routes.addChild, (this.onTargetShapeAdded.bind(this)))
   }
 

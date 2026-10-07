@@ -3,7 +3,6 @@ import { Transformer } from "../behaviors/TransformerV4";
 import { Bounds, Circle, Matrix3x3, Point, type PointData, Rectangle } from "../maths";
 import { Shape, type ShapeConfig } from "../core/Shape";
 import { type GetBoundsParams } from "../core/Node";
-import { drawOriginPoint } from "../behaviors/Transformable";
 
 export type CircleShapeConfig = {
   x: number
@@ -40,9 +39,7 @@ function getCircleBoundingBox(circle: Circle, worldMatrix: Matrix3x3): Rectangle
     cy + extentY
   )
 
-  const rectangle = bounds.rectangle
-
-  return rectangle
+  return bounds.rectangle
 }
 
 export type CircleConfig = ShapeConfig & {
@@ -52,7 +49,7 @@ export type CircleConfig = ShapeConfig & {
 }
 
 export class CircleShape extends Shape {
-  public static isCirlce(candidate: unknown): candidate is CircleShape {
+  public static isCircle(candidate: unknown): candidate is CircleShape {
     return candidate instanceof CircleShape
   }
 
@@ -70,6 +67,13 @@ export class CircleShape extends Shape {
     this.transform.scale = this._overrideScale.bind(this)
   }
 
+  public clone() {
+    return new CircleShape({
+      ...this.position,
+      radius: this.radius,
+    })
+  }
+  
   private _overrideScale(value: PointData) {
     Transformer.prototype.scale.call(this.transform, {
       x: value.x,
@@ -103,7 +107,7 @@ export class CircleShape extends Shape {
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    // if (!this.visible) return
+    if (!this.isVisible) return
     context.betweenSaveAndRestore(() => {
       this.tracePath(context)
       this.fillStrokeShape(context)
@@ -111,7 +115,6 @@ export class CircleShape extends Shape {
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {
-    // if (!this.visible) return
     if (this.isListening) context.betweenSaveAndRestore(() => {
       this.tracePath(context)
       this.fillStrokeHitShape(context)
@@ -119,18 +122,10 @@ export class CircleShape extends Shape {
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
-    if (params.skipTransform) {
-      const bounds = new Circle(0, 0, this._initRadius).getBounds()
-      // const position = this.position
-      // bounds.x += position.x
-      // bounds.y += position.y
-      return bounds
-    }
+    if (params.skipTransform) return new Circle(0, 0, this._initRadius).getBounds()
 
     const matrix = this.transform.worldMatrix
-    const bounds = getCircleBoundingBox(new Circle(0, 0, this._initRadius), matrix)
-
-    return bounds
+    return  getCircleBoundingBox(new Circle(0, 0, this._initRadius), matrix)
   }
 
   public getUnrotateBounds(): Rectangle {

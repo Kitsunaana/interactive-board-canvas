@@ -24,7 +24,15 @@ export class Group extends Container {
 
   public updateAfterTransform(): void { }
 
+  public clone() {
+    const group = new Group()
+    group.appendChild(...this.children.map((node) => node.clone()))
+    return group
+  }
+  
   public render(context: CanvasRenderingContext2D): void {
+    if (!this.isVisible) return;
+    
     context.betweenSaveAndRestore(() => {
       this.cachedMatrix.applyToContext(context)
       super.render(context)

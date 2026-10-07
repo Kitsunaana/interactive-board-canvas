@@ -22,7 +22,7 @@ export class SkewOperation implements TransformOperation {
 
     if (!parentInverse) return
 
-    const cursor = parentInverse.applyToPoint(context.target.layer_v2.worldPointer)
+    const cursor = parentInverse.applyToPoint(context.target.layer.worldPointer)
 
     const corners = bounds
       .getCorners()

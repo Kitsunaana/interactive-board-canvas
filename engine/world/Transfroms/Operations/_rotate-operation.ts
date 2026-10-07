@@ -6,7 +6,7 @@ export class RotateOperation implements TransformOperation {
   public start(context: TransformContext): void {
     context.target.transform.beginInteraction("rotate");
 
-    const pointerPosition = context.target.layer_v2.worldPointer
+    const pointerPosition = context.target.layer.worldPointer
 
     const originRotate = context.target.transform.getInWorldOriginPosition("rotate")
     const direction = pointerPosition.sub(originRotate)
@@ -17,7 +17,7 @@ export class RotateOperation implements TransformOperation {
 
   public process(context: TransformContext): void {
     const originRotate = context.target.transform.getInWorldOriginPosition("rotate")
-    const pointerPosition = context.target.layer_v2.worldPointer
+    const pointerPosition = context.target.layer.worldPointer
 
     const direction = pointerPosition.sub(originRotate)
     const currentAngle = Math.atan2(direction.y, direction.x)

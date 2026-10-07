@@ -53,15 +53,11 @@ const toEventTokens = (eventNames?: string): ParsedEventToken[] => {
     .filter((token) => token.eventType || token.namespace)
 }
 
-interface NodeToEventBehaviorImpl {
-  parent: NodeToEventBehaviorImpl | null
-  events: EventBehaviorV2
-}
 
-export class EventBehaviorV2 {
+export abstract class EventBehaviorV2 {
+  public abstract parent: Node | null 
+  
   private readonly _listenersMap: Map<string, Array<ListenerEntry>> = new Map()
-
-  public constructor(private readonly node: NodeToEventBehaviorImpl) {}
 
   public on<EventPayload = EventObject>(eventNames: string, callback: EventHandler<EventPayload>): this {
     return this._addListeners(eventNames, callback as EventHandler, false)
@@ -134,7 +130,7 @@ export class EventBehaviorV2 {
     this._fire(eventType, namespace, evt)
 
     if (bubble && !evt.cancelBubble) {
-      this.node.parent?.events.fire(eventType, evt, true)
+      this.parent?.fire(eventType, evt, true)
     }
 
     return this

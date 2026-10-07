@@ -1,6 +1,7 @@
-import type { Layer } from "./Layer"
-import { Node, routes } from "./Node"
-import type { Stage } from "./Stage"
+import type {Layer} from "./Layer"
+import {Node, routes} from "./Node"
+import type {Stage} from "./Stage"
+import {Shape} from "./Shape";
 
 export abstract class Container extends Node {
   public static isContainer(candidate: unknown): candidate is Container {
@@ -11,25 +12,28 @@ export abstract class Container extends Node {
 
   public drawBounds: boolean = false
 
-  private _stage_v2: Stage | null = null
-  public get stage_v2() {
-    return this._stage_v2!
+  private _stage: Stage | null = null
+  private _layer: Layer | null = null
+  
+  public get stage() {
+    return this._stage!
   }
-  public set stage_v2(parent: Stage) {
-    this._stage_v2 = parent
+
+  public get layer() {
+    return this._layer!
+  }
+
+  public set stage(parent: Stage) {
+    this._stage = parent
     this.children.forEach((child) => {
-      child.stage_v2 = parent
+      child.stage = parent
     })
   }
 
-  private _layer_v2: Layer | null = null
-  public get layer_v2() {
-    return this._layer_v2!
-  }
-  public set layer_v2(parent: Layer) {
-    this._layer_v2 = parent
+  public set layer(parent: Layer) {
+    this._layer = parent
     this.children.forEach((child) => {
-      child.layer_v2 = parent
+      child.layer = parent
     })
   }
 
@@ -38,6 +42,7 @@ export abstract class Container extends Node {
   }
 
   public render(context: CanvasRenderingContext2D): void {
+    // if (!this.isVisible) return
     this.children.forEach((child) => child.render(context))
 
     if (!this.drawBounds) return
@@ -52,6 +57,7 @@ export abstract class Container extends Node {
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {
+    if (!this.isListening) return
     this.children.forEach((child) => child.renderHit(context))
   }
 
@@ -62,7 +68,7 @@ export abstract class Container extends Node {
 
   public destroy() {
     super.destroy()
-    this.children.forEach((child) => this.destroy())
+    this.children.forEach((child) => child.destroy())
   }
 
   public removeChild(child: Node) {
@@ -71,16 +77,26 @@ export abstract class Container extends Node {
     child.parent = null
 
     this._children.splice(index, 1)
-    this.emitter.emit(routes.removeChild({ child }))
+    this.emitter.emit(routes.removeChild({child}))
   }
 
   public appendChild(...list: Array<Node>) {
     list.forEach((child) => {
+      if (this.layer) child.layer = this.layer
+      if (this.stage) child.stage = this.stage
+      
       this._children.push(child)
-      this.emitter.emit(routes.addChild({ child }))
+      this.emitter.emit(routes.addChild({child}))
 
       child.parent = this
-      child.emitter.emit(routes.addToParent({ parent: this }))
+      child.emitter.emit(routes.addToParent({parent: this}))
+    })
+  }
+
+  public getShapes(): Array<Shape> {
+    return this.children.flatMap(child => {
+      if (Shape.isShape(child)) return child
+      return this.getShapes.call(child)
     })
   }
 
@@ -98,5 +114,3 @@ export abstract class Container extends Node {
     }) as Container | undefined
   }
 }
-
-// "YTIDE-q-Pr7UcjXE_RnY9"

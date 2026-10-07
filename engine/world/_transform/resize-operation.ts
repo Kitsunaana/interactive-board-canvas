@@ -1,11 +1,9 @@
-import { isNil } from "lodash";
-import type { EventObject } from "../../behaviors/EventBehavior_v2";
-import { drawOriginPoint } from "../../behaviors/Transformable";
-import { Node } from "../../core/Node";
-import { Shape } from "../../core/Shape";
-import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
-import { Transformer } from "../TransformerV2";
-import type { Corner, Edge } from "./transform-operation.interface";
+import {isNil} from "lodash";
+import type {EventObject} from "../../behaviors/EventBehavior_v2";
+import {Node} from "../../core/Node";
+import {Matrix3x3, Point, type PointData, Rectangle} from "../../maths";
+import {ResizeTransformer} from "../TransformerV2";
+import type {Corner, Edge} from "./transform-operation.interface";
 
 type ResizeHandler = Corner | Edge
 
@@ -22,20 +20,9 @@ export class ResizeTransformOperation {
   private _pickedHandler: Corner | Edge | null = null;
   private _proportional: boolean = false
 
-  public constructor(public context: Transformer, public node: Node) { }
-
-  public debugRender(context: CanvasRenderingContext2D): void {
-    context.betweenSaveAndRestore(() => {
-      drawOriginPoint(context, this._obbWorldCenter, "_obbWorldCenter")
-      drawOriginPoint(context, this._handlePosition, "_handlePosition")
-      drawOriginPoint(context, this._pivotPosition, "_pivotPosition")
-      drawOriginPoint(context, this._worldPivot, "_worldPivot")
-    })
-  }
+  public constructor(public context: ResizeTransformer, public node: Node) { }
 
   public startTransform(event: EventObject<PointerEvent>): void {
-    this.context.transformState = "resize"
-
     const handler = event.target.getDataAttr("handler") as ResizeHandler
     this._pickedHandler = this._getEffectiveSide(handler)
 
@@ -49,35 +36,28 @@ export class ResizeTransformOperation {
     this.node.transform.setOrigin("scale", scaleOrigin);
     this.node.transform.beginInteraction("scale");
 
-    const mergedResizeHandlers = Object
-      .keys(this.context.resizeHandlerShapes)
-      .reduce((acc, key) => (Object.assign(
-        acc,
-        this.context.resizeHandlerShapes[key as keyof typeof this.context.resizeHandlerShapes]
-      )), {} as Record<ResizeHandler, Shape>)
-
-    const bounds = mergedResizeHandlers[handler].getBounds()
+    const handlerBounds = this.context.mergedResizeHandlers[handler].getBounds()
     const currentPointer = this.node.layer.worldPointer
 
-    this._deltaBetweenCursorAndHandler = currentPointer.sub(bounds.center)
+    this._deltaBetweenCursorAndHandler = currentPointer.sub(handlerBounds.center)
   }
 
-  public processTransform(event: PointerEvent): void {
+  public processTransform(event: EventObject<PointerEvent>): void {
     if (isNil(this._pickedHandler)) return;
 
-    this._proportional = event.shiftKey
+    this._proportional = event.evt.shiftKey
 
     const scaleOrigin = this._getRelativeOriginScale(this._pickedHandler)
     this.node.transform.setOrigin("scale", scaleOrigin);
 
     const cursorPosition = this.node.layer.worldPointer.sub(this._deltaBetweenCursorAndHandler)
     this._setTransformScale(cursorPosition, this._pickedHandler);
-
+    
     this.node.transform.updateInteraction(this._transformScale);
     this.context.updateHandlersPosition()
   }
 
-  public finishTransform(): void {
+  public finishTransform(_event: EventObject<PointerEvent>): void {
     if (isNil(this._pickedHandler)) return;
 
     if (this._transformScale.x === 0) this._transformScale.x = 0.001
@@ -91,8 +71,6 @@ export class ResizeTransformOperation {
     this._deltaBetweenCursorAndHandler = Point.zero()
     this._transformScale.copyFrom(Point.one());
     this._pickedHandler = null;
-
-    this.context.transformState = "idle"
   }
 
   private _setInitialState(): void {
@@ -136,7 +114,7 @@ export class ResizeTransformOperation {
   }
 
   private _computeDeadZoneAdjustedFactor(referenceScale: Point, pointerOffset: Point, axis: keyof PointData): number {
-    const deadZoneThreshold: number = Transformer.OFFSET_BETWEEN_SHAPES_AND_AABB * 2;
+    const deadZoneThreshold: number = ResizeTransformer.OFFSET_BETWEEN_SHAPES_AND_AABB * 2;
 
     if (referenceScale[axis] !== 0) {
       const initialRatio = pointerOffset[axis] / referenceScale[axis];
@@ -240,7 +218,7 @@ export class ResizeTransformOperation {
   }
 
   private _getPaddingToLocalCursor(side: ResizeHandler): Point {
-    const padding = Transformer.OFFSET_BETWEEN_SHAPES_AND_AABB;
+    const padding = ResizeTransformer.OFFSET_BETWEEN_SHAPES_AND_AABB;
     const point = new Point();
 
     switch (side) {

@@ -1,9 +1,9 @@
-import { type EventObject } from "../behaviors/EventBehavior_v2"
-import { Point, Rectangle, type PointData } from "../maths"
-import { getPointFromEvent } from "../shared/point"
-import { Container } from "./Container"
-import type { Layer } from "./Layer"
-import type { Node, GetBoundsParams, GetPointsParams } from "./Node"
+import {type EventObject} from "../behaviors/EventBehavior_v2"
+import {Point, Rectangle, type PointData} from "../maths"
+import {getPointFromEvent} from "../shared/point"
+import {Container} from "./Container"
+import {Layer} from "./Layer"
+import type {Node, GetBoundsParams, GetPointsParams} from "./Node"
 
 export interface StageConfig {
   draggable: boolean
@@ -28,7 +28,7 @@ type PointerState = {
 
 const DOUBLE_CLICK_WINDOW = 400
 
-const MOUSE_ALIASES: Partial<Record<string, string>> = {
+export const MOUSE_ALIASES: Partial<Record<string, string>> = {
   pointerdown: "mousedown",
   pointermove: "mousemove",
   pointerup: "mouseup",
@@ -38,7 +38,7 @@ const MOUSE_ALIASES: Partial<Record<string, string>> = {
   pointerleave: "mouseleave",
 }
 
-const TOUCH_ALIASES: Partial<Record<string, string>> = {
+export const TOUCH_ALIASES: Partial<Record<string, string>> = {
   pointerdown: "touchstart",
   pointermove: "touchmove",
   pointerup: "touchend",
@@ -48,7 +48,7 @@ const TOUCH_ALIASES: Partial<Record<string, string>> = {
 const getPointerLocalPosition = (event: PointerEvent) => {
   const rect = event.target instanceof HTMLElement
     ? event.target.getBoundingClientRect()
-    : { left: 0, top: 0 }
+    : {left: 0, top: 0}
 
   return Point.fromData({
     x: event.clientX - rect.left,
@@ -97,11 +97,14 @@ export class Stage extends Container {
     this._RAF()
   }
 
-  public updateAfterTransform(): void { }
+  public updateAfterTransform(): void {
+  }
 
-  public renderHit(_context: CanvasRenderingContext2D): void { }
+  public renderHit(_context: CanvasRenderingContext2D): void {
+  }
 
-  public render(_context: CanvasRenderingContext2D): void { }
+  public render(_context: CanvasRenderingContext2D): void {
+  }
 
   public getBounds(_params?: GetBoundsParams): Rectangle {
     return new Rectangle(0, 0, 100, 100)
@@ -109,6 +112,15 @@ export class Stage extends Container {
 
   public getUnrotateBounds(): Rectangle {
     return new Rectangle(0, 0, 0, 0)
+  }
+
+  public removeChild(child: Node) {
+    super.removeChild(child)
+
+    if (Layer.isLayer(child)) {
+      this.content.removeChild(child.hitCanvas)
+      this.content.removeChild(child.canvas)
+    }
   }
 
   public appendChild(...list: Array<Layer>): void {
@@ -121,7 +133,7 @@ export class Stage extends Container {
       layer.sizes = this.sizes
       layer.parent = this
 
-      layer.stage_v2 = this
+      layer.stage = this
     })
   }
 
@@ -287,10 +299,7 @@ export class Stage extends Container {
     domEvent: MouseEvent | PointerEvent,
     bubble: boolean
   ): void {
-    // console.log("CALL", eventName)
-    if (eventName === ("pointerup")) {
-    }
-    target.events.fire(
+    target.fire(
       eventName,
       {
         target,
@@ -317,7 +326,7 @@ export class Stage extends Container {
       sharedIndex < previousPath.length &&
       sharedIndex < nextPath.length &&
       previousPath[previousPath.length - 1 - sharedIndex] === nextPath[nextPath.length - 1 - sharedIndex]
-    ) {
+      ) {
       sharedIndex += 1
     }
 

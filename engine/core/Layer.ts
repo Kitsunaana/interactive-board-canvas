@@ -1,11 +1,12 @@
 import rough from 'roughjs';
-import { RoughCanvas } from "roughjs/bin/canvas";
-import { Point, type PointData, Rectangle } from '../maths';
-import { Container } from "./Container";
-import type { Group } from './Group';
-import { type GetBoundsParams, type GetPointsParams, type Node } from "./Node";
-import type { Shape } from "./Shape";
-import { type Sizes } from "./Stage";
+import {RoughCanvas} from "roughjs/bin/canvas";
+import {Point, type PointData, Rectangle} from '../maths';
+import {Container} from "./Container";
+import type {Group} from './Group';
+import {type GetBoundsParams, type GetPointsParams, type Node} from "./Node";
+import type {Shape} from "./Shape";
+import {MOUSE_ALIASES, type Sizes, TOUCH_ALIASES} from "./Stage";
+import {concat, keys, values} from "lodash";
 
 declare global {
   interface CanvasRenderingContext2D {
@@ -14,6 +15,12 @@ declare global {
 }
 
 export type Child = Group | Shape
+
+const SYSTEM_EVENT_NAMES = concat(
+  values(MOUSE_ALIASES),
+  keys(MOUSE_ALIASES),
+  values(TOUCH_ALIASES)
+)
 
 function betweenSaveAndRestore(this: any, drawCallback: () => void) {
   this.context.save()
@@ -38,7 +45,8 @@ export class Layer extends Container {
     throw new Error("Method is not implemented")
   }
 
-  public updateAfterTransform(): void { }
+  public updateAfterTransform(): void {
+  }
 
   public type: string = "Layer"
 
@@ -78,7 +86,11 @@ export class Layer extends Container {
     super()
 
     this._canvas = document.createElement("canvas")
-    this._context = this._canvas.getContext("2d", { alpha: true }) as CanvasRenderingContext2D
+    this._context = this._canvas.getContext("2d", {alpha: true}) as CanvasRenderingContext2D
+
+    this._canvas.classList.add("layer")
+
+    this._canvas.oncontextmenu = (event) => event.preventDefault()
 
     this._hitCanvas = document.createElement("canvas")
     this._hitContext = this._hitCanvas.getContext("2d", {
@@ -86,16 +98,21 @@ export class Layer extends Container {
       alpha: true,
     }) as CanvasRenderingContext2D
 
-    this._hitContext.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._hitContext })
-    this._context.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._context })
+    this.hitCanvas.classList.add("hitLayer")
+
+    this._hitContext.betweenSaveAndRestore = betweenSaveAndRestore.bind({context: this._hitContext})
+    this._context.betweenSaveAndRestore = betweenSaveAndRestore.bind({context: this._context})
 
     this._rc = rough.canvas(this._canvas)
   }
 
-  public update(time: number) { }
+  public update(time: number) {
+  }
 
   public screenToWorld(point: Point): Point {
     return point
+      .sub({x: this.localMatrix.e, y: this.localMatrix.f})
+      .div({x: 1, y: 1})
   }
 
   public get canvas(): HTMLCanvasElement {
@@ -118,7 +135,29 @@ export class Layer extends Container {
     super.appendChild(...list)
 
     list.forEach((child) => {
-      child.layer_v2 = this
+      child.layer = this
+    })
+  }
+
+  public layers: Array<Layer> = []
+
+  public createTempLayer() {
+    const layer = new Layer()
+    this.stage.appendChild(layer)
+    this.layers.push(layer)
+
+    this.on("changeLocalMatrix", () => layer.localMatrix = this.localMatrix)
+    this.on("changeWorldMatrix", () => layer.worldMatrix = this.worldMatrix)
+
+    layer.localMatrix = this.localMatrix
+    layer.worldMatrix = this.worldMatrix
+
+    return layer
+  }
+  
+  public delegateEvents(target: Node): void {
+    this.on(SYSTEM_EVENT_NAMES.join(" "), (event) => {
+      target.fire(event.type, event)
     })
   }
 
@@ -158,8 +197,11 @@ export class Layer extends Container {
 
     context.clearRect(0, 0, sizes.width, sizes.height)
 
-    this.children.forEach((child) => {
-      child.render(context)
+    context.betweenSaveAndRestore(() => {
+      this.localMatrix.applyToContext(context)
+      this.children.forEach((child) => {
+        child.render(context)
+      })
     })
   }
 
@@ -169,11 +211,16 @@ export class Layer extends Container {
 
     context.clearRect(0, 0, sizes.width, sizes.height)
 
-    context.fillStyle = this.getHitColor(this)
-    context.fillRect(0, 0, sizes.width, sizes.height)
-
-    this.children.forEach((child) => {
-      child.renderHit(context)
+    context.betweenSaveAndRestore(() => {
+      if (this.isListening) {
+        context.fillStyle = this.getHitColor(this)
+        context.fillRect(0, 0, sizes.width, sizes.height)  
+      }
+      
+      this.localMatrix.applyToContext(context)
+      this.children.forEach((child) => {
+        child.renderHit(context)
+      })
     })
   }
 

@@ -1,16 +1,13 @@
-import { isNull, isUndefined } from "lodash"
-import { EventBehaviorV2 } from "../behaviors/EventBehavior_v2"
-import { createRoute, EventEmitter } from "../EventBus"
-import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
-import { nanoid } from "nanoid"
-import { DRAG_ROUTES, DragBehavior } from "../behaviors/drag-behavior"
-import { Transformer } from "../behaviors/TransformerV4"
-import type { Layer } from "./Layer"
-import type { Stage } from "./Stage"
-import type { Container } from "./Container"
-
-interface NodeToCustomEventsImpl {
-}
+import {isNull, isUndefined} from "lodash"
+import {EventBehaviorV2} from "../behaviors/EventBehavior_v2"
+import {createRoute, EventEmitter} from "../EventBus"
+import {Matrix3x3, Point, type PointData, Rectangle} from "../maths"
+import {nanoid} from "nanoid"
+import {DRAG_ROUTES} from "../behaviors/drag-behavior"
+import {Transformer} from "../behaviors/TransformerV4"
+import type {Layer} from "./Layer"
+import type {Stage} from "./Stage"
+import type {Container} from "./Container"
 
 export const routes = {
   ...DRAG_ROUTES,
@@ -22,10 +19,6 @@ export const routes = {
 }
 
 class CustomEvents extends EventEmitter {
-  public constructor(private readonly node: NodeToCustomEventsImpl) {
-    super()
-  }
-
   public dispose(): void {
     this._listeners.clear()
   }
@@ -44,16 +37,17 @@ export type GetPointsParams = {
   applyCachedTransform?: boolean
 }
 
-export abstract class Node {
+export abstract class Node extends EventBehaviorV2 {
   public abstract render(context: CanvasRenderingContext2D): void
   public abstract renderHit(context: CanvasRenderingContext2D): void
   public abstract getPoints(params?: GetPointsParams): Array<PointData>
   public abstract getBounds(params?: GetBoundsParams): Rectangle
   public abstract getUnrotateBounds(params?: GetBoundsParams): Rectangle
   public abstract updateAfterTransform(): void
-
-  public abstract layer_v2: Layer
-  public abstract stage_v2: Stage
+  public abstract clone(): Node
+  
+  public abstract layer: Layer
+  public abstract stage: Stage
 
   private _dataAttributeMap: Map<string, unknown> = new Map()
   private _parent: Container | null = null
@@ -66,9 +60,7 @@ export abstract class Node {
   public isListening: boolean = true
 
   public readonly transform: Transformer = new Transformer(this)
-  public readonly draggable: DragBehavior = new DragBehavior(this)
-  public readonly events: EventBehaviorV2 = new EventBehaviorV2(this)
-  public readonly emitter: CustomEvents = new CustomEvents(this)
+  public readonly emitter: CustomEvents = new CustomEvents()
 
   public _prevBounds: Rectangle | null = null
   public isDirtyBounds: boolean = true
@@ -93,14 +85,6 @@ export abstract class Node {
   public get parentOrThrow(): Container {
     if (isNull(this._parent)) throw new Error("Parent is not defined")
     return this._parent
-  }
-
-  public get layer() {
-    return this.getFirstParentByType<Layer>({ type: "Layer" })
-  }
-
-  public get stage() {
-    return this.getFirstParentByType<Stage>({ type: "Stage" })
   }
 
   public get x() {
@@ -133,11 +117,13 @@ export abstract class Node {
 
   public set worldMatrix(matrix: Matrix3x3) {
     this.transform.worldMatrix = matrix
+    this.fire("changeWorldMatrix")
     this.isDirtyBounds = true
   }
 
   public set localMatrix(matrix: Matrix3x3) {
     this.transform.localMatrix = matrix
+    this.fire("changeLocalMatrix")
     this.isDirtyBounds = true
   }
 
@@ -155,8 +141,8 @@ export abstract class Node {
   }
 
   public constructor(config: NodeConfig = {}) {
-    this.draggable.subscribe()
-
+    super()
+    
     if (config.names) config.names.forEach((name) => this.addName(name))
   }
 
@@ -217,10 +203,9 @@ export abstract class Node {
 
   public destroy() {
     this.remove()
-    this.events.off()
+    this.off()
     this.emitter.emit(routes.destroy())
     this.emitter.dispose()
-    this.draggable.unsubscribe()
   }
 
   public moveTo(parent: Container) {

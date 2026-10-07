@@ -14,7 +14,7 @@ export class LinearGradientGroup extends BaseGradientGroup {
     this.attachHandleDragEvents(this.startHandle)
     this.attachHandleDragEvents(this.endHandle)
 
-    this.connectionLine.events.on("dblclick", this.handleConnectionLineDoubleClick.bind(this))
+    this.connectionLine.on("dblclick", this.handleConnectionLineDoubleClick.bind(this))
     this.emitter.on(routes.addChild, this.onTargetShapeAdded.bind(this))
   }
 

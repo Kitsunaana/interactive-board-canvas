@@ -9,7 +9,9 @@ const invalidIndex = (index: number, list: Array<unknown>) => {
   return index > list.length - 1
 }
 
-type SelectableNode = Container | Shape
+export type SelectableNode = Container | Shape
+
+export type OnNodeSelect = (node: SelectableNode) => void
 
 export class ContextModel {
   private _content = document.createElement("div")
@@ -17,7 +19,6 @@ export class ContextModel {
   private target: Shape | null = null
 
   private _context: Container | null = null
-  private _selected: Set<SelectableNode> = new Set()
   private _isFinishTarget: boolean = false
 
   private get context() {
@@ -52,17 +53,6 @@ export class ContextModel {
   }
 
   public constructor(private readonly _layer: Layer) {
-    this._setupBreadcrumbsContent()
-
-    window.addEventListener("click", () => {
-      const target = this._layer.getIntersection(this._layer.worldPointer)
-      if (Shape.isShape(target)) this._click(target)
-    })
-
-    window.addEventListener("dblclick", () => {
-      const target = this._layer.getIntersection(this._layer.worldPointer)
-      if (Shape.isShape(target)) this._dblclick(target)
-    })
   }
 
   private _getPathToTarget(target: Node) {
@@ -71,52 +61,8 @@ export class ContextModel {
       .filter((node) => !node.hasName(SYSTEM_UI))
       .reverse()
   }
-
-  private select(node: SelectableNode) {
-    const shift = false
-    const ctrl = false
-
-    if (ctrl && this.target) {
-
-      if (shift) {
-        this._selected.add(this.target)
-
-        this.target.drawBounds = true
-
-      } else {
-
-        this._selected.forEach((node) => node.drawBounds = false)
-        this._selected.clear()
-        this._selected.add(this.target)
-
-        this.target.drawBounds = true
-
-      }
-
-    } else {
-
-      this._selected.forEach((node) => {
-        const parentId = node.getDataAttr<string>("parentId")
-
-        node.removeDataAttr("parentId")
-        const parent = this._layer.findParentById(parentId)
-        // if (parent) node.moveTo(parent)
-
-        node.drawBounds = false
-      })
-
-      this._selected.clear()
-
-      this._selected.add(node)
-      // node.setDataAttr("parentId", node.parent?.id)
-      // node.moveTo(this._resizeGroup)
-      node.drawBounds = true
-
-    }
-
-  }
-
-  private _dblclick(target: Shape) {
+  
+  public dblclick(target: Shape, onSelect: OnNodeSelect) {
     if (this.context) {
       this.target = target
       const pathToTarget = this._getPathToTarget(target)
@@ -127,22 +73,22 @@ export class ContextModel {
 
       if (!isNextContextNotExist) {
         this.context = pathToTarget[nextContextIndex]
-        this.select(this._context!)
+        onSelect(this._context!)
       } else {
         this.isFinishTarget = true
-        this.select(target)
+        onSelect(target)
       }
     }
   }
 
-  private _click(target: Shape) {
-    if (!this.context) return this._initializeLayerContext(target)
+  public click(target: Shape, onSelect: OnNodeSelect) {
+    if (!this.context) return this._initializeLayerContext(target, onSelect)
 
-    if (this._tryHandleSiblingSelection(target)) return
-    if (this._tryHandleAncestorSelection(target)) return
+    if (this._tryHandleSiblingSelection(target, onSelect)) return
+    if (this._tryHandleAncestorSelection(target, onSelect)) return
   }
 
-  private _tryHandleSiblingSelection(clickedShape: Shape) {
+  private _tryHandleSiblingSelection(clickedShape: Shape, onSelect: OnNodeSelect) {
     const currentShape = this.target!
 
     const referenceNode = this.isFinishTarget ? currentShape : this.context!
@@ -152,7 +98,7 @@ export class ContextModel {
       this.target = clickedShape
       this.context = clickedShape.parentOrThrow
       this.isFinishTarget = true
-      this.select(clickedShape)
+      onSelect(clickedShape)
 
       return true
     }
@@ -164,13 +110,13 @@ export class ContextModel {
     if (parentContainerAmongSiblings) {
       this.target = clickedShape
       this.context = parentContainerAmongSiblings
-      this.select(this.context)
+      onSelect(this.context)
 
       return true
     }
   }
 
-  private _tryHandleAncestorSelection(clickedShape: Shape) {
+  private _tryHandleAncestorSelection(clickedShape: Shape, onSelect: OnNodeSelect) {
     const currentShape = this.target!
     if (currentShape === clickedShape) return
 
@@ -190,13 +136,13 @@ export class ContextModel {
       this.context = clickedShape.parentOrThrow
       this.isFinishTarget = true
 
-      this.select(clickedShape)
+      onSelect(clickedShape)
 
       return true
     }
   }
 
-  private _initializeLayerContext(clickedShape: Shape) {
+  private _initializeLayerContext(clickedShape: Shape, onSelect: OnNodeSelect) {
     const ancestryPath = clickedShape.getAllParents().reverse()
 
     const layerIndex = ancestryPath.indexOf(this._layer)
@@ -207,10 +153,10 @@ export class ContextModel {
     if (invalidIndex(nextIndex, ancestryPath)) {
       this.context = this._layer
       this.isFinishTarget = true
-      this.select(clickedShape)
+      onSelect(clickedShape)
     } else {
       this.context = ancestryPath[nextIndex]
-      this.select(this.context)
+      onSelect(this.context)
     }
   }
 
@@ -229,14 +175,5 @@ export class ContextModel {
 
   private _doesContainerHoldNode(container: Container, node: SelectableNode): boolean {
     return node.getAllParents().includes(container)
-  }
-
-  private _setupBreadcrumbsContent() {
-    this._content.style.position = "absolute"
-    this._content.style.top = "0px"
-
-    this._content.textContent = "Stage"
-
-    document.body.appendChild(this._content)
   }
 }

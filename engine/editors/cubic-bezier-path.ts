@@ -270,7 +270,7 @@ export class CubicBezierPath extends Group {
   private _drawPreviewSegment(context: CanvasRenderingContext2D): void {
     const layer = this.layer
 
-    const currentPointerPosition = layer.screenToWorld(layer.stage.absolutePositionCursor)
+    const currentPointerPosition = layer.screenToWorld(layer.stage_v2.absolutePositionCursor)
     const prevAnchorHandles = this.getAnchorHandles(this.anchorCount - 1, false)
 
     context.beginPath()
