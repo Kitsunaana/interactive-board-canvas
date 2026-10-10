@@ -1,6 +1,6 @@
-import { type GetBoundsParams, type GetPointsParams } from "../core/Node";
-import { Shape, type ShapeConfig } from "../core/Shape";
-import { Matrix3x3, Point, Polygon, Rectangle, type PointData } from "../maths";
+import {type GetBoundsParams, type GetPointsParams} from "../core/Node";
+import {Shape, type ShapeConfig} from "../core/Shape";
+import {Matrix3x3, Point, type PointData, Polygon, Rectangle} from "../maths";
 
 export type PolygonConfig = ShapeConfig & {
   initialPoints: Array<PointData>
@@ -9,7 +9,7 @@ export type PolygonConfig = ShapeConfig & {
   cubic?: boolean
 }
 
-const mergeConfigWithDefaultValues = ({ tension, closed, cubic, initialPoints, ...config }: PolygonConfig) => {
+const mergeConfigWithDefaultValues = ({tension, closed, cubic, initialPoints, ...config}: PolygonConfig) => {
   return {
     ...config,
 
@@ -33,7 +33,7 @@ export class PolygonShape extends Shape {
   private _cubic: boolean = false
 
   public constructor(params: PolygonConfig) {
-    const { _initialPoints, ...config } = mergeConfigWithDefaultValues(params)
+    const {_initialPoints, ...config} = mergeConfigWithDefaultValues(params)
 
     super(config);
 
@@ -51,7 +51,7 @@ export class PolygonShape extends Shape {
       initialPoints: this.pointsToTrace
     })
   }
-  
+
   public get pointsToTrace() {
     return this._pointsToTrace
   }
@@ -70,42 +70,21 @@ export class PolygonShape extends Shape {
   public set tension(value: number) {
   }
 
-  public update(_time: number): void {
-  }
+  public update(_time: number): void {}
 
   public updateAfterTransform(): void {
-    if (!this.isInteracting) {
-      const matrix = this.worldMatrix
-      const transformedPoints = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
-      this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
-    }
-  }
+    if (this.isTransformPreviewActive()) return
 
-  public getPoints(params: GetPointsParams = {}): Array<PointData> {
-    const curveExtrema = Polygon.computeTensionedCurveExtrema(this._initialPoints, this.tension)
-    const points = this._initialPoints.concat(curveExtrema)
-
-    if (params.applyTransform) {
-      const matrix = this.transform.worldMatrix.clone()
-
-      if (params.applyCachedTransform) {
-        const parentsMatrix = this.getAllParents().map((p) => p.transform.cachedMatrix)
-        const nextMatrix = Matrix3x3.compose(...parentsMatrix, this.transform.cachedMatrix, this.transform.worldMatrix)
-
-        matrix.copyFrom(nextMatrix)
-      }
-
-      return points.map(matrix.applyToPoint.bind(matrix))
-    }
-
-    return points
+    const matrix = this.worldMatrix
+    const transformedPoints = this._initialPoints.map(matrix.applyToPoint.bind(matrix))
+    this._pointsToTrace = this.computePointsToTraceWithTension(transformedPoints)
   }
 
   public setPoints(points: Array<PointData>) {
     this.transform.worldMatrix = Matrix3x3.identity()
     this.transform.localMatrix = Matrix3x3.identity()
 
-    this._initialPoints = points.map((point) => ({ ...point }))
+    this._initialPoints = points.map((point) => ({...point}))
     this._pointsToTrace = this._initialPoints
 
     this.updateAfterTransform()
@@ -141,38 +120,55 @@ export class PolygonShape extends Shape {
         );
 
       return result.concat([cp1, cp2, p2]);
-    }, [{ ...points[0] }] as Array<PointData>);
+    }, [{...points[0]}] as Array<PointData>);
   }
 
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     const points = params.skipTransform
       ? this._initialPoints
-      : this._initialPoints.map(this.worldMatrix.applyToPoint.bind(this.worldMatrix))
+      : this._initialPoints.map((p) => this.transform.worldMatrix.applyToPoint(p));
+    
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension);
 
-    const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension)
-    const allPoints = points.concat(curveExtrema)
+    return Polygon.getBounds(points.concat(curveExtrema));
+  }
 
-    return Polygon.getBounds(allPoints)
+  public getPoints(params: GetPointsParams = {}): Array<PointData> {
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(this._initialPoints, this.tension);
+    const points = this._initialPoints.concat(curveExtrema);
+
+    if (!params.applyTransform) return points
+
+    const matrix = this.transform.worldMatrix
+    return points.map(matrix.applyToPoint.bind(matrix));
   }
 
   public getUnrotateBounds(): Rectangle {
-    const origin = this.transform.getInLocalOriginPosition("rotate")
-    const currentAngle = -this.transform.getCurrentAngle()
-    const unrotate = Matrix3x3.aroundOrigin(origin, () => Matrix3x3.rotate(currentAngle))
+    const worldMatrix = this.transform.worldMatrix;
+    const origin = worldMatrix.applyToPoint(this.transform.getOriginInOriginalSpace("rotate"));
 
-    const composed = Matrix3x3.compose(unrotate, this.transform.worldMatrix)
+    const angle = Math.atan2(worldMatrix.b, worldMatrix.a);
 
-    const transformedPoints = this._initialPoints.map(composed.applyToPoint.bind(composed))
-    const curveExtrema = Polygon.computeTensionedCurveExtrema(transformedPoints, this.tension)
+    const unrotate = Matrix3x3.aroundOrigin(origin, () => Matrix3x3.rotate(-angle));
+    const composed = Matrix3x3.compose(unrotate, worldMatrix);
 
-    return Polygon.getBounds(curveExtrema.concat(transformedPoints))
+    const points = this._initialPoints.map(composed.applyToPoint.bind(composed))
+    const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension)
+
+    return Polygon.getBounds(curveExtrema.concat(points));
   }
+
 
   public render(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return
 
     context.betweenSaveAndRestore(() => {
-      this.cachedMatrix.applyToContext(context)
+      if (this.isInteracting) {
+        this.transform
+          .getPreviewWorldMatrix()
+          .applyToContext(context)
+      }
+
       this.tracePath(context)
       this.fillStrokeShape(context)
     })
@@ -180,6 +176,12 @@ export class PolygonShape extends Shape {
 
   public renderHit(context: CanvasRenderingContext2D): void {
     context.betweenSaveAndRestore(() => {
+      if (this.isInteracting) {
+        this.transform
+          .getPreviewWorldMatrix()
+          .applyToContext(context)
+      }
+
       this.tracePath(context)
       this.fillStrokeHitShape(context)
     })
@@ -230,7 +232,7 @@ export class PolygonShape extends Shape {
       )
     }
 
-        
+
     // for (let i = 0; i < length; i += 3) {
     //   const cp1 = points[i]                  // out
     //   const cp2 = points[(i + 1) % length]   // in

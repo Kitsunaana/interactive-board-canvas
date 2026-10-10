@@ -1,9 +1,8 @@
-﻿import {getPointFromEvent} from "../../shared/point";
-import {Matrix3x3} from "../../maths";
-import {App} from "../__noname";
-import type {State} from "./state.interface";
+﻿import { getPointFromEvent } from "../../shared/point";
+import { App } from "../__noname";
+import type { State } from "./state.interface";
 
-export class DraggingState {
+export class PanningState {
   public constructor(private app: App) {}
 
   node: State["node"] = {}
@@ -11,9 +10,7 @@ export class DraggingState {
   canvas: State["canvas"] = {
     onPointerMove: (event) => {
       this.app.cameraModel.handleMove(getPointFromEvent(event.evt))
-      this.app.layer.localMatrix = Matrix3x3.translate(
-        ...this.app.cameraModel.position.array()
-      )
+      this.app.layer._position = this.app.cameraModel.position.clone()
     },
     onPointerUp: (event) => {
       this.app.cameraModel.handleUp(getPointFromEvent(event.evt))

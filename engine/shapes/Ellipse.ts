@@ -1,5 +1,7 @@
 import { Matrix3x3, Point, type PointData, Rectangle } from "../maths";
 import { Ellipse } from "../maths/Ellipse";
+import { Shape } from "../core/Shape"
+import { Node } from "../core/Node";
 
 export class EllipseShape extends Shape {
   public static isEllipse(candidate: unknown): candidate is EllipseShape {
@@ -33,7 +35,7 @@ export class EllipseShape extends Shape {
   public isListening: boolean = true
 
   public constructor(private _x: number, private _y: number, private _rx: number, private _ry: number) {
-    super()
+    super({})
 
     // const bounds = Ellipse.getBounds(_x, _y, _rx, _ry)
     // const origin = bounds.center
@@ -52,6 +54,10 @@ export class EllipseShape extends Shape {
   public set position(nextPos: PointData) {
     const delta = Point.fromData(nextPos).sub(this.position)
     this.translate(delta)
+  }
+
+  public clone(): Node {
+    return new EllipseShape(0, 0, 10, 10)
   }
 
   public get x() {

@@ -1,8 +1,7 @@
-import { Matrix3x3, Polygon, Rectangle } from "../maths"
-import { CircleShape } from "../shapes/Circle"
-import { Container } from "./Container"
-import { routes, type GetBoundsParams, type GetPointsParams } from "./Node"
-import { Shape } from "./Shape"
+import {Matrix3x3, Polygon, Rectangle} from "../maths"
+import {Container} from "./Container"
+import {type GetBoundsParams, type GetPointsParams, Node} from "./Node"
+import {inverseOrIdentity} from "../behaviors/NodeTransformer";
 
 export class Group extends Container {
   public static isGroup(candidate: unknown): candidate is Group {
@@ -11,73 +10,40 @@ export class Group extends Container {
 
   public type: string = "Group"
 
-  public constructor() {
-    super()
-
-    this.emitter.on(routes.addChild, ({ payload }) => {
-      // const child = payload.child
-
-      // child.transform.__testMatrix = Matrix3x3.invert(this.transform.worldMatrix) ?? Matrix3x3.identity()
-      // child.updateWorldTransform()
-    })
+  public updateAfterTransform(): void {
   }
-
-  public updateAfterTransform(): void { }
 
   public clone() {
     const group = new Group()
     group.appendChild(...this.children.map((node) => node.clone()))
     return group
   }
-  
+
   public render(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
-    
+
     context.betweenSaveAndRestore(() => {
-      this.cachedMatrix.applyToContext(context)
+      if (this.isInteracting) {
+        this.transform
+          .getPreviewWorldMatrix()
+          .applyToContext(context)
+      }
+
       super.render(context)
     })
+  }
 
-    if (this.hasName("@@_SYSTEM_UI")) return
+  public renderHit(context: CanvasRenderingContext2D): void {
+    if (!this.isListening) return
 
     context.betweenSaveAndRestore(() => {
-      this.cachedMatrix.applyToContext(context)
+      if (this.isInteracting) {
+        this.transform
+          .getPreviewWorldMatrix()
+          .applyToContext(context)
+      }
 
-      const corners = this
-        .getBounds({ skipTransform: true })
-        // .padding(7)
-        .getCorners()
-        .map((p) => this.worldMatrix.applyToPoint(p))
-
-      context.strokeStyle = "#2980e6"
-      context.beginPath()
-      context.moveTo(corners[0].x, corners[0].y)
-      corners.forEach((p) => context.lineTo(p.x, p.y))
-      context.closePath()
-      // context.stroke()
-    })
-
-  }
-
-  public getBounds(params: GetBoundsParams = {}): Rectangle {
-    const points = this
-      .getFlatListChildren()
-      .flatMap((child) => {
-        const matrix = this._getMatrixToChildForComputeBounds(params, child)
-
-        return child
-          .getPoints()
-          .map(matrix.applyToPoint.bind(matrix))
-
-      })
-
-    return Polygon.getBounds(points)
-  }
-
-  public getFlatListChildren(): Array<Shape> {
-    return this.children.flatMap(child => {
-      if (Shape.isShape(child)) return child
-      return this.getFlatListChildren.call(child)
+      super.renderHit(context)
     })
   }
 
@@ -85,30 +51,62 @@ export class Group extends Container {
     return this.children.flatMap((child) => child.getPoints(params))
   }
 
-  public getUnrotateBounds(): Rectangle {
-    const basis = this.transform.worldMatrix.getResizeBasis()
-    const inverse = Matrix3x3.invert(basis) ?? Matrix3x3.identity()
+  public getBounds(params: GetBoundsParams = {}): Rectangle {
+    const points = this
+      .getShapes()
+      .flatMap((child) => {
+        const matrix = params.skipTransform
+          ? this._getMatrixRelativeToGroup(child)
+          : child.transform.worldMatrix;
 
-    const untransform = Matrix3x3.aroundOrigin(this.transform.getInLocalOriginPosition("rotate"), () => inverse)
-
-    const points = this.getFlatListChildren().flatMap((shape) => {
-      const matrix = Matrix3x3.compose(untransform, shape.worldMatrix)
-      return shape.getPoints().map((point) => matrix.applyToPoint(point));
-    })
+        return child
+          .getPoints()
+          .map(matrix.applyToPoint.bind(matrix));
+      });
 
     return Polygon.getBounds(points);
   }
 
-  private _getMatrixToChildForComputeBounds(params: GetBoundsParams, child: Shape): Matrix3x3 {
-    if (params.skipTransform) {
-      const invertParent = Matrix3x3.invert(this.localMatrix) ?? Matrix3x3.identity()
+  public getUnrotateBounds(): Rectangle {
+    const orientationSource = this.transform.startWorldMatrix ?? this.transform.worldMatrix;
+    const angle = Math.atan2(orientationSource.b, orientationSource.a);
+    const origin = orientationSource.applyToPoint(this.transform.getOriginInOriginalSpace("rotate"));
+    const unrotate = Matrix3x3.aroundOrigin(origin, () => Matrix3x3.rotate(-angle));
 
-      return child.parent === this
-        ? Matrix3x3.compose(child.localMatrix)
-        : Matrix3x3.compose(invertParent, child.worldMatrix)
+    const points = this.getShapes().flatMap((child) => {
+      const childWorld = child.transform.worldMatrix;
+      const matrix = Matrix3x3.compose(unrotate, childWorld);
+
+      return child
+        .getPoints()
+        .map(matrix.applyToPoint.bind(matrix));
+    });
+
+    return Polygon.getBounds(points);
+  }
+
+  private _getMatrixRelativeToGroup(child: Node): Matrix3x3 {
+    const chain: Matrix3x3[] = []
+
+    let current: Node | null = child
+
+    while (current && current !== this) {
+      const effectiveLocal = current.isInteracting
+        ? Matrix3x3.multiply(current.cachedMatrix, current.localMatrix)
+        : current.localMatrix
+      
+      chain.unshift(effectiveLocal)
+      current = current.parent
     }
 
-    return child.worldMatrix
+    if (current !== this) {
+      debugger
+      // TODO:
+      const inverse = inverseOrIdentity(this.transform.worldMatrix)
+      return Matrix3x3.compose(inverse, child.transform.worldMatrix)
+    }
+
+    return chain.length === 0 ? Matrix3x3.identity() : Matrix3x3.compose(...chain)
   }
 }
 

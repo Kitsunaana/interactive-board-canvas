@@ -5,7 +5,7 @@ import { Matrix3x3, Point } from "../../maths"
 import { type CircleConfig, CircleShape } from "../../shapes/Circle"
 import { SYSTEM_UI } from "../GradientControls/BaseGradientGroup"
 import { HANDLER_KEY_NAME, HANDLE_ROTATE_CORNERS, HANDLE_SKEW_EDGES } from "./Operations/_const"
-import type { Corner, Edge, OperationHandler, TransformContext, TransformOperation } from "./Operations/_operation.interface"
+import type { Corner, Edge, TransformContext, TransformOperation } from "./Operations/_operation.interface"
 import { RotateOperation } from "./Operations/_rotate-operation"
 import { SkewOperation } from "./Operations/_skew-operation"
 

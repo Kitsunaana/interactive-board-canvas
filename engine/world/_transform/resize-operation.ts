@@ -1,355 +1,286 @@
-import {isNil} from "lodash";
-import type {EventObject} from "../../behaviors/EventBehavior_v2";
-import {Node} from "../../core/Node";
-import {Matrix3x3, Point, type PointData, Rectangle} from "../../maths";
-import {ResizeTransformer} from "../TransformerV2";
-import type {Corner, Edge} from "./transform-operation.interface";
+import type { EventObject } from "../../behaviors/EventBehavior_v2";
+import { EPSILON, inverseOrIdentity } from "../../behaviors/NodeTransformer";
+import { Node } from "../../core/Node";
+import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
+import { ResizeTransformer } from "../TransformerV2";
+import type { Corner, Edge } from "./transform-operation.interface";
 
-type ResizeHandler = Corner | Edge
+type ResizeHandler = Corner | Edge;
 
 export class ResizeTransformOperation {
-  private readonly _initialOBB = new Rectangle();
-  private readonly _obbWorldCenter = new Point();
-  private readonly _handlePosition = new Point();
+  private readonly _initialBounds = new Rectangle();
+  private readonly _startWorldMatrix = Matrix3x3.identity();
+  private readonly _inverseStartWorldMatrix = Matrix3x3.identity();
+
+  private readonly _handleLocal = new Point();
+  private readonly _pivotLocal = new Point();
+
+  private readonly _markerToHandleLocal = new Point();
+  private readonly _pointerToMarkerWorld = new Point();
+
   private readonly _transformScale = new Point(1, 1);
-  private readonly _pivotPosition = new Point();
-  private readonly _worldPivot = new Point();
 
-  private _deltaBetweenCursorAndHandler: Point = new Point()
+  private _pickedHandler: ResizeHandler | null = null;
+  private _proportional = false;
+  private _activeX = false;
+  private _activeY = false;
+  private _started = false;
 
-  private _pickedHandler: Corner | Edge | null = null;
-  private _proportional: boolean = false
+  public context!: ResizeTransformer;
+  public node!: Node;
 
-  public constructor(public context: ResizeTransformer, public node: Node) { }
+  public initialize(context: ResizeTransformer, node: Node): void {
+    this.context = context;
+    this.node = node;
+  }
 
   public startTransform(event: EventObject<PointerEvent>): void {
-    const handler = event.target.getDataAttr("handler") as ResizeHandler
-    this._pickedHandler = this._getEffectiveSide(handler)
+    this._setInitialState(event)
 
-    this._setInitialState();
-    this._setPivotPosition(this._pickedHandler);
-    this._setHandlePosition(this._pickedHandler);
-    this._setWorldPivot();
+    const localMarker = this._getLocalMarker()
 
-    const scaleOrigin = this._getRelativeOriginScale(this._pickedHandler)
+    this._setActiveAxis()
+    this._setHandleLocal(localMarker)
+    this._setPivotLocal()
+    this._setMarkerPosition(localMarker)
+    this._setScaleOrigin();
 
-    this.node.transform.setOrigin("scale", scaleOrigin);
     this.node.transform.beginInteraction("scale");
 
-    const handlerBounds = this.context.mergedResizeHandlers[handler].getBounds()
-    const currentPointer = this.node.layer.worldPointer
-
-    this._deltaBetweenCursorAndHandler = currentPointer.sub(handlerBounds.center)
+    this._transformScale.set(1, 1);
+    this._started = true;
   }
 
   public processTransform(event: EventObject<PointerEvent>): void {
-    if (isNil(this._pickedHandler)) return;
+    if (!this._started || !this._pickedHandler) return;
 
-    this._proportional = event.evt.shiftKey
+    this._proportional = event.evt.shiftKey;
 
-    const scaleOrigin = this._getRelativeOriginScale(this._pickedHandler)
-    this.node.transform.setOrigin("scale", scaleOrigin);
+    this._setTrnasformScale()
+    this._setScaleOrigin();
 
-    const cursorPosition = this.node.layer.worldPointer.sub(this._deltaBetweenCursorAndHandler)
-    this._setTransformScale(cursorPosition, this._pickedHandler);
-    
     this.node.transform.updateInteraction(this._transformScale);
-    this.context.updateHandlersPosition()
+    this.context.updateHandlersPosition();
   }
 
   public finishTransform(_event: EventObject<PointerEvent>): void {
-    if (isNil(this._pickedHandler)) return;
+    if (!this._started) return;
 
-    if (this._transformScale.x === 0) this._transformScale.x = 0.001
-    if (this._transformScale.y === 0) this._transformScale.y = 0.001
+    if (this._transformScale.x === 0) this._transformScale.x = 0.001;
+    if (this._transformScale.y === 0) this._transformScale.y = 0.001;
 
-    this.node.transform.updateInteraction(this._transformScale)
+    this.node.transform.updateInteraction(this._transformScale);
     this.node.transform.endInteraction();
 
-    this.context.updateHandlersPosition()
+    this.context.updateHandlersPosition();
 
-    this._deltaBetweenCursorAndHandler = Point.zero()
-    this._transformScale.copyFrom(Point.one());
+    this._started = false;
+    this._activeX = false;
+    this._activeY = false;
     this._pickedHandler = null;
+    this._proportional = false;
+
+    this._transformScale.set(1, 1);
+
+    this._pointerToMarkerWorld.set(0, 0);
+    this._markerToHandleLocal.set(0, 0);
   }
 
-  private _setInitialState(): void {
-    const bounds = this.node.getUnrotateBounds()
+  private _setScaleOrigin(): void {
+    const bounds = this._initialBounds;
 
-    this._initialOBB.copyFrom(bounds);
-    this._obbWorldCenter.copyFrom(this._initialOBB.center);
+    const delta = this._pivotLocal.sub(bounds)
+
+    const rx = bounds.width > EPSILON ? delta.x / bounds.width : 0.5;
+    const ry = bounds.height > EPSILON ? delta.y / bounds.height : 0.5;
+
+    this.node.transform.setOrigin("scale", {
+      x: rx,
+      y: ry,
+    });
   }
 
-  private _setWorldPivot(): void {
-    const pivotPosition = this._pivotPosition
+  private _setTrnasformScale() {
+    const markerWorld = this.node.layer.worldPointer.sub(this._pointerToMarkerWorld);
+    const markerLocal = this._inverseStartWorldMatrix.applyToPoint(markerWorld);
+    const cursorLocal = markerLocal.add(this._getPaddingToLocalCursor(this._pickedHandler!));
 
-    const basis = this.node.transform.worldMatrix.getResizeBasis()
-    const transformed = basis.applyToPoint(pivotPosition)
-    const world = this._obbWorldCenter.add(transformed)
+    const start = this._handleLocal.sub(this._pivotLocal)
+    const current = cursorLocal.sub(this._pivotLocal)
 
-    this._worldPivot.copyFrom(world)
-  }
+    let sx = this._activeX ? this._computeDeadZoneAdjustedFactor(start, current, "x") : 1
+    let sy = this._activeY ? this._computeDeadZoneAdjustedFactor(start, current, "y") : 1
 
-  private _setTransformScale(currentPointer: Point, side: Edge | Corner): void {
-    const basis = this.node.transform.worldMatrix.getResizeBasis();
+    if (this._proportional) {
+      let uniform: number;
 
-    const worldMatrix = Matrix3x3.compose(
-      Matrix3x3.translate(this._obbWorldCenter.x, this._obbWorldCenter.y),
-      basis,
-    )
+      if (this._activeX && this._activeY) {
+        const denominator = start.lengthSquared()
+        const projected = denominator > EPSILON ? start.lengthSquared(current) / denominator : 1;
 
-    const localMatrix = Matrix3x3.invert(worldMatrix) ?? Matrix3x3.identity();
+        const startLen = start.length()
+        const currentAlong = projected * startLen;
 
-    const localCursor = localMatrix
-      .applyToPoint(currentPointer)
-      .add(this._getPaddingToLocalCursor(side))
+        uniform = startLen > EPSILON
+          ? this._computeDeadZoneAdjustedFactor(new Point(startLen, 0), new Point(currentAlong, 0), "x")
+          : 1;
 
-    const origVec = this._handlePosition.sub(this._pivotPosition)
-    const cursorVec = localCursor.sub(this._pivotPosition)
+      } else {
+        uniform = this._activeX ? sx : sy;
+      }
 
-    const scaleFactorX = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "x")
-    const scaleFactorY = this._computeDeadZoneAdjustedFactor(origVec, cursorVec, "y")
+      sx = uniform;
+      sy = uniform;
+    }
 
-    this._transformScale.set(scaleFactorX, scaleFactorY);
+    this._transformScale.set(sx, sy);
   }
 
   private _computeDeadZoneAdjustedFactor(referenceScale: Point, pointerOffset: Point, axis: keyof PointData): number {
-    const deadZoneThreshold: number = ResizeTransformer.OFFSET_BETWEEN_SHAPES_AND_AABB * 2;
+    const padding = ResizeTransformer.OFFSET_BETWEEN_SHAPES_AND_AABB;
+    const measuredPadding = Math.abs(this._markerToHandleLocal[axis]);
 
-    if (referenceScale[axis] !== 0) {
-      const initialRatio = pointerOffset[axis] / referenceScale[axis];
-      if (initialRatio > 0) return Math.max(0.01, initialRatio);
-      else if (Math.abs(pointerOffset[axis]) <= deadZoneThreshold) return 0
-      else {
-        const deadZoneAdjustedValue = pointerOffset[axis] + Math.sign(referenceScale[axis]) * deadZoneThreshold;
-        const adjustedRatio = deadZoneAdjustedValue / referenceScale[axis];
+    const deadZoneThreshold = (measuredPadding > EPSILON ? measuredPadding : padding) * 2;
 
-        return Math.sign(adjustedRatio) * Math.max(0.01, Math.abs(adjustedRatio))
-      }
-    }
+    if (referenceScale[axis] === 0) return 1;
 
-    return 1;
-  }
+    const initialRatio = pointerOffset[axis] / referenceScale[axis];
+    if (initialRatio > 0) return Math.max(0.01, initialRatio);
 
-  private _getEffectiveSide(side: ResizeHandler): ResizeHandler {
-    const positions = this.context.computeTransformHandlerPositions(0)
+    if (Math.abs(pointerOffset[axis]) <= deadZoneThreshold) return 0;
 
-    const { bottomRight, bottomLeft, topRight, topLeft } = positions.corner
+    const deadZoneAdjustedValue = pointerOffset[axis] + Math.sign(referenceScale[axis]) * deadZoneThreshold;
+    const adjustedRatio = deadZoneAdjustedValue / referenceScale[axis];
 
-    const topCenterY = topLeft.add(topRight).scale(0.5).y
-    const bottomCenterY = bottomLeft.add(bottomRight).scale(0.5).y
-
-    const leftCenterX = topLeft.add(bottomLeft).scale(0.5).x
-    const rightCenterX = topRight.add(bottomRight).scale(0.5).x
-
-    const isFlippedY = topCenterY > bottomCenterY
-    const isFlippedX = leftCenterX > rightCenterX
-
-    let effective = side
-
-    if (isFlippedY) {
-      switch (effective) {
-        case "top": effective = "bottom"; break
-        case "bottom": effective = "top"; break
-        case "topLeft": effective = "bottomLeft"; break
-        case "topRight": effective = "bottomRight"; break
-        case "bottomLeft": effective = "topLeft"; break
-        case "bottomRight": effective = "topRight"; break
-      }
-    }
-
-    if (isFlippedX) {
-      switch (effective) {
-        case "right": effective = "left"; break
-        case "left": effective = "right"; break
-        case "topLeft": effective = "topRight"; break
-        case "topRight": effective = "topLeft"; break
-        case "bottomLeft": effective = "bottomRight"; break
-        case "bottomRight": effective = "bottomLeft"; break
-      }
-    }
-
-    return effective
-  }
-
-  private _getRelativeOriginScale(side: ResizeHandler): Point {
-    const relativeOrigin = new Point();
-
-    switch (side) {
-      case "top":
-        if (this._proportional) relativeOrigin.set(0.5, 1);
-        else relativeOrigin.set(0, 1);
-        break;
-      case "right":
-        if (this._proportional) relativeOrigin.set(0, 0.5);
-        else relativeOrigin.set(0, 0);
-        // relativeOrigin.set(0.5, 0.5)
-        break;
-      case "bottom":
-        if (this._proportional) relativeOrigin.set(0.5, 0);
-        else relativeOrigin.set(1, 0);
-        break;
-      case "left":
-        if (this._proportional) relativeOrigin.set(1, 0.5);
-        else relativeOrigin.set(1, 0);
-        break;
-      case "topLeft":
-        relativeOrigin.set(1, 1);
-        break;
-      case "topRight":
-        relativeOrigin.set(0, 1);
-        break;
-      case "bottomRight":
-        relativeOrigin.set(0, 0)
-        break;
-      case "bottomLeft":
-        relativeOrigin.set(1, 0);
-        break;
-    }
-
-    const matrix = this.node.worldMatrix;
-
-    relativeOrigin.set(
-      matrix.a < 0 ? 1 - relativeOrigin.x : relativeOrigin.x,
-      matrix.d < 0 ? 1 - relativeOrigin.y : relativeOrigin.y,
-    );
-
-    return relativeOrigin;
+    return Math.sign(adjustedRatio) * Math.max(0.01, Math.abs(adjustedRatio));
   }
 
   private _getPaddingToLocalCursor(side: ResizeHandler): Point {
+    const measured = new Point(
+      -this._markerToHandleLocal.x,
+      -this._markerToHandleLocal.y,
+    );
+
+    if (Math.hypot(measured.x, measured.y) > EPSILON) return measured;
+
     const padding = ResizeTransformer.OFFSET_BETWEEN_SHAPES_AND_AABB;
     const point = new Point();
 
     switch (side) {
       case "topLeft":
-        point.set(padding, padding)
+        point.set(padding, padding);
         break;
       case "top":
-        point.set(padding, padding)
+        point.set(padding, padding);
         break;
       case "topRight":
-        point.set(-padding, padding)
+        point.set(-padding, padding);
         break;
       case "right":
-        point.set(-padding, padding)
+        point.set(-padding, padding);
         break;
       case "bottomRight":
-        point.set(-padding, -padding)
+        point.set(-padding, -padding);
         break;
       case "bottom":
-        point.set(padding, -padding)
+        point.set(padding, -padding);
         break;
       case "bottomLeft":
-        point.set(padding, -padding)
+        point.set(padding, -padding);
         break;
       case "left":
-        point.set(padding, -padding)
+        point.set(padding, -padding);
         break;
     }
-
-    point.x *= Math.sign(this.node.worldMatrix.a);
-    point.y *= Math.sign(this.node.worldMatrix.a);
 
     return point;
   }
 
-  private _setHandlePosition(side: ResizeHandler): void {
-    const halfW = this._initialOBB.width / 2;
-    const halfH = this._initialOBB.height / 2;
+  private _setInitialState(event: EventObject<PointerEvent>) {
+    const handler = event.target.getDataAttr("handler") as ResizeHandler | undefined;
+    if (!handler) return;
 
-    let handleX = 0;
-    let handleY = 0;
+    const startWorld = this.node.transform.worldMatrix;
+    const inverse = inverseOrIdentity(startWorld);
 
-    switch (side) {
-      case "topLeft":
-        handleX = -halfW;
-        handleY = -halfH;
-        break;
-      case "top":
-        handleX = 0;
-        handleY = -halfH;
-        break;
-      case "topRight":
-        handleX = halfW;
-        handleY = -halfH;
-        break;
-      case "right":
-        handleX = halfW;
-        handleY = 0;
-        break;
-      case "bottomRight":
-        handleX = halfW;
-        handleY = halfH;
-        break;
-      case "bottom":
-        handleX = 0;
-        handleY = halfH;
-        break;
-      case "bottomLeft":
-        handleX = -halfW;
-        handleY = halfH;
-        break;
-      case "left":
-        handleX = -halfW;
-        handleY = 0;
-        break;
-    }
+    const bounds = this.node.getBounds({ skipTransform: true });
 
-    handleX *= Math.sign(this.node.worldMatrix.a)
-    handleY *= Math.sign(this.node.worldMatrix.a)
+    this._initialBounds.copyFrom(bounds);
+    this._startWorldMatrix.copyFrom(startWorld);
+    this._inverseStartWorldMatrix.copyFrom(inverse);
 
-    this._handlePosition.set(handleX, handleY);
+    this._proportional = event.evt.shiftKey;
+    this._pickedHandler = handler;
   }
 
-  private _setPivotPosition(side: ResizeHandler): void {
-    const halfW = this._initialOBB.width / 2;
-    const halfH = this._initialOBB.height / 2;
+  private _setMarkerPosition(localMarker: Point) {
+    const handler = this._pickedHandler!
 
-    let pivotX = 0;
-    let pivotY = 0;
+    const markerBounds = this.context.mergedResizeHandlers[handler].getBounds();
+    const markerCenter = markerBounds.center;
 
-    switch (side) {
-      case "topLeft":
-        pivotX = halfW;
-        pivotY = halfH;
-        break;
-      case "top":
-        pivotX = 0;
-        pivotY = halfH;
-        break;
-      case "topRight":
-        pivotX = -halfW;
-        pivotY = halfH;
-        break;
-      case "right":
-        pivotX = -halfW;
-        pivotY = 0;
-        break;
-      case "bottomRight":
-        pivotX = -halfW;
-        pivotY = -halfH;
-        break;
-      case "bottom":
-        pivotX = 0;
-        pivotY = -halfH;
-        break;
-      case "bottomLeft":
-        pivotX = halfW;
-        pivotY = -halfH;
-        break;
-      case "left":
-        pivotX = halfW;
-        pivotY = 0;
-        break;
-    }
+    this._pointerToMarkerWorld.copyFrom(this.node.layer.worldPointer.sub(markerCenter));
+    this._markerToHandleLocal.copyFrom(localMarker.sub(this._handleLocal));
+  }
 
-    pivotX *= Math.sign(this.node.worldMatrix.a)
-    pivotY *= Math.sign(this.node.worldMatrix.a)
+  private _setActiveAxis() {
+    const handler = this._pickedHandler!
 
-    // pivotX = 0
-    // pivotY = 0
+    const activeXCandidates = ["left", "right", "Left", "Right"]
+    const activeYCandidates = ["top", "bottom", "Top", "Bottom"]
 
-    this._pivotPosition.set(pivotX, pivotY);
+    const activeX_ = activeXCandidates.some((item) => handler.includes(item))
+    const activeY_ = activeYCandidates.some((item) => handler.includes(item))
+
+    this._activeX = activeX_
+    this._activeY = activeY_
+  }
+
+  private _getLocalMarker() {
+    const handler = this._pickedHandler!
+    const markerBounds = this.context.mergedResizeHandlers[handler].getBounds();
+    const markerCenter = markerBounds.center;
+
+    const localMarker = this._inverseStartWorldMatrix.applyToPoint(markerCenter);
+
+    return localMarker
+  }
+
+  private _setHandleLocal(localMarker: Point) {
+    const bounds = this._initialBounds
+    const center = bounds.center
+
+    this._handleLocal.set(
+      this._activeX
+        ? (Math.abs(localMarker.x - bounds.left) <= Math.abs(localMarker.x - bounds.right)
+          ? bounds.left
+          : bounds.right)
+        : center.x,
+
+      this._activeY
+        ? (Math.abs(localMarker.y - bounds.top) <= Math.abs(localMarker.y - bounds.bottom)
+          ? bounds.top
+          : bounds.bottom)
+        : center.y,
+    );
+  }
+
+  private _setPivotLocal() {
+    const bounds = this._initialBounds
+    const center = bounds.center
+
+    this._pivotLocal.set(
+      this._activeX
+        ? (this._handleLocal.x === bounds.left
+          ? bounds.right
+          : bounds.left)
+        : center.x,
+
+      this._activeY
+        ? (this._handleLocal.y === bounds.top
+          ? bounds.bottom
+          : bounds.top)
+        : center.y,
+    );
   }
 }

@@ -1,8 +1,8 @@
 import { isNull } from "lodash";
-import { Transformer } from "../behaviors/TransformerV4";
 import { Bounds, Circle, Matrix3x3, Point, type PointData, Rectangle } from "../maths";
 import { Shape, type ShapeConfig } from "../core/Shape";
 import { type GetBoundsParams } from "../core/Node";
+import { NodeTransformer } from "../behaviors/NodeTransformer";
 
 export type CircleShapeConfig = {
   x: number
@@ -75,7 +75,7 @@ export class CircleShape extends Shape {
   }
   
   private _overrideScale(value: PointData) {
-    Transformer.prototype.scale.call(this.transform, {
+    NodeTransformer.prototype.scale.call(this.transform, {
       x: value.x,
       y: value.x
     })

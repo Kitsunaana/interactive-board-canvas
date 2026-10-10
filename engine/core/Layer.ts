@@ -1,12 +1,12 @@
 import rough from 'roughjs';
-import {RoughCanvas} from "roughjs/bin/canvas";
-import {Point, type PointData, Rectangle} from '../maths';
-import {Container} from "./Container";
-import type {Group} from './Group';
-import {type GetBoundsParams, type GetPointsParams, type Node} from "./Node";
-import type {Shape} from "./Shape";
-import {MOUSE_ALIASES, type Sizes, TOUCH_ALIASES} from "./Stage";
-import {concat, keys, values} from "lodash";
+import { RoughCanvas } from "roughjs/bin/canvas";
+import { Point, type PointData, Rectangle } from '../maths';
+import { Container } from "./Container";
+import type { Group } from './Group';
+import { type GetBoundsParams, type GetPointsParams, type Node } from "./Node";
+import type { Shape } from "./Shape";
+import { MOUSE_ALIASES, type Sizes, TOUCH_ALIASES } from "./Stage";
+import { concat, keys, values } from "lodash";
 
 declare global {
   interface CanvasRenderingContext2D {
@@ -48,6 +48,10 @@ export class Layer extends Container {
   public updateAfterTransform(): void {
   }
 
+  public clone(): Node {
+    return new Layer()
+  }
+
   public type: string = "Layer"
 
   private readonly _canvas: HTMLCanvasElement
@@ -86,7 +90,7 @@ export class Layer extends Container {
     super()
 
     this._canvas = document.createElement("canvas")
-    this._context = this._canvas.getContext("2d", {alpha: true}) as CanvasRenderingContext2D
+    this._context = this._canvas.getContext("2d", { alpha: true }) as CanvasRenderingContext2D
 
     this._canvas.classList.add("layer")
 
@@ -100,8 +104,8 @@ export class Layer extends Container {
 
     this.hitCanvas.classList.add("hitLayer")
 
-    this._hitContext.betweenSaveAndRestore = betweenSaveAndRestore.bind({context: this._hitContext})
-    this._context.betweenSaveAndRestore = betweenSaveAndRestore.bind({context: this._context})
+    this._hitContext.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._hitContext })
+    this._context.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._context })
 
     this._rc = rough.canvas(this._canvas)
   }
@@ -111,8 +115,8 @@ export class Layer extends Container {
 
   public screenToWorld(point: Point): Point {
     return point
-      .sub({x: this.localMatrix.e, y: this.localMatrix.f})
-      .div({x: 1, y: 1})
+      .sub({ x: this.localMatrix.e, y: this.localMatrix.f })
+      .div({ x: 1, y: 1 })
   }
 
   public get canvas(): HTMLCanvasElement {
@@ -154,7 +158,7 @@ export class Layer extends Container {
 
     return layer
   }
-  
+
   public delegateEvents(target: Node): void {
     this.on(SYSTEM_EVENT_NAMES.join(" "), (event) => {
       target.fire(event.type, event)
@@ -214,9 +218,9 @@ export class Layer extends Container {
     context.betweenSaveAndRestore(() => {
       if (this.isListening) {
         context.fillStyle = this.getHitColor(this)
-        context.fillRect(0, 0, sizes.width, sizes.height)  
+        context.fillRect(0, 0, sizes.width, sizes.height)
       }
-      
+
       this.localMatrix.applyToContext(context)
       this.children.forEach((child) => {
         child.renderHit(context)

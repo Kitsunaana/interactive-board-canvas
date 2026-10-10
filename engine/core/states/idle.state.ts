@@ -1,12 +1,11 @@
-﻿import type {SelectableNode} from "../SelectionManager";
-import {doubleClick} from "../../utils";
-import {getPointFromEvent} from "../../shared/point";
-import {App} from "../__noname";
-import type {State} from "./state.interface";
-import {Point} from "../../maths";
+﻿import type { SelectableNode } from "../SelectionManager";
+import { doubleClick } from "../../utils";
+import { getPointFromEvent } from "../../shared/point";
+import { App } from "../__noname";
+import type { State } from "./state.interface";
+import { Point } from "../../maths";
 
 export class IdleState {
-
   public constructor(private app: App) {
   }
 
@@ -23,18 +22,25 @@ export class IdleState {
     this.resizer.selected.add(node)
 
     this.resizer.create(node)
-    this.app.subscribeToResizeHandlers(this.resizer.state.group.handlers)
+    this.app.subscribeToResizeHandlers(this.resizer.group.handlers)
   }
 
   public resizeHandler: State["resizeHandler"] = {
     onPointerDown: (event) => {
-      this.resizer.state.operation.startTransform(event)
+      this.resizer.operation.startTransform(event)
       this.app.goToResizeState()
+    },
+
+    onPointerUp: (event) => {
+      event.stopPropagation()
     }
   }
 
   public node: State["node"] = {
-    onPointerDown: doubleClick({
+    onPointerDown: (event) => {
+      event.stopPropagation()
+    },
+    onPointerUp: doubleClick({
       threshold: 450,
       click: (event) => {
         event.stopPropagation()
@@ -54,7 +60,7 @@ export class IdleState {
 
     onPointerMove: (event) => {
       const dragDistance = 3
-      
+
       if (this.app.cameraModel.lastPosition) {
         const currentPointerPos = Point.fromData(getPointFromEvent(event.evt))
         const delta = currentPointerPos.sub(this.app.cameraModel.lastPosition!)
@@ -66,7 +72,7 @@ export class IdleState {
 
     onPointerUp: (event) => {
       this.app.cameraModel.lastPosition = null
-
+      this.app.contextModel.contextExit()
       this.app.resizeModel.destroy()
     }
   }

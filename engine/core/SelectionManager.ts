@@ -14,8 +14,6 @@ export type SelectableNode = Container | Shape
 export type OnNodeSelect = (node: SelectableNode) => void
 
 export class ContextModel {
-  private _content = document.createElement("div")
-
   private target: Shape | null = null
 
   private _context: Container | null = null
@@ -30,36 +28,19 @@ export class ContextModel {
   }
 
   private set isFinishTarget(value: boolean) {
-    const prev = this._isFinishTarget
     this._isFinishTarget = value
-
-    if (prev !== value) {
-      this._content.textContent += " > Shape"
-    }
   }
 
   private set context(value: Container | null) {
     this._context = value
     this._isFinishTarget = false
-
-    if (value) {
-      const pathToTarget = this._getPathToTarget(this.target!)
-      const index = pathToTarget.indexOf(value)
-      this._content.textContent = pathToTarget
-        .slice(0, index + 1)
-        .map(p => p.type)
-        .join(" > ")
-    }
   }
 
-  public constructor(private readonly _layer: Layer) {
-  }
-
-  private _getPathToTarget(target: Node) {
-    return target
-      .getAllParents()
-      .filter((node) => !node.hasName(SYSTEM_UI))
-      .reverse()
+  public constructor(private readonly _layer: Layer) {}
+  
+  public contextExit() {
+    this._isFinishTarget = false
+    this._context = null
   }
   
   public dblclick(target: Shape, onSelect: OnNodeSelect) {
@@ -167,6 +148,13 @@ export class ContextModel {
     const prev = children.slice(0, foundIndex)
     const next = children.slice(foundIndex + 1)
     return prev.concat(next)
+  }
+
+  private _getPathToTarget(target: Node) {
+    return target
+      .getAllParents()
+      .filter((node) => !node.hasName(SYSTEM_UI))
+      .reverse()
   }
 
   private _getNodeDepth(node: SelectableNode): number {

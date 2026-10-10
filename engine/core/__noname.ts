@@ -4,7 +4,7 @@ import {Shape} from "./Shape";
 import {Matrix3x3, type PointData} from "../maths";
 import type {EventObject} from "../behaviors/EventBehavior_v2";
 import {CameraModel} from "./models/_camera.model";
-import {DraggingState} from "./states/dragging.state";
+import {PanningState} from "./states/panning.state";
 import {IdleState} from "./states/idle.state";
 import type {State} from "./states/state.interface";
 import {ResizeState} from "./states/resize.state";
@@ -18,7 +18,7 @@ export class App {
   public activeState: State
 
   public states = {
-    dragging: new DraggingState(this),
+    dragging: new PanningState(this),
     resize: new ResizeState(this),
     idle: new IdleState(this),
   }
@@ -45,7 +45,7 @@ export class App {
 
     const update = () => {
       this.cameraModel.update()
-      this.layer.localMatrix = Matrix3x3.translate(...this.cameraModel.position.array())
+      this.layer._position = this.cameraModel.position.clone()
 
       requestAnimationFrame(update)
     }

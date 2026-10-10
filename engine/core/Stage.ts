@@ -81,6 +81,14 @@ export class Stage extends Container {
     return null
   }
 
+  public clone(): Node {
+    return new Stage({
+      width: 500,
+      height: 500,
+      draggable: false
+    })
+  }
+
   public constructor(config: StageConfig) {
     super()
 

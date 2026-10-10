@@ -1,7 +1,7 @@
-import type {Layer} from "./Layer"
-import {Node, routes} from "./Node"
-import type {Stage} from "./Stage"
-import {Shape} from "./Shape";
+import type { Layer } from "./Layer"
+import { Node, routes } from "./Node"
+import type { Stage } from "./Stage"
+import { Shape } from "./Shape";
 
 export abstract class Container extends Node {
   public static isContainer(candidate: unknown): candidate is Container {
@@ -10,11 +10,9 @@ export abstract class Container extends Node {
 
   private _children: Array<Node> = []
 
-  public drawBounds: boolean = false
-
   private _stage: Stage | null = null
   private _layer: Layer | null = null
-  
+
   public get stage() {
     return this._stage!
   }
@@ -42,18 +40,8 @@ export abstract class Container extends Node {
   }
 
   public render(context: CanvasRenderingContext2D): void {
-    // if (!this.isVisible) return
+    if (!this.isVisible) return
     this.children.forEach((child) => child.render(context))
-
-    if (!this.drawBounds) return
-
-    context.betweenSaveAndRestore(() => {
-      const bounds = this.getBounds()
-
-      context.lineWidth = 3
-      context.strokeStyle = "red"
-      context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-    })
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {
@@ -77,19 +65,19 @@ export abstract class Container extends Node {
     child.parent = null
 
     this._children.splice(index, 1)
-    this.emitter.emit(routes.removeChild({child}))
+    this.emitter.emit(routes.removeChild({ child }))
   }
 
   public appendChild(...list: Array<Node>) {
     list.forEach((child) => {
       if (this.layer) child.layer = this.layer
       if (this.stage) child.stage = this.stage
-      
+
       this._children.push(child)
-      this.emitter.emit(routes.addChild({child}))
+      this.emitter.emit(routes.addChild({ child }))
 
       child.parent = this
-      child.emitter.emit(routes.addToParent({parent: this}))
+      child.emitter.emit(routes.addToParent({ parent: this }))
     })
   }
 

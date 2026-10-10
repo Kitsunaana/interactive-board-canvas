@@ -100,11 +100,11 @@ export abstract class BaseGradientGroup extends Group {
     const start = this.startHandle.position
     const end = this.endHandle.position
 
-    const endMatrix = Matrix3x3.aroundOrigin(this.endHandle.bounds.center, () => {
+    const endMatrix = Matrix3x3.aroundOrigin(this.endHandle.getBounds().center, () => {
       return Matrix3x3.rotate(angleBetweenPoints(start, end))
     })
 
-    const startMatrix = Matrix3x3.aroundOrigin(this.startHandle.bounds.center, () => {
+    const startMatrix = Matrix3x3.aroundOrigin(this.startHandle.getBounds().center, () => {
       return Matrix3x3.rotate(angleBetweenPoints(end, start))
     })
 

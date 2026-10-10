@@ -1,13 +1,17 @@
-import {isNull, isUndefined} from "lodash"
-import {EventBehaviorV2} from "../behaviors/EventBehavior_v2"
-import {createRoute, EventEmitter} from "../EventBus"
-import {Matrix3x3, Point, type PointData, Rectangle} from "../maths"
-import {nanoid} from "nanoid"
-import {DRAG_ROUTES} from "../behaviors/drag-behavior"
-import {Transformer} from "../behaviors/TransformerV4"
-import type {Layer} from "./Layer"
-import type {Stage} from "./Stage"
-import type {Container} from "./Container"
+import { isNull, isUndefined } from "lodash"
+import { EventBehaviorV2 } from "../behaviors/EventBehavior_v2"
+import { createRoute, EventEmitter } from "../EventBus"
+import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
+import { nanoid } from "nanoid"
+import { DRAG_ROUTES } from "../behaviors/drag-behavior"
+import { NodeTransformer } from "../behaviors/NodeTransformer"
+import type { Layer } from "./Layer"
+import type { Stage } from "./Stage"
+import type { Container } from "./Container"
+
+export function getEffectiveWorldMatrix(node: Node): Matrix3x3 {
+  return node.transform.worldMatrix
+}
 
 export const routes = {
   ...DRAG_ROUTES,
@@ -45,7 +49,7 @@ export abstract class Node extends EventBehaviorV2 {
   public abstract getUnrotateBounds(params?: GetBoundsParams): Rectangle
   public abstract updateAfterTransform(): void
   public abstract clone(): Node
-  
+
   public abstract layer: Layer
   public abstract stage: Stage
 
@@ -59,20 +63,8 @@ export abstract class Node extends EventBehaviorV2 {
   public isVisible: boolean = true
   public isListening: boolean = true
 
-  public readonly transform: Transformer = new Transformer(this)
+  public readonly transform: NodeTransformer = new NodeTransformer(this)
   public readonly emitter: CustomEvents = new CustomEvents()
-
-  public _prevBounds: Rectangle | null = null
-  public isDirtyBounds: boolean = true
-
-  public get bounds() {
-    if (this.isDirtyBounds || this._prevBounds === null) {
-      this._prevBounds = this.getBounds()
-      this.isDirtyBounds = false
-    }
-
-    return this._prevBounds
-  }
 
   public set parent(parent: Container | null) {
     this._parent = parent
@@ -118,18 +110,16 @@ export abstract class Node extends EventBehaviorV2 {
   public set worldMatrix(matrix: Matrix3x3) {
     this.transform.worldMatrix = matrix
     this.fire("changeWorldMatrix")
-    this.isDirtyBounds = true
   }
 
   public set localMatrix(matrix: Matrix3x3) {
-    this.transform.localMatrix = matrix
+    this.transform.localMatrix = matrix.clone()
     this.fire("changeLocalMatrix")
-    this.isDirtyBounds = true
+    this.updateWorldTransform()
   }
 
   public set cachedMatrix(matrix: Matrix3x3) {
-    this.transform.cachedMatrix = matrix
-    this.isDirtyBounds = true
+    this.transform.cachedMatrix = matrix.clone()
   }
 
   public get isInteracting() {
@@ -142,7 +132,7 @@ export abstract class Node extends EventBehaviorV2 {
 
   public constructor(config: NodeConfig = {}) {
     super()
-    
+
     if (config.names) config.names.forEach((name) => this.addName(name))
   }
 
@@ -177,6 +167,17 @@ export abstract class Node extends EventBehaviorV2 {
     return this._dataAttributeMap.has(key)
   }
 
+  public isTransformPreviewActive(): boolean {
+    let current: Node | null = this
+
+    while (current) {
+      if (current.isInteracting) return true
+      current = current.parent
+    }
+
+    return false
+  }
+
   public applyDeltaTransform(deltaMatrix: Matrix3x3): void {
     if (this.isInteracting) this.cachedMatrix = deltaMatrix
     else this.localMatrix = Matrix3x3.multiply(deltaMatrix, this.localMatrix)
@@ -186,29 +187,30 @@ export abstract class Node extends EventBehaviorV2 {
 
   public updateWorldTransform(): void {
     const parent = this.parent
+    
+    const effectiveLocal = this.isInteracting
+      ? Matrix3x3.multiply(this.cachedMatrix, this.localMatrix)
+      : this.localMatrix
 
-    if (parent) this.worldMatrix = Matrix3x3.multiply(parent.worldMatrix, this.localMatrix)
-    else this.worldMatrix = this.localMatrix.clone()
-
-    this.worldMatrix = Matrix3x3.compose(this.worldMatrix, this.transform.__testMatrix)
+    this.worldMatrix = parent ? Matrix3x3.multiply(parent.worldMatrix, effectiveLocal) : effectiveLocal.clone()
 
     this.updateAfterTransform()
   }
 
-  public remove() {
-    this.parentOrThrow.removeChild(this)
+  public remove(): this {
+    this._parent?.removeChild(this)
     this.emitter.emit(routes.remove())
     return this
   }
 
-  public destroy() {
+  public destroy(): void {
     this.remove()
     this.off()
     this.emitter.emit(routes.destroy())
     this.emitter.dispose()
   }
 
-  public moveTo(parent: Container) {
+  public moveTo(parent: Container): void {
     parent.appendChild(this.remove())
   }
 

@@ -127,29 +127,41 @@ export class Matrix3x3 {
   }
 
   public getResizeBasis(): Matrix3x3 {
-    const { a, b, c, d } = this
+    const { a, b, c, d } = this;
+    const lengthX = Math.hypot(a, b);
+    const lengthY = Math.hypot(c, d);
 
-    const scaleX = Math.hypot(a, b)
+    if (lengthX >= 1e-10) {
+      const cos = a / lengthX;
+      const sin = b / lengthX;
+      const determinant = a * d - b * c;
 
-    if (scaleX < 1e-10) return Matrix3x3.identity()
+      const yOrientation = determinant < -1e-10 ? -1 : 1;
+      return new Matrix3x3(
+        cos,
+        sin,
+        -sin * yOrientation,
+        cos * yOrientation,
+        0,
+        0,
+      );
+    }
 
-    const cos = a / scaleX
-    const sin = b / scaleX
+    if (lengthY >= 1e-10) {
+      const yCos = c / lengthY;
+      const ySin = d / lengthY;
 
-    const det = a * d - b * c
-    const scaleY = det / scaleX
+      return new Matrix3x3(
+        ySin,
+        -yCos,
+        yCos,
+        ySin,
+        0,
+        0,
+      );
+    }
 
-    if (Math.abs(scaleY) < 1e-10) return Matrix3x3.identity()
-
-    const shear = (cos * c + sin * d) / scaleY;
-
-    return new Matrix3x3(
-      cos,
-      sin,
-      cos * shear - sin,
-      sin * shear + cos,
-      0,
-      0,
-    )
+    return Matrix3x3.identity();
   }
 }
+

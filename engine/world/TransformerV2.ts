@@ -1,14 +1,14 @@
-import {Matrix3x3, Point, Polygon} from "../maths"
-import {CircleShape} from "../shapes/Circle"
-import {PolygonShape} from "../shapes/Polygon"
-import {mapKeys} from "../utils"
-import type {Corner, Edge} from "./_transform/transform-operation.interface"
-import {Group} from "../core/Group"
-import {Node} from "../core/Node"
-import {Layer} from "../core/Layer"
-import {SYSTEM_UI} from "./GradientControls/BaseGradientGroup"
-import {Shape} from "../core/Shape";
-import {entries, values} from "lodash";
+import { entries, values } from "lodash"
+import { inverseOrIdentity } from "../behaviors/NodeTransformer"
+import { Group } from "../core/Group"
+import { Node } from "../core/Node"
+import { Shape } from "../core/Shape"
+import { Matrix3x3, Point, Polygon } from "../maths"
+import { CircleShape } from "../shapes/Circle"
+import { PolygonShape } from "../shapes/Polygon"
+import { mapKeys } from "../utils"
+import type { Corner, Edge } from "./_transform/transform-operation.interface"
+import { SYSTEM_UI } from "./GradientControls/BaseGradientGroup"
 
 export class ResizeTransformer extends Group {
   public static OFFSET_BETWEEN_SHAPES_AND_AABB = 7
@@ -20,41 +20,21 @@ export class ResizeTransformer extends Group {
 
   public readonly resizeHandlerShapes = {
     edge: {
-      bottom: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
-      right: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
-      left: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
-      top: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
+      bottom: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
+      right: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
+      left: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
+      top: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
     },
     corner: {
-      bottomRight: new CircleShape({x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS}),
-      bottomLeft: new CircleShape({x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS}),
-      topRight: new CircleShape({x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS}),
-      topLeft: new CircleShape({x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS}),
+      bottomRight: new CircleShape({ x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS }),
+      bottomLeft: new CircleShape({ x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS }),
+      topRight: new CircleShape({ x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS }),
+      topLeft: new CircleShape({ x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS }),
     },
-  }
-
-  public get layer() {
-    return super.layer
-  }
-
-  public set layer(parent: Layer) {
-    super.layer = parent
-
-    this.addHandlersToLayer()
-    this.updateHandlersPosition()
-  }
-
-  private get _isSingle(): boolean {
-    return this.children.length === 1
-  }
-
-  private get _child(): Node {
-    return this.children[0]
   }
 
   public get node(): Node {
-    if (this._isSingle) return this._child
-    return this
+    return this.nodesToTransform[0]
   }
 
   public get mergedResizeHandlers() {
@@ -72,18 +52,26 @@ export class ResizeTransformer extends Group {
       .flatMap((record) => values(record))
   }
 
+  public nodesToTransform: Array<Node> = []
+
+  public setShapes(nodes: Array<Node>) {
+    this.removeShapes()
+    this.nodesToTransform = nodes
+
+    this.addHandlersToLayer()
+    this.updateHandlersPosition()
+  }
+
+  public removeShapes() {
+    this.nodesToTransform = []
+    this.handlers.forEach((handler) => handler.destroy())
+  }
+
   public render(context: CanvasRenderingContext2D): void {
     if (this.node === this) {
-      this.children.forEach((child) => {
-        context.betweenSaveAndRestore(() => {
-          child.cachedMatrix.applyToContext(context)
-          child.render(context)
-        })
-      })
+      this.children.forEach((child) => child.render(context))
     } else {
-      context.betweenSaveAndRestore(() => {
-        super.render(context)
-      })
+      super.render(context)
     }
   }
 
@@ -94,6 +82,7 @@ export class ResizeTransformer extends Group {
       .forEach(([handleName, shape]) => {
         shape.setDataAttr("handler", handleName)
         shape.addName(SYSTEM_UI)
+
         this.layer.appendChild(shape)
       })
   }
@@ -133,18 +122,20 @@ export class ResizeTransformer extends Group {
   }
 
   private _getPositionsForActionAppliedToSingleNode(padding: number): Array<Point> {
-    const composed = Matrix3x3.compose(this.node.cachedMatrix, this.node.worldMatrix)
-    const orientation = this.node.worldMatrix.getResizeBasis()
+    const worldMatrix = this.node.worldMatrix
 
-    const origin = composed.applyToPoint(this.node.transform.getOriginInOriginalSpace("rotate"))
+    const orientationSource = this.node.transform.startWorldMatrix ?? worldMatrix
+    const orientation = orientationSource.getResizeBasis()
+
+    const origin = orientationSource.applyToPoint(this.node.transform.getOriginInOriginalSpace("rotate"))
 
     const orientationAroundOrigin = Matrix3x3.aroundOrigin(origin, () => orientation)
 
-    const inverseOrientation = Matrix3x3.invert(orientationAroundOrigin) ?? Matrix3x3.identity()
+    const inverseOrientation = inverseOrIdentity(orientationAroundOrigin)
 
-    const matrix = Matrix3x3.compose(inverseOrientation, composed)
+    const matrix = Matrix3x3.compose(inverseOrientation, worldMatrix)
 
-    const bounds = this.node.getBounds({skipTransform: true})
+    const bounds = this.node.getBounds({ skipTransform: true })
 
     const points = bounds.getCorners().map(matrix.applyToPoint.bind(matrix))
     const scaledBounds = Polygon.getBounds(points).padding(padding)

@@ -6,22 +6,28 @@ export class ResizeState {
   }
 
   public node: State["node"] = {}
+  
+  public get resizer() {
+    return this.app.resizeModel
+  }
 
   public canvas: State["canvas"] = {
     onPointerMove: (event) => {
-      this.app.resizeModel.state.operation.processTransform(event)
-      this.app.resizeModel.state.group.updateHandlersPosition()
+      this.resizer.operation.processTransform(event)
+      this.resizer.group.updateHandlersPosition()
     },
 
     onPointerUp: (event) => {
-      this.app.resizeModel.state.operation.finishTransform(event)
+      this.resizer.operation.finishTransform(event)
       this.app.goToIdleState()
     },
   }
   
   public resizeHandler: State["resizeHandler"] = {
     onPointerUp: (event) => {
-      this.app.resizeModel.state.operation.finishTransform(event)
+      event.stopPropagation()
+      
+      this.resizer.operation.finishTransform(event)
       this.app.goToIdleState()
     }
   }
