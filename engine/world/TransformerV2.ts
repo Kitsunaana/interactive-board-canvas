@@ -1,7 +1,6 @@
 import { entries, values } from "lodash"
 import { inverseOrIdentity } from "../behaviors/NodeTransformer"
 import { Group } from "../core/Group"
-import { Node } from "../core/Node"
 import { Shape } from "../core/Shape"
 import { Matrix3x3, Point, Polygon } from "../maths"
 import { CircleShape } from "../shapes/Circle"
@@ -9,6 +8,7 @@ import { PolygonShape } from "../shapes/Polygon"
 import { mapKeys } from "../utils"
 import type { Corner, Edge } from "./_transform/transform-operation.interface"
 import { SYSTEM_UI } from "./GradientControls/BaseGradientGroup"
+import {SimObject} from "../core/SimObject";
 
 export class ResizeTransformer extends Group {
   public static OFFSET_BETWEEN_SHAPES_AND_AABB = 7
@@ -33,7 +33,7 @@ export class ResizeTransformer extends Group {
     },
   }
 
-  public get node(): Node {
+  public get node(): SimObject {
     return this.nodesToTransform[0]
   }
 
@@ -52,9 +52,9 @@ export class ResizeTransformer extends Group {
       .flatMap((record) => values(record))
   }
 
-  public nodesToTransform: Array<Node> = []
+  public nodesToTransform: Array<SimObject> = []
 
-  public setShapes(nodes: Array<Node>) {
+  public setShapes(nodes: Array<SimObject>) {
     this.removeShapes()
     this.nodesToTransform = nodes
 
@@ -124,10 +124,10 @@ export class ResizeTransformer extends Group {
   private _getPositionsForActionAppliedToSingleNode(padding: number): Array<Point> {
     const worldMatrix = this.node.worldMatrix
 
-    const orientationSource = this.node.transform.startWorldMatrix ?? worldMatrix
+    const orientationSource = this.node.startWorldMatrix ?? worldMatrix
     const orientation = orientationSource.getResizeBasis()
 
-    const origin = orientationSource.applyToPoint(this.node.transform.getOriginInOriginalSpace("rotate"))
+    const origin = orientationSource.applyToPoint(this.node.getOriginInOriginalSpace("rotate"))
 
     const orientationAroundOrigin = Matrix3x3.aroundOrigin(origin, () => orientation)
 

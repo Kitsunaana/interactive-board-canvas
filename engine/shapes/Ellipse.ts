@@ -1,7 +1,8 @@
 import { Matrix3x3, Point, type PointData, Rectangle } from "../maths";
 import { Ellipse } from "../maths/Ellipse";
 import { Shape } from "../core/Shape"
-import { Node } from "../core/Node";
+import {SimObject} from "../core/SimObject";
+
 
 export class EllipseShape extends Shape {
   public static isEllipse(candidate: unknown): candidate is EllipseShape {
@@ -56,7 +57,7 @@ export class EllipseShape extends Shape {
     this.translate(delta)
   }
 
-  public clone(): Node {
+  public clone(): SimObject {
     return new EllipseShape(0, 0, 10, 10)
   }
 

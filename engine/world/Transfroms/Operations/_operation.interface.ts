@@ -1,4 +1,4 @@
-import { Node } from "../../../core/Node";
+import {SimObject} from "../../../core/SimObject";
 
 export type Corner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 export type Edge = "top" | "right" | "bottom" | "left";
@@ -6,7 +6,7 @@ export type Edge = "top" | "right" | "bottom" | "left";
 export type OperationHandler = Corner | Edge
 
 export interface TransformContext {
-  readonly target: Node
+  readonly target: SimObject
   readonly pickedHandler: OperationHandler
 
   readonly updateHandlePositions: () => void

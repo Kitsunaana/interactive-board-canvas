@@ -1,10 +1,10 @@
-import {type EventObject} from "../behaviors/EventBehavior_v2"
+import {type EventObject} from "../behaviors/EventBehavior"
 import {Point, Rectangle, type PointData} from "../maths"
 import {getPointFromEvent} from "../shared/point"
 import {Container} from "./Container"
 import {Layer} from "./Layer"
-import type {Node, GetBoundsParams, GetPointsParams} from "./Node"
-
+import type {GetBoundsParams, GetPointsParams} from "./Node"
+import {SimObject} from "./SimObject";
 export interface StageConfig {
   draggable: boolean
   height: number
@@ -16,7 +16,7 @@ export type Sizes = {
   height: number
 }
 
-type EventTargetNode = Node
+type EventTargetNode = SimObject
 
 type PointerState = {
   downTarget: EventTargetNode | null
@@ -81,7 +81,7 @@ export class Stage extends Container {
     return null
   }
 
-  public clone(): Node {
+  public clone(): SimObject {
     return new Stage({
       width: 500,
       height: 500,
@@ -122,7 +122,7 @@ export class Stage extends Container {
     return new Rectangle(0, 0, 0, 0)
   }
 
-  public removeChild(child: Node) {
+  public removeChild(child: SimObject) {
     super.removeChild(child)
 
     if (Layer.isLayer(child)) {

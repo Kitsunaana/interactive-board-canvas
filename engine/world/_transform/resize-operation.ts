@@ -1,9 +1,9 @@
-import type { EventObject } from "../../behaviors/EventBehavior_v2";
+import type { EventObject } from "../../behaviors/EventBehavior";
 import { EPSILON, inverseOrIdentity } from "../../behaviors/NodeTransformer";
-import { Node } from "../../core/Node";
 import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
 import { ResizeTransformer } from "../TransformerV2";
 import type { Corner, Edge } from "./transform-operation.interface";
+import {SimObject} from "../../core/SimObject";
 
 type ResizeHandler = Corner | Edge;
 
@@ -27,9 +27,9 @@ export class ResizeTransformOperation {
   private _started = false;
 
   public context!: ResizeTransformer;
-  public node!: Node;
+  public node!: SimObject;
 
-  public initialize(context: ResizeTransformer, node: Node): void {
+  public initialize(context: ResizeTransformer, node: SimObject): void {
     this.context = context;
     this.node = node;
   }
@@ -45,7 +45,7 @@ export class ResizeTransformOperation {
     this._setMarkerPosition(localMarker)
     this._setScaleOrigin();
 
-    this.node.transform.beginInteraction("scale");
+    this.node.beginInteraction("scale");
 
     this._transformScale.set(1, 1);
     this._started = true;
@@ -56,10 +56,10 @@ export class ResizeTransformOperation {
 
     this._proportional = event.evt.shiftKey;
 
-    this._setTrnasformScale()
+    this._setTransformScale()
     this._setScaleOrigin();
 
-    this.node.transform.updateInteraction(this._transformScale);
+    this.node.updateInteraction(this._transformScale);
     this.context.updateHandlersPosition();
   }
 
@@ -69,8 +69,8 @@ export class ResizeTransformOperation {
     if (this._transformScale.x === 0) this._transformScale.x = 0.001;
     if (this._transformScale.y === 0) this._transformScale.y = 0.001;
 
-    this.node.transform.updateInteraction(this._transformScale);
-    this.node.transform.endInteraction();
+    this.node.updateInteraction(this._transformScale);
+    this.node.endInteraction();
 
     this.context.updateHandlersPosition();
 
@@ -94,15 +94,16 @@ export class ResizeTransformOperation {
     const rx = bounds.width > EPSILON ? delta.x / bounds.width : 0.5;
     const ry = bounds.height > EPSILON ? delta.y / bounds.height : 0.5;
 
-    this.node.transform.setOrigin("scale", {
+    this.node.setOrigin("scale", {
       x: rx,
       y: ry,
     });
   }
 
-  private _setTrnasformScale() {
+  private _setTransformScale() {
     const markerWorld = this.node.layer.worldPointer.sub(this._pointerToMarkerWorld);
     const markerLocal = this._inverseStartWorldMatrix.applyToPoint(markerWorld);
+    
     const cursorLocal = markerLocal.add(this._getPaddingToLocalCursor(this._pickedHandler!));
 
     const start = this._handleLocal.sub(this._pivotLocal)
@@ -200,7 +201,7 @@ export class ResizeTransformOperation {
     const handler = event.target.getDataAttr("handler") as ResizeHandler | undefined;
     if (!handler) return;
 
-    const startWorld = this.node.transform.worldMatrix;
+    const startWorld = this.node.worldMatrix;
     const inverse = inverseOrIdentity(startWorld);
 
     const bounds = this.node.getBounds({ skipTransform: true });
@@ -229,11 +230,8 @@ export class ResizeTransformOperation {
     const activeXCandidates = ["left", "right", "Left", "Right"]
     const activeYCandidates = ["top", "bottom", "Top", "Bottom"]
 
-    const activeX_ = activeXCandidates.some((item) => handler.includes(item))
-    const activeY_ = activeYCandidates.some((item) => handler.includes(item))
-
-    this._activeX = activeX_
-    this._activeY = activeY_
+    this._activeX = activeXCandidates.some((item) => handler.includes(item))
+    this._activeY = activeYCandidates.some((item) => handler.includes(item))
   }
 
   private _getLocalMarker() {
@@ -241,9 +239,7 @@ export class ResizeTransformOperation {
     const markerBounds = this.context.mergedResizeHandlers[handler].getBounds();
     const markerCenter = markerBounds.center;
 
-    const localMarker = this._inverseStartWorldMatrix.applyToPoint(markerCenter);
-
-    return localMarker
+    return this._inverseStartWorldMatrix.applyToPoint(markerCenter);
   }
 
   private _setHandleLocal(localMarker: Point) {

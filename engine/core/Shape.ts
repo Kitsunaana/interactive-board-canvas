@@ -1,7 +1,8 @@
 import { GradientData } from "../world/GradientData"
 import type { Layer } from "./Layer"
-import { Node, type NodeConfig } from "./Node"
+import { type NodeConfig } from "./Node"
 import type { Stage } from "./Stage"
+import {SimObject} from "./SimObject";
 
 export type ShapeConfig = NodeConfig & {
   strokeStyle?: string
@@ -20,7 +21,7 @@ const fillShapeConfigDefaultValues = (config: ShapeConfig): Required<ShapeConfig
   }
 }
 
-export abstract class Shape extends Node {
+export abstract class Shape extends SimObject {
   public static isShape(candidate: unknown): candidate is Shape {
     return candidate instanceof Shape
   }

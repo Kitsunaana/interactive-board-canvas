@@ -58,7 +58,7 @@ testShape.position = {
   y: 260,
 }
 
-testShape.transform.scale({ x: 1.5, y: 2 })
+testShape.scale({ x: 1.5, y: 2 })
 
 const group5 = new Group()
 const group6 = new Group()
@@ -70,24 +70,24 @@ setTimeout(() => {
   group6.appendChild(group5, polygonShape_3)
   layer.appendChild(group6, testShape)
 
-  group6.transform.rotate(0.2)
+  group6.rotate(0.2)
 
   new App(layer)
 
   const fn1 = () => {
-    group6.transform.scale({ x: 1.5, y: 1 })
-    polygonShape_3.transform.scale({ x: 1.5, y: 1 })
+    group6.scale({ x: 1.5, y: 1 })
+    polygonShape_3.scale({ x: 1.5, y: 1 })
     return
   }
 
   const fn2 = () => {
-    group6.transform.beginInteraction("scale")
-    group6.transform.updateInteraction({ x: 1.5, y: 1 })
-    group6.transform.endInteraction()
+    group6.beginInteraction("scale")
+    group6.updateInteraction({ x: 1.5, y: 1 })
+    group6.endInteraction()
 
-    polygonShape_3.transform.beginInteraction("scale")
-    polygonShape_3.transform.updateInteraction({ x: 1.5, y: 1 })
-    polygonShape_3.transform.endInteraction()
+    polygonShape_3.beginInteraction("scale")
+    polygonShape_3.updateInteraction({ x: 1.5, y: 1 })
+    polygonShape_3.endInteraction()
   }
 
   // fn2()

@@ -1,23 +1,19 @@
 import { isNull, isUndefined } from "lodash"
-import { EventBehaviorV2 } from "../behaviors/EventBehavior_v2"
-import { createRoute, EventEmitter } from "../EventBus"
-import { Matrix3x3, Point, type PointData, Rectangle } from "../maths"
 import { nanoid } from "nanoid"
 import { DRAG_ROUTES } from "../behaviors/drag-behavior"
-import { NodeTransformer } from "../behaviors/NodeTransformer"
+import { EventBehavior } from "../behaviors/EventBehavior"
+import { createRoute, EventEmitter } from "../EventBus"
+import { type PointData, Rectangle } from "../maths"
+import type { Container } from "./Container"
 import type { Layer } from "./Layer"
 import type { Stage } from "./Stage"
-import type { Container } from "./Container"
-
-export function getEffectiveWorldMatrix(node: Node): Matrix3x3 {
-  return node.transform.worldMatrix
-}
+import type {SimObject} from "./SimObject";
 
 export const routes = {
   ...DRAG_ROUTES,
-  addChild: createRoute("addChild").withParams<{ child: Node }>(),
+  addChild: createRoute("addChild").withParams<{ child: SimObject }>(),
   addToParent: createRoute("addToParent").withParams<{ parent: Container }>(),
-  removeChild: createRoute("removeChild").withParams<{ child: Node }>(),
+  removeChild: createRoute("removeChild").withParams<{ child: SimObject }>(),
   destroy: createRoute("destroy"),
   remove: createRoute("remove"),
 }
@@ -41,14 +37,17 @@ export type GetPointsParams = {
   applyCachedTransform?: boolean
 }
 
-export abstract class Node extends EventBehaviorV2 {
+
+export abstract class Node extends EventBehavior {
   public abstract render(context: CanvasRenderingContext2D): void
   public abstract renderHit(context: CanvasRenderingContext2D): void
+  
   public abstract getPoints(params?: GetPointsParams): Array<PointData>
   public abstract getBounds(params?: GetBoundsParams): Rectangle
   public abstract getUnrotateBounds(params?: GetBoundsParams): Rectangle
+  
   public abstract updateAfterTransform(): void
-  public abstract clone(): Node
+  public abstract clone(): SimObject
 
   public abstract layer: Layer
   public abstract stage: Stage
@@ -58,12 +57,11 @@ export abstract class Node extends EventBehaviorV2 {
   private _nameList: Array<string> = []
 
   public readonly id: string = nanoid()
-  public readonly type: string = "Node"
+  public readonly type: string = "SimObject"
 
   public isVisible: boolean = true
   public isListening: boolean = true
 
-  public readonly transform: NodeTransformer = new NodeTransformer(this)
   public readonly emitter: CustomEvents = new CustomEvents()
 
   public set parent(parent: Container | null) {
@@ -74,66 +72,12 @@ export abstract class Node extends EventBehaviorV2 {
     return this._parent
   }
 
-  public get parentOrThrow(): Container {
-    if (isNull(this._parent)) throw new Error("Parent is not defined")
-    return this._parent
-  }
-
-  public get x() {
-    return this.position.x
-  }
-
-  public get y() {
-    return this.position.y
-  }
-
-  public get position(): Point {
-    return this.getBounds({}).point()
-  }
-
-  public set position(nextPos: PointData) {
-    this.transform.translate(Point.fromData(nextPos).sub(this.position))
-  }
-
-  public get worldMatrix() {
-    return this.transform.worldMatrix
-  }
-
-  public get localMatrix() {
-    return this.transform.localMatrix
-  }
-
-  public get cachedMatrix() {
-    return this.transform.cachedMatrix
-  }
-
-  public set worldMatrix(matrix: Matrix3x3) {
-    this.transform.worldMatrix = matrix
-    this.fire("changeWorldMatrix")
-  }
-
-  public set localMatrix(matrix: Matrix3x3) {
-    this.transform.localMatrix = matrix.clone()
-    this.fire("changeLocalMatrix")
-    this.updateWorldTransform()
-  }
-
-  public set cachedMatrix(matrix: Matrix3x3) {
-    this.transform.cachedMatrix = matrix.clone()
-  }
-
-  public get isInteracting() {
-    return this.transform.isInteracting
-  }
-
-  public set isInteracting(value: boolean) {
-    this.transform.isInteracting = value
-  }
-
   public constructor(config: NodeConfig = {}) {
     super()
 
-    if (config.names) config.names.forEach((name) => this.addName(name))
+    if (config.names) {
+      config.names.forEach((name) => this.addName(name))
+    }
   }
 
   public addName(name: string): void {
@@ -167,53 +111,6 @@ export abstract class Node extends EventBehaviorV2 {
     return this._dataAttributeMap.has(key)
   }
 
-  public isTransformPreviewActive(): boolean {
-    let current: Node | null = this
-
-    while (current) {
-      if (current.isInteracting) return true
-      current = current.parent
-    }
-
-    return false
-  }
-
-  public applyDeltaTransform(deltaMatrix: Matrix3x3): void {
-    if (this.isInteracting) this.cachedMatrix = deltaMatrix
-    else this.localMatrix = Matrix3x3.multiply(deltaMatrix, this.localMatrix)
-
-    this.updateWorldTransform()
-  }
-
-  public updateWorldTransform(): void {
-    const parent = this.parent
-    
-    const effectiveLocal = this.isInteracting
-      ? Matrix3x3.multiply(this.cachedMatrix, this.localMatrix)
-      : this.localMatrix
-
-    this.worldMatrix = parent ? Matrix3x3.multiply(parent.worldMatrix, effectiveLocal) : effectiveLocal.clone()
-
-    this.updateAfterTransform()
-  }
-
-  public remove(): this {
-    this._parent?.removeChild(this)
-    this.emitter.emit(routes.remove())
-    return this
-  }
-
-  public destroy(): void {
-    this.remove()
-    this.off()
-    this.emitter.emit(routes.destroy())
-    this.emitter.dispose()
-  }
-
-  public moveTo(parent: Container): void {
-    parent.appendChild(this.remove())
-  }
-
   public getAllParents<T extends Container>(list: Array<T> = []): Array<T> {
     const parent = this.parent as unknown as T
 
@@ -236,3 +133,4 @@ export abstract class Node extends EventBehaviorV2 {
     return object as unknown as T
   }
 }
+

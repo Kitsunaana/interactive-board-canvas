@@ -1,4 +1,4 @@
-﻿import type {EventObject} from "../../behaviors/EventBehavior_v2";
+﻿import type {EventObject} from "../../behaviors/EventBehavior";
 import type {Shape} from "../Shape";
 
 export interface State {

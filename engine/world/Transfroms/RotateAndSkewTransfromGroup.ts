@@ -1,13 +1,15 @@
 import { isNil, isNull } from "lodash"
 import { Group } from "../../core/Group"
-import { Node, routes } from "../../core/Node"
+import { routes } from "../../core/Node"
 import { Matrix3x3, Point } from "../../maths"
-import { type CircleConfig, CircleShape } from "../../shapes/Circle"
+import { type CircleConfig, CircleShape } from "../../shapes"
 import { SYSTEM_UI } from "../GradientControls/BaseGradientGroup"
 import { HANDLER_KEY_NAME, HANDLE_ROTATE_CORNERS, HANDLE_SKEW_EDGES } from "./Operations/_const"
 import type { Corner, Edge, TransformContext, TransformOperation } from "./Operations/_operation.interface"
 import { RotateOperation } from "./Operations/_rotate-operation"
 import { SkewOperation } from "./Operations/_skew-operation"
+import {SimObject} from "../../core/SimObject";
+
 
 const ASD_V1 = {
   handlerPositionNameList: HANDLE_SKEW_EDGES,
@@ -23,8 +25,8 @@ const ASD_V2 = {
   }
 }
 
-export class RotateAndSkewTransforGroup extends Group {
-  private _targetNode: Node | null = null
+export class RotateAndSkewTransformGroup extends Group {
+  private _targetNode: SimObject | null = null
   private _pickedHandler: Edge | null = null
   private _activeOperation: TransformOperation | null = null
 
@@ -33,7 +35,7 @@ export class RotateAndSkewTransforGroup extends Group {
     return this._pickedHandler
   }
 
-  public get targetNode(): Node {
+  public get targetNode(): SimObject {
     if (isNil(this._targetNode)) throw new Error("Child not found")
     return this._targetNode
   }
@@ -129,7 +131,7 @@ export class RotateAndSkewTransforGroup extends Group {
     })
   }
 
-  private _getHandlersWithout(handler: Node) {
+  private _getHandlersWithout(handler: SimObject) {
     const handlers = this.handlers
     const foundIndex = handlers.indexOf(handler)
     if (foundIndex === -1) return handlers
@@ -158,14 +160,14 @@ export class RotateAndSkewTransforGroup extends Group {
     }
   }
 
-  public getOperation(handler: Node) {
+  public getOperation(handler: SimObject) {
     const handleName = handler.getDataAttr<any>(HANDLER_KEY_NAME)
     if (HANDLE_SKEW_EDGES.includes(handleName)) return new SkewOperation()
     if (HANDLE_ROTATE_CORNERS.includes(handleName)) return new RotateOperation()
     return null
   }
 
-  private _attachDragEventsToRotateHandlers(handler: Node) {
+  private _attachDragEventsToRotateHandlers(handler: SimObject) {
     handler.emitter.on(routes.startDrag, this._startDrag.bind(this))
     handler.emitter.on(routes.finishDrag, this._finishDrag.bind(this))
     handler.emitter.on(routes.processDrag, this._processDrag.bind(this))

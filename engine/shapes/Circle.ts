@@ -64,7 +64,7 @@ export class CircleShape extends Shape {
     this._initRadius = radius
 
     this.position = { x, y }
-    this.transform.scale = this._overrideScale.bind(this)
+    this.scale = this._overrideScale.bind(this)
   }
 
   public clone() {
@@ -75,7 +75,7 @@ export class CircleShape extends Shape {
   }
   
   private _overrideScale(value: PointData) {
-    NodeTransformer.prototype.scale.call(this.transform, {
+    NodeTransformer.prototype.scale.call(this, {
       x: value.x,
       y: value.x
     })
@@ -95,7 +95,7 @@ export class CircleShape extends Shape {
   }
 
   public set position(nextPos: PointData) {
-    this.transform.translate(Point.fromData(nextPos).sub(this.position))
+    this.translate(Point.fromData(nextPos).sub(this.position))
   }
 
   public getPoints(): Array<PointData> {
@@ -124,7 +124,7 @@ export class CircleShape extends Shape {
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     if (params.skipTransform) return new Circle(0, 0, this._initRadius).getBounds()
 
-    const matrix = this.transform.worldMatrix
+    const matrix = this.worldMatrix
     return  getCircleBoundingBox(new Circle(0, 0, this._initRadius), matrix)
   }
 

@@ -2,7 +2,7 @@
 import {ContextModel} from "./SelectionManager";
 import {Shape} from "./Shape";
 import {Matrix3x3, type PointData} from "../maths";
-import type {EventObject} from "../behaviors/EventBehavior_v2";
+import type {EventObject} from "../behaviors/EventBehavior";
 import {CameraModel} from "./models/_camera.model";
 import {PanningState} from "./states/panning.state";
 import {IdleState} from "./states/idle.state";

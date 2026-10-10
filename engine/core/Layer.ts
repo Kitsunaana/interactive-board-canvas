@@ -1,20 +1,17 @@
 import rough from 'roughjs';
-import { RoughCanvas } from "roughjs/bin/canvas";
-import { Point, type PointData, Rectangle } from '../maths';
-import { Container } from "./Container";
-import type { Group } from './Group';
-import { type GetBoundsParams, type GetPointsParams, type Node } from "./Node";
-import type { Shape } from "./Shape";
-import { MOUSE_ALIASES, type Sizes, TOUCH_ALIASES } from "./Stage";
-import { concat, keys, values } from "lodash";
+import {RoughCanvas} from "roughjs/bin/canvas";
+import {Point, type PointData, Rectangle} from '../maths';
+import {Container} from "./Container";
+import {type GetBoundsParams, type GetPointsParams} from "./Node";
+import {MOUSE_ALIASES, type Sizes, TOUCH_ALIASES} from "./Stage";
+import {concat, keys, values} from "lodash";
+import {SimObject} from "./SimObject";
 
 declare global {
   interface CanvasRenderingContext2D {
     betweenSaveAndRestore: (callback: () => void) => void
   }
 }
-
-export type Child = Group | Shape
 
 const SYSTEM_EVENT_NAMES = concat(
   values(MOUSE_ALIASES),
@@ -48,7 +45,7 @@ export class Layer extends Container {
   public updateAfterTransform(): void {
   }
 
-  public clone(): Node {
+  public clone(): SimObject {
     return new Layer()
   }
 
@@ -58,7 +55,7 @@ export class Layer extends Container {
   private readonly _context: CanvasRenderingContext2D
   private readonly _hitCanvas: HTMLCanvasElement
   private readonly _hitContext: CanvasRenderingContext2D
-  private readonly _hitColorsToNodes = new Map<string, Node>()
+  private readonly _hitColorsToNodes = new Map<string, SimObject>()
   private readonly _nodesToHitColors = new Map<string, string>()
 
   private _lastHitColorId = 0
@@ -135,7 +132,7 @@ export class Layer extends Container {
     return this._hitContext
   }
 
-  public appendChild(...list: Array<Node>): void {
+  public appendChild(...list: Array<SimObject>): void {
     super.appendChild(...list)
 
     list.forEach((child) => {
@@ -159,13 +156,13 @@ export class Layer extends Container {
     return layer
   }
 
-  public delegateEvents(target: Node): void {
+  public delegateEvents(target: SimObject): void {
     this.on(SYSTEM_EVENT_NAMES.join(" "), (event) => {
       target.fire(event.type, event)
     })
   }
 
-  public getHitColor(shape: Node): string {
+  public getHitColor(shape: SimObject): string {
     const current = this._nodesToHitColors.get(shape.id)
     if (current) return current
 
@@ -177,7 +174,7 @@ export class Layer extends Container {
     return next
   }
 
-  public getIntersection(point: PointData): Node | null {
+  public getIntersection(point: PointData): SimObject | null {
     const sizes = this.sizes
 
     const x = Math.floor(point.x)

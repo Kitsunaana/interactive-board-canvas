@@ -1,8 +1,8 @@
 ﻿import { Layer } from "../Layer";
-import { Node } from "../Node";
 import { ResizeTransformer } from "../../world/TransformerV2";
 import type { SelectableNode } from "../SelectionManager";
 import { ResizeTransformOperation } from "../../world/_transform/resize-operation";
+import {SimObject} from "../SimObject";
 
 export class ResizeTransformModel {
   public selected: Set<SelectableNode> = new Set()
@@ -14,7 +14,7 @@ export class ResizeTransformModel {
     this.layer.appendChild(this.group)
   }
 
-  public create(node: Node) {
+  public create(node: SimObject) {
     this.group.setShapes([node])
     this.operation.initialize(this.group, node)
   }

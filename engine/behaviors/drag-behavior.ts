@@ -1,13 +1,14 @@
-import type { Node } from "../core/Node";
 import { createRoute } from "../EventBus";
 import { Point } from "../maths";
 import { pointFromEvent } from "../shared/point";
-import type { EventObject } from "./EventBehavior_v2";
+import type { EventObject } from "./EventBehavior";
+import type {SimObject} from "../core/SimObject";
+
 
 export const DRAG_ROUTES = {
-  processDrag: createRoute("processDrag").withParams<{ target: Node }>(),
-  finishDrag: createRoute("finishDrag").withParams<{ target: Node }>(),
-  startDrag: createRoute("startDrag").withParams<{ target: Node }>(),
+  processDrag: createRoute("processDrag").withParams<{ target: SimObject }>(),
+  finishDrag: createRoute("finishDrag").withParams<{ target: SimObject }>(),
+  startDrag: createRoute("startDrag").withParams<{ target: SimObject }>(),
 }
 
 export class DragBehavior {
@@ -41,7 +42,7 @@ export class DragBehavior {
     return this.startPosition.add(this.delta)
   }
 
-  public constructor(private readonly node: Node) {
+  public constructor(private readonly node: SimObject) {
     // this.bindEvents()
   }
 

@@ -1,4 +1,4 @@
-import type { Node } from "../core/Node"
+import type { SimObject } from "../core/SimObject"
 
 type EventHandler<EventPayload = EventObject<any>> = (event: EventPayload) => void
 
@@ -13,13 +13,13 @@ type ParsedEventToken = {
   namespace?: string
 }
 
-export interface EventObject<EventType = Event, Target = Node> {
+export interface EventObject<EventType = Event, Target = SimObject> {
   type: string
   target: Target
-  currentTarget: Node
+  currentTarget: SimObject
   evt: EventType
   cancelBubble: boolean
-  child?: Node
+  child?: SimObject
   [key: string]: unknown
   stopPropagation(): void
 }
@@ -54,8 +54,8 @@ const toEventTokens = (eventNames?: string): ParsedEventToken[] => {
 }
 
 
-export abstract class EventBehaviorV2 {
-  public abstract parent: Node | null 
+export abstract class EventBehavior {
+  public abstract parent: SimObject | null 
   
   private readonly _listenersMap: Map<string, Array<ListenerEntry>> = new Map()
 
@@ -154,8 +154,8 @@ export abstract class EventBehaviorV2 {
     event?: Partial<EventObject<EventType>> & Record<string, unknown>
   ): EventObject<EventType> {
     const evt = (event?.evt ?? event) as EventType
-    const target = (event?.target as Node | undefined) ?? this as unknown as Node
-    const currentTarget = (event?.currentTarget as Node | undefined) ?? this as unknown as Node
+    const target = (event?.target as SimObject | undefined) ?? this as unknown as SimObject
+    const currentTarget = (event?.currentTarget as SimObject | undefined) ?? this as unknown as SimObject
 
     const normalizedEvent: EventObject<EventType> = {
       ...(event ?? {}),
@@ -182,7 +182,7 @@ export abstract class EventBehaviorV2 {
       return
     }
 
-    event.currentTarget = this as unknown as Node
+    event.currentTarget = this as unknown as SimObject
 
     const listenersSnapshot = listeners.slice()
 

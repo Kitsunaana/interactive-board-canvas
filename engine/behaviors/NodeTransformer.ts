@@ -1,16 +1,8 @@
-import {isNumber} from "lodash"
-import {Matrix3x3, Point, type PointData, Rectangle} from "../maths"
-import type {GetBoundsParams} from "../core/Node"
+import { isNumber } from "lodash"
+import { Node } from "../core/Node"
+import { Matrix3x3, Point, type PointData } from "../maths"
 
 export type TransformOperation = "scale" | "skew" | "rotate" | "translate"
-
-type NodeToTransformImpl = {
-  parent: NodeToTransformImpl | null
-  transform: NodeTransformer
-
-  getBounds(params?: GetBoundsParams): Rectangle
-  updateWorldTransform(): void
-}
 
 type InteractionSnapshot = {
   operation: TransformOperation
@@ -49,7 +41,9 @@ export const inWorldAxes = (world: Matrix3x3, operation: Matrix3x3): Matrix3x3 =
   return Matrix3x3.compose(basis, operation, inverseBasis)
 }
 
-export class NodeTransformer {
+export abstract class NodeTransformer extends Node {
+  public abstract updateWorldTransform(): void
+
   public localMatrix: Matrix3x3 = Matrix3x3.identity()
   public worldMatrix: Matrix3x3 = Matrix3x3.identity()
   public cachedMatrix: Matrix3x3 = Matrix3x3.identity()
@@ -66,11 +60,8 @@ export class NodeTransformer {
 
   private interactionSnapshot: InteractionSnapshot | null = null
 
-  public constructor(private readonly node: NodeToTransformImpl) {
-  }
-
   public getCurrentAngle(): number {
-    const {a, b} = this.worldMatrix
+    const { a, b } = this.worldMatrix
     if (Math.hypot(a, b) < EPSILON) return 0
     return Math.atan2(b, a)
   }
@@ -86,7 +77,7 @@ export class NodeTransformer {
   }
 
   public getOriginInOriginalSpace(operation: TransformOperation): Point {
-    const bounds = this.node.getBounds({skipTransform: true})
+    const bounds = this.getBounds({ skipTransform: true })
     const relative = this.currentRelativeOrigins[operation]
 
     return new Point(
@@ -122,14 +113,14 @@ export class NodeTransformer {
   private applyWorldDelta(deltaWorld: Matrix3x3): void {
     const parentWorld = this.isInteracting && this.interactionSnapshot
       ? this.interactionSnapshot.startParentWorld
-      : this.node.parent?.transform.worldMatrix ?? Matrix3x3.identity()
+      : this.parent?.worldMatrix ?? Matrix3x3.identity()
 
     const deltaLocal = worldDeltaToParentSpace(deltaWorld, parentWorld)
 
     if (this.isInteracting) this.cachedMatrix = deltaLocal
     else this.localMatrix = Matrix3x3.multiply(deltaLocal, this.localMatrix)
 
-    this.node.updateWorldTransform()
+    this.updateWorldTransform()
   }
 
   public rotate(angle: number): void {
@@ -165,7 +156,7 @@ export class NodeTransformer {
   public beginInteraction(type: TransformOperation): void {
     if (this.isInteracting) this.endInteraction()
 
-    const parentWorld = this.node.parent?.transform.worldMatrix.clone() ?? Matrix3x3.identity()
+    const parentWorld = this.parent?.worldMatrix.clone() ?? Matrix3x3.identity()
     const startWorld = this.worldMatrix.clone()
     const localOrigin = this.getOriginInOriginalSpace(type)
     const originWorld = startWorld.applyToPoint(localOrigin)
@@ -205,10 +196,12 @@ export class NodeTransformer {
 
     this.localMatrix = Matrix3x3.multiply(this.cachedMatrix, this.interactionSnapshot.startLocal)
     this.cachedMatrix = Matrix3x3.identity()
-    this.isInteracting = false
+    
     this.interactionOperation = null
     this.interactionSnapshot = null
-    this.node.updateWorldTransform()
+    this.isInteracting = false
+    
+    this.updateWorldTransform()
   }
 
   public cancelInteraction(): void {
@@ -216,9 +209,12 @@ export class NodeTransformer {
 
     this.localMatrix = this.interactionSnapshot.startLocal.clone()
     this.cachedMatrix = Matrix3x3.identity()
-    this.isInteracting = false
+    
     this.interactionOperation = null
     this.interactionSnapshot = null
-    this.node.updateWorldTransform()
+    this.isInteracting = false
+    
+    this.updateWorldTransform()
   }
 }
+

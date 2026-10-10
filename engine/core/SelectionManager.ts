@@ -1,9 +1,9 @@
 import {Container} from "./Container";
 import {Shape} from "./Shape";
 import {SYSTEM_UI} from "../world/GradientControls/BaseGradientGroup";
-import {Node} from "./Node";
 import {Group} from "./Group";
 import {Layer} from "./Layer";
+import {SimObject} from "./SimObject";
 
 const invalidIndex = (index: number, list: Array<unknown>) => {
   return index > list.length - 1
@@ -73,11 +73,11 @@ export class ContextModel {
     const currentShape = this.target!
 
     const referenceNode = this.isFinishTarget ? currentShape : this.context!
-    const siblingNodes = this._getSiblingsOfNode(referenceNode.parentOrThrow, referenceNode)
+    const siblingNodes = this._getSiblingsOfNode(referenceNode.parent!, referenceNode)
 
     if (siblingNodes.includes(clickedShape)) {
       this.target = clickedShape
-      this.context = clickedShape.parentOrThrow
+      this.context = clickedShape.parent!
       this.isFinishTarget = true
       onSelect(clickedShape)
 
@@ -114,7 +114,7 @@ export class ContextModel {
 
     if (sharesAncestryPath) {
       this.target = clickedShape
-      this.context = clickedShape.parentOrThrow
+      this.context = clickedShape.parent!
       this.isFinishTarget = true
 
       onSelect(clickedShape)
@@ -141,7 +141,7 @@ export class ContextModel {
     }
   }
 
-  private _getSiblingsOfNode(parent: Container, node: Node): Array<Node> {
+  private _getSiblingsOfNode(parent: Container, node: SimObject): Array<SimObject> {
     const children = parent.children
     const foundIndex = children.indexOf(node)
     if (foundIndex === -1) return children
@@ -150,7 +150,7 @@ export class ContextModel {
     return prev.concat(next)
   }
 
-  private _getPathToTarget(target: Node) {
+  private _getPathToTarget(target: SimObject) {
     return target
       .getAllParents()
       .filter((node) => !node.hasName(SYSTEM_UI))

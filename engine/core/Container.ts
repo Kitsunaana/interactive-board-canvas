@@ -1,14 +1,15 @@
 import type { Layer } from "./Layer"
-import { Node, routes } from "./Node"
 import type { Stage } from "./Stage"
 import { Shape } from "./Shape";
+import {SimObject} from "./SimObject";
+import {routes} from "./Node";
 
-export abstract class Container extends Node {
+export abstract class Container extends SimObject {
   public static isContainer(candidate: unknown): candidate is Container {
     return candidate instanceof Container
   }
 
-  private _children: Array<Node> = []
+  private _children: Array<SimObject> = []
 
   private _stage: Stage | null = null
   private _layer: Layer | null = null
@@ -59,7 +60,7 @@ export abstract class Container extends Node {
     this.children.forEach((child) => child.destroy())
   }
 
-  public removeChild(child: Node) {
+  public removeChild(child: SimObject) {
     const index = this._children.indexOf(child)
     if (index === -1) throw new Error("child not found")
     child.parent = null
@@ -68,7 +69,7 @@ export abstract class Container extends Node {
     this.emitter.emit(routes.removeChild({ child }))
   }
 
-  public appendChild(...list: Array<Node>) {
+  public appendChild(...list: Array<SimObject>) {
     list.forEach((child) => {
       if (this.layer) child.layer = this.layer
       if (this.stage) child.stage = this.stage

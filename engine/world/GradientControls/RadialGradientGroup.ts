@@ -1,11 +1,11 @@
-import { isNil } from "lodash";
-import { Matrix3x3, Point } from "../../maths";
-import { CircleShape } from "../../shapes/Circle";
-import { BaseGradientGroup, RADIUS, SYSTEM_UI, getRandomColor } from "./BaseGradientGroup";
-import { angleBetweenPoints, getAbsolutePosition, getNormalizedPosition } from "../../shared/point";
-import { LinearGradientData, RadialGradientData } from "../GradientData";
-import { Shape } from "../../core/Shape";
-import { routes } from "../../core/Node";
+import {isNil} from "lodash";
+import {Matrix3x3, Point} from "../../maths";
+import {CircleShape} from "../../shapes/Circle";
+import {BaseGradientGroup, getRandomColor, RADIUS, SYSTEM_UI} from "./BaseGradientGroup";
+import {angleBetweenPoints, getAbsolutePosition, getNormalizedPosition} from "../../shared/point";
+import {LinearGradientData, RadialGradientData} from "../GradientData";
+import {Shape} from "../../core/Shape";
+import {routes} from "../../core/Node";
 
 export class RadialGradientGroup extends BaseGradientGroup {
   public readonly radiusHandle = this.createHandle()

@@ -1,12 +1,12 @@
-import { isUndefined } from "lodash";
-import { Matrix3x3, Point, type PointData } from "../../maths";
-import { type CircleConfig, CircleShape } from "../../shapes/Circle";
-import { angleBetweenPoints, pointFromEvent } from "../../shared/point";
-import type { EventObject } from "../../behaviors/EventBehavior_v2";
-import { PolygonShape } from "../../shapes/Polygon";
-import { Group } from "../../core/Group";
-import { Shape } from "../../core/Shape";
-import { routes } from "../../core/Node";
+import {isUndefined} from "lodash";
+import {Matrix3x3, Point} from "../../maths";
+import {type CircleConfig, CircleShape} from "../../shapes/Circle";
+import {angleBetweenPoints, pointFromEvent} from "../../shared/point";
+import type {EventObject} from "../../behaviors/EventBehavior";
+import {PolygonShape} from "../../shapes/Polygon";
+import {Group} from "../../core/Group";
+import {Shape} from "../../core/Shape";
+import {routes} from "../../core/Node";
 
 export const SYSTEM_UI = "@@_SYSTEM_UI"
 export const RADIUS = 6

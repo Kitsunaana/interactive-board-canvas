@@ -1,7 +1,8 @@
 import {Matrix3x3, Polygon, Rectangle} from "../maths"
 import {Container} from "./Container"
-import {type GetBoundsParams, type GetPointsParams, Node} from "./Node"
+import {type GetBoundsParams, type GetPointsParams} from "./Node"
 import {inverseOrIdentity} from "../behaviors/NodeTransformer";
+import {SimObject} from "./SimObject";
 
 export class Group extends Container {
   public static isGroup(candidate: unknown): candidate is Group {
@@ -24,7 +25,7 @@ export class Group extends Container {
 
     context.betweenSaveAndRestore(() => {
       if (this.isInteracting) {
-        this.transform
+        this
           .getPreviewWorldMatrix()
           .applyToContext(context)
       }
@@ -38,7 +39,7 @@ export class Group extends Container {
 
     context.betweenSaveAndRestore(() => {
       if (this.isInteracting) {
-        this.transform
+        this
           .getPreviewWorldMatrix()
           .applyToContext(context)
       }
@@ -57,7 +58,7 @@ export class Group extends Container {
       .flatMap((child) => {
         const matrix = params.skipTransform
           ? this._getMatrixRelativeToGroup(child)
-          : child.transform.worldMatrix;
+          : child.worldMatrix;
 
         return child
           .getPoints()
@@ -68,13 +69,13 @@ export class Group extends Container {
   }
 
   public getUnrotateBounds(): Rectangle {
-    const orientationSource = this.transform.startWorldMatrix ?? this.transform.worldMatrix;
+    const orientationSource = this.startWorldMatrix ?? this.worldMatrix;
     const angle = Math.atan2(orientationSource.b, orientationSource.a);
-    const origin = orientationSource.applyToPoint(this.transform.getOriginInOriginalSpace("rotate"));
+    const origin = orientationSource.applyToPoint(this.getOriginInOriginalSpace("rotate"));
     const unrotate = Matrix3x3.aroundOrigin(origin, () => Matrix3x3.rotate(-angle));
 
     const points = this.getShapes().flatMap((child) => {
-      const childWorld = child.transform.worldMatrix;
+      const childWorld = child.worldMatrix;
       const matrix = Matrix3x3.compose(unrotate, childWorld);
 
       return child
@@ -85,10 +86,10 @@ export class Group extends Container {
     return Polygon.getBounds(points);
   }
 
-  private _getMatrixRelativeToGroup(child: Node): Matrix3x3 {
+  private _getMatrixRelativeToGroup(child: SimObject): Matrix3x3 {
     const chain: Matrix3x3[] = []
 
-    let current: Node | null = child
+    let current: SimObject | null = child
 
     while (current && current !== this) {
       const effectiveLocal = current.isInteracting
@@ -102,8 +103,8 @@ export class Group extends Container {
     if (current !== this) {
       debugger
       // TODO:
-      const inverse = inverseOrIdentity(this.transform.worldMatrix)
-      return Matrix3x3.compose(inverse, child.transform.worldMatrix)
+      const inverse = inverseOrIdentity(this.worldMatrix)
+      return Matrix3x3.compose(inverse, child.worldMatrix)
     }
 
     return chain.length === 0 ? Matrix3x3.identity() : Matrix3x3.compose(...chain)

@@ -81,8 +81,8 @@ export class PolygonShape extends Shape {
   }
 
   public setPoints(points: Array<PointData>) {
-    this.transform.worldMatrix = Matrix3x3.identity()
-    this.transform.localMatrix = Matrix3x3.identity()
+    this.worldMatrix = Matrix3x3.identity()
+    this.localMatrix = Matrix3x3.identity()
 
     this._initialPoints = points.map((point) => ({...point}))
     this._pointsToTrace = this._initialPoints
@@ -126,7 +126,7 @@ export class PolygonShape extends Shape {
   public getBounds(params: GetBoundsParams = {}): Rectangle {
     const points = params.skipTransform
       ? this._initialPoints
-      : this._initialPoints.map((p) => this.transform.worldMatrix.applyToPoint(p));
+      : this._initialPoints.map((p) => this.worldMatrix.applyToPoint(p));
     
     const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension);
 
@@ -139,13 +139,13 @@ export class PolygonShape extends Shape {
 
     if (!params.applyTransform) return points
 
-    const matrix = this.transform.worldMatrix
+    const matrix = this.worldMatrix
     return points.map(matrix.applyToPoint.bind(matrix));
   }
 
   public getUnrotateBounds(): Rectangle {
-    const worldMatrix = this.transform.worldMatrix;
-    const origin = worldMatrix.applyToPoint(this.transform.getOriginInOriginalSpace("rotate"));
+    const worldMatrix = this.worldMatrix;
+    const origin = worldMatrix.applyToPoint(this.getOriginInOriginalSpace("rotate"));
 
     const angle = Math.atan2(worldMatrix.b, worldMatrix.a);
 
@@ -164,7 +164,7 @@ export class PolygonShape extends Shape {
 
     context.betweenSaveAndRestore(() => {
       if (this.isInteracting) {
-        this.transform
+        this
           .getPreviewWorldMatrix()
           .applyToContext(context)
       }
@@ -177,7 +177,7 @@ export class PolygonShape extends Shape {
   public renderHit(context: CanvasRenderingContext2D): void {
     context.betweenSaveAndRestore(() => {
       if (this.isInteracting) {
-        this.transform
+        this
           .getPreviewWorldMatrix()
           .applyToContext(context)
       }
