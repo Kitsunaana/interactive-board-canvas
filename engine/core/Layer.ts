@@ -39,7 +39,7 @@ export class Layer extends Container {
   }
 
   public getUnrotateBounds(): Rectangle {
-    throw new Error("Method is not implemented")
+    return new Rectangle(0, 0, 50, 50)
   }
 
   public updateAfterTransform(): void {

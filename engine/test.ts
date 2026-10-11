@@ -58,7 +58,7 @@ testShape.position = {
   y: 260,
 }
 
-testShape.scale({ x: 1.5, y: 2 })
+testShape.scale({ x: 1.5, y: 1.5 })
 
 const group5 = new Group()
 const group6 = new Group()

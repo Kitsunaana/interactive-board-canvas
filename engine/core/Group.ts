@@ -11,7 +11,8 @@ export class Group extends Container {
 
   public type: string = "Group"
 
-  public updateAfterTransform(): void {
+  public updateAfterTransform() {
+    
   }
 
   public clone() {
@@ -23,13 +24,17 @@ export class Group extends Container {
   public render(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return;
 
+    const bounds = this.bounds
+    const unrotateBounds = this.unrotateBounds
+    
     context.betweenSaveAndRestore(() => {
-      if (this.isInteracting) {
-        this
-          .getPreviewWorldMatrix()
-          .applyToContext(context)
-      }
+      context.strokeStyle = "red"
+      // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
 
+      context.strokeStyle = "green"
+      // context.strokeRect(unrotateBounds.x, unrotateBounds.y, unrotateBounds.width, unrotateBounds.height)
+      
+      this.tryApplyPreviewMatrixToContext(context)
       super.render(context)
     })
   }
@@ -38,12 +43,7 @@ export class Group extends Container {
     if (!this.isListening) return
 
     context.betweenSaveAndRestore(() => {
-      if (this.isInteracting) {
-        this
-          .getPreviewWorldMatrix()
-          .applyToContext(context)
-      }
-
+      this.tryApplyPreviewMatrixToContext(context)
       super.renderHit(context)
     })
   }

@@ -38,12 +38,21 @@ export class PolygonShape extends Shape {
     super(config);
 
     Object.assign(this, config)
+    
+    this._tension = 0.2
 
-    // const bounds = Polygon.getBounds(_initialPoints)
-    // const origin = bounds.point()
+    const bounds = Polygon.getBounds(_initialPoints)
+    const nextPoints = _initialPoints //.map((point) => Point.fromData(point).sub(bounds))
+    
+    this._initialPoints = nextPoints
+    this._pointsToTrace = this.computePointsToTraceWithTension(nextPoints);
 
-    this._initialPoints = _initialPoints
-    this._pointsToTrace = this.computePointsToTraceWithTension(this._initialPoints);
+    // this.position = {
+    //   x: bounds.x,
+    //   y: bounds.y
+    // };
+
+    this.updateBoundsUp()
   }
 
   public clone() {
@@ -70,9 +79,12 @@ export class PolygonShape extends Shape {
   public set tension(value: number) {
   }
 
-  public update(_time: number): void {}
+  public update(_time: number): void {
+  }
 
   public updateAfterTransform(): void {
+    super.updateAfterTransform()
+
     if (this.isTransformPreviewActive()) return
 
     const matrix = this.worldMatrix
@@ -127,7 +139,7 @@ export class PolygonShape extends Shape {
     const points = params.skipTransform
       ? this._initialPoints
       : this._initialPoints.map((p) => this.worldMatrix.applyToPoint(p));
-    
+
     const curveExtrema = Polygon.computeTensionedCurveExtrema(points, this.tension);
 
     return Polygon.getBounds(points.concat(curveExtrema));
@@ -161,14 +173,13 @@ export class PolygonShape extends Shape {
 
   public render(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return
+    
+    const bounds = this.bounds
 
     context.betweenSaveAndRestore(() => {
-      if (this.isInteracting) {
-        this
-          .getPreviewWorldMatrix()
-          .applyToContext(context)
-      }
-
+      // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+      
+      this.tryApplyPreviewMatrixToContext(context)
       this.tracePath(context)
       this.fillStrokeShape(context)
     })
@@ -176,12 +187,7 @@ export class PolygonShape extends Shape {
 
   public renderHit(context: CanvasRenderingContext2D): void {
     context.betweenSaveAndRestore(() => {
-      if (this.isInteracting) {
-        this
-          .getPreviewWorldMatrix()
-          .applyToContext(context)
-      }
-
+      this.tryApplyPreviewMatrixToContext(context)
       this.tracePath(context)
       this.fillStrokeHitShape(context)
     })
@@ -217,30 +223,29 @@ export class PolygonShape extends Shape {
       return
     }
 
-    for (let i = 3; i < points.length; i += 3) {
-      const prevOut = points[i - 1]
-      const currentIn = points[i + 1]
-      const currentAnchor = points[i]
-
-      context.bezierCurveTo(
-        prevOut.x,
-        prevOut.y,
-        currentIn.x,
-        currentIn.y,
-        currentAnchor.x,
-        currentAnchor.y
-      )
-    }
-
-
-    // for (let i = 0; i < length; i += 3) {
-    //   const cp1 = points[i]                  // out
-    //   const cp2 = points[(i + 1) % length]   // in
-    //   const p = points[(i + 2) % length]     // anchor
-    //   // anchor in out
+    // for (let i = 3; i < points.length; i += 3) {
+    //   const prevOut = points[i - 1]
+    //   const currentIn = points[i + 1]
+    //   const currentAnchor = points[i]
     //
-    //   context.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y)
+    //   context.bezierCurveTo(
+    //     prevOut.x,
+    //     prevOut.y,
+    //     currentIn.x,
+    //     currentIn.y,
+    //     currentAnchor.x,
+    //     currentAnchor.y
+    //   )
     // }
+
+
+    for (let i = 1; i < length; i += 3) {
+      const cp1 = points[i]                  // out
+      const cp2 = points[(i + 1) % length]   // in
+      const p = points[(i + 2) % length]     // anchor
+
+      context.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y)
+    }
   }
 
   private _shouldRenderStraightEdges(): boolean {

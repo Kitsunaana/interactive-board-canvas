@@ -1,11 +1,25 @@
-import type { EventObject } from "../../behaviors/EventBehavior";
-import { EPSILON, inverseOrIdentity } from "../../behaviors/NodeTransformer";
-import { Matrix3x3, Point, type PointData, Rectangle } from "../../maths";
-import { ResizeTransformer } from "../TransformerV2";
-import type { Corner, Edge } from "./transform-operation.interface";
-import {SimObject} from "../../core/SimObject";
+import type {EventObject} from "../../behaviors/EventBehavior";
+import {EPSILON, inverseOrIdentity, type TransformOperation} from "../../behaviors/NodeTransformer";
+import {Matrix3x3, Point, type PointData, Rectangle} from "../../maths";
+import {ResizeTransformer} from "../TransformerV2";
+import type {Corner, Edge} from "./transform-operation.interface";
+import {Shape} from "../../core/Shape";
+import {drawOriginPoint} from "../../behaviors/draw-point";
 
 type ResizeHandler = Corner | Edge;
+
+export type ResizeOperationContext = {
+  setOrigin: (type: TransformOperation, relativePosition: PointData) => void
+  beginInteraction: (type: TransformOperation) => void
+  updateInteraction: (value: PointData) => void
+  endInteraction: () => void
+
+  getWorldPointer: () => Point
+  getWorldMatrix: () => Matrix3x3
+  getBounds: () => Rectangle
+
+  handlersMap: Record<ResizeHandler, Shape>
+}
 
 export class ResizeTransformOperation {
   private readonly _initialBounds = new Rectangle();
@@ -26,12 +40,15 @@ export class ResizeTransformOperation {
   private _activeY = false;
   private _started = false;
 
-  public context!: ResizeTransformer;
-  public node!: SimObject;
+  private context!: ResizeOperationContext
+  
+  debugRender(context: CanvasRenderingContext2D) {
+    drawOriginPoint(context, this._startWorldMatrix.applyToPoint(this._pivotLocal), "_pivotLocal")
+    drawOriginPoint(context, this._startWorldMatrix.applyToPoint(this._handleLocal), "_handleLocal")
+  }
 
-  public initialize(context: ResizeTransformer, node: SimObject): void {
-    this.context = context;
-    this.node = node;
+  public initialize(context: ResizeOperationContext): void {
+    this.context = context
   }
 
   public startTransform(event: EventObject<PointerEvent>): void {
@@ -45,7 +62,7 @@ export class ResizeTransformOperation {
     this._setMarkerPosition(localMarker)
     this._setScaleOrigin();
 
-    this.node.beginInteraction("scale");
+    this.context.beginInteraction("scale");
 
     this._transformScale.set(1, 1);
     this._started = true;
@@ -59,8 +76,8 @@ export class ResizeTransformOperation {
     this._setTransformScale()
     this._setScaleOrigin();
 
-    this.node.updateInteraction(this._transformScale);
-    this.context.updateHandlersPosition();
+    this.context.updateInteraction(this._transformScale);
+    // this.context.updateHandlersPosition();
   }
 
   public finishTransform(_event: EventObject<PointerEvent>): void {
@@ -69,10 +86,10 @@ export class ResizeTransformOperation {
     if (this._transformScale.x === 0) this._transformScale.x = 0.001;
     if (this._transformScale.y === 0) this._transformScale.y = 0.001;
 
-    this.node.updateInteraction(this._transformScale);
-    this.node.endInteraction();
+    this.context.updateInteraction(this._transformScale);
+    this.context.endInteraction();
 
-    this.context.updateHandlersPosition();
+    // this.context.updateHandlersPosition();
 
     this._started = false;
     this._activeX = false;
@@ -94,16 +111,16 @@ export class ResizeTransformOperation {
     const rx = bounds.width > EPSILON ? delta.x / bounds.width : 0.5;
     const ry = bounds.height > EPSILON ? delta.y / bounds.height : 0.5;
 
-    this.node.setOrigin("scale", {
+    this.context.setOrigin("scale", {
       x: rx,
       y: ry,
     });
   }
 
   private _setTransformScale() {
-    const markerWorld = this.node.layer.worldPointer.sub(this._pointerToMarkerWorld);
+    const markerWorld = this.context.getWorldPointer().sub(this._pointerToMarkerWorld);
     const markerLocal = this._inverseStartWorldMatrix.applyToPoint(markerWorld);
-    
+
     const cursorLocal = markerLocal.add(this._getPaddingToLocalCursor(this._pickedHandler!));
 
     const start = this._handleLocal.sub(this._pivotLocal)
@@ -201,10 +218,11 @@ export class ResizeTransformOperation {
     const handler = event.target.getDataAttr("handler") as ResizeHandler | undefined;
     if (!handler) return;
 
-    const startWorld = this.node.worldMatrix;
+    const startWorld = this.context.getWorldMatrix();
     const inverse = inverseOrIdentity(startWorld);
 
-    const bounds = this.node.getBounds({ skipTransform: true });
+    // { skipTransform: true }
+    const bounds = this.context.getBounds();
 
     this._initialBounds.copyFrom(bounds);
     this._startWorldMatrix.copyFrom(startWorld);
@@ -217,10 +235,10 @@ export class ResizeTransformOperation {
   private _setMarkerPosition(localMarker: Point) {
     const handler = this._pickedHandler!
 
-    const markerBounds = this.context.mergedResizeHandlers[handler].getBounds();
+    const markerBounds = this.context.handlersMap[handler].getBounds();
     const markerCenter = markerBounds.center;
 
-    this._pointerToMarkerWorld.copyFrom(this.node.layer.worldPointer.sub(markerCenter));
+    this._pointerToMarkerWorld.copyFrom(this.context.getWorldPointer().sub(markerCenter));
     this._markerToHandleLocal.copyFrom(localMarker.sub(this._handleLocal));
   }
 
@@ -236,7 +254,7 @@ export class ResizeTransformOperation {
 
   private _getLocalMarker() {
     const handler = this._pickedHandler!
-    const markerBounds = this.context.mergedResizeHandlers[handler].getBounds();
+    const markerBounds = this.context.handlersMap[handler].getBounds();
     const markerCenter = markerBounds.center;
 
     return this._inverseStartWorldMatrix.applyToPoint(markerCenter);

@@ -13,7 +13,7 @@ export abstract class Container extends SimObject {
 
   private _stage: Stage | null = null
   private _layer: Layer | null = null
-
+  
   public get stage() {
     return this._stage!
   }
@@ -67,6 +67,8 @@ export abstract class Container extends SimObject {
 
     this._children.splice(index, 1)
     this.emitter.emit(routes.removeChild({ child }))
+
+    this.updateBoundsUp()
   }
 
   public appendChild(...list: Array<SimObject>) {
@@ -80,6 +82,8 @@ export abstract class Container extends SimObject {
       child.parent = this
       child.emitter.emit(routes.addToParent({ parent: this }))
     })
+    
+    this.updateBoundsUp()
   }
 
   public getShapes(): Array<Shape> {

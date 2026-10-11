@@ -4,6 +4,7 @@ import {SYSTEM_UI} from "../world/GradientControls/BaseGradientGroup";
 import {Group} from "./Group";
 import {Layer} from "./Layer";
 import {SimObject} from "./SimObject";
+import {isNull} from "lodash";
 
 const invalidIndex = (index: number, list: Array<unknown>) => {
   return index > list.length - 1
@@ -14,16 +15,19 @@ export type SelectableNode = Container | Shape
 export type OnNodeSelect = (node: SelectableNode) => void
 
 export class ContextModel {
-  private target: Shape | null = null
-
+  private _target: Shape | null = null
   private _context: Container | null = null
   private _isFinishTarget: boolean = false
 
-  private get context() {
+  public get target(): Shape | null {
+    return this._target
+  }
+
+  public get context() {
     return this._context
   }
 
-  private get isFinishTarget(): boolean {
+  public get isFinishTarget(): boolean {
     return this._isFinishTarget
   }
 
@@ -36,16 +40,17 @@ export class ContextModel {
     this._isFinishTarget = false
   }
 
-  public constructor(private readonly _layer: Layer) {}
-  
+  public constructor(private readonly _layer: Layer) {
+  }
+
   public contextExit() {
     this._isFinishTarget = false
     this._context = null
   }
-  
+
   public dblclick(target: Shape, onSelect: OnNodeSelect) {
     if (this.context) {
-      this.target = target
+      this._target = target
       const pathToTarget = this._getPathToTarget(target)
 
       const currentContextIndex = pathToTarget.indexOf(this.context)
@@ -62,7 +67,47 @@ export class ContextModel {
     }
   }
 
+  private _findCommonParent(first: SimObject, second: SimObject) {
+    const firstParents = first.getAllParents()
+    const secondParents = second.getAllParents()
+
+    const foundParent = secondParents.find((parent) => firstParents.includes(parent))
+    return foundParent ?? this._layer
+  }
+
   public click(target: Shape, onSelect: OnNodeSelect) {
+
+    const targetMode = true
+    const multiselect = true
+
+    if (targetMode && multiselect) {
+      const prevTarget = this._target
+      const nextTarget = target
+
+      if (isNull(prevTarget)) {
+        this.context = target.parent
+        this.isFinishTarget = true
+        this._target = target
+        onSelect(target)
+      } else {
+        this.context = this._findCommonParent(prevTarget, nextTarget)
+        this._target = nextTarget
+        onSelect(target)
+      }
+      
+      return
+    }
+
+    if (targetMode) {
+      this._target = target
+
+      this.context = target.parent
+      this.isFinishTarget = true
+
+      onSelect(target)
+      return
+    }
+
     if (!this.context) return this._initializeLayerContext(target, onSelect)
 
     if (this._tryHandleSiblingSelection(target, onSelect)) return
@@ -70,13 +115,13 @@ export class ContextModel {
   }
 
   private _tryHandleSiblingSelection(clickedShape: Shape, onSelect: OnNodeSelect) {
-    const currentShape = this.target!
+    const currentShape = this._target!
 
     const referenceNode = this.isFinishTarget ? currentShape : this.context!
     const siblingNodes = this._getSiblingsOfNode(referenceNode.parent!, referenceNode)
 
     if (siblingNodes.includes(clickedShape)) {
-      this.target = clickedShape
+      this._target = clickedShape
       this.context = clickedShape.parent!
       this.isFinishTarget = true
       onSelect(clickedShape)
@@ -89,7 +134,7 @@ export class ContextModel {
     ) as Group | undefined
 
     if (parentContainerAmongSiblings) {
-      this.target = clickedShape
+      this._target = clickedShape
       this.context = parentContainerAmongSiblings
       onSelect(this.context)
 
@@ -98,7 +143,7 @@ export class ContextModel {
   }
 
   private _tryHandleAncestorSelection(clickedShape: Shape, onSelect: OnNodeSelect) {
-    const currentShape = this.target!
+    const currentShape = this._target!
     if (currentShape === clickedShape) return
 
     const clickedShapeDepth = this._getNodeDepth(clickedShape)
@@ -113,7 +158,7 @@ export class ContextModel {
       .every((parent) => referenceParents.includes(parent))
 
     if (sharesAncestryPath) {
-      this.target = clickedShape
+      this._target = clickedShape
       this.context = clickedShape.parent!
       this.isFinishTarget = true
 
@@ -129,7 +174,7 @@ export class ContextModel {
     const layerIndex = ancestryPath.indexOf(this._layer)
     const nextIndex = layerIndex + 1
 
-    this.target = clickedShape
+    this._target = clickedShape
 
     if (invalidIndex(nextIndex, ancestryPath)) {
       this.context = this._layer

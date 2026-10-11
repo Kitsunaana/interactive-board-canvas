@@ -77,7 +77,7 @@ export abstract class NodeTransformer extends Node {
   }
 
   public getOriginInOriginalSpace(operation: TransformOperation): Point {
-    const bounds = this.getBounds({ skipTransform: true })
+    const bounds = this.initialBounds
     const relative = this.currentRelativeOrigins[operation]
 
     return new Point(

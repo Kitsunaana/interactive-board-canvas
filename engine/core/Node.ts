@@ -1,12 +1,12 @@
-import { isNull, isUndefined } from "lodash"
-import { nanoid } from "nanoid"
-import { DRAG_ROUTES } from "../behaviors/drag-behavior"
-import { EventBehavior } from "../behaviors/EventBehavior"
-import { createRoute, EventEmitter } from "../EventBus"
-import { type PointData, Rectangle } from "../maths"
-import type { Container } from "./Container"
-import type { Layer } from "./Layer"
-import type { Stage } from "./Stage"
+import {isNull, isUndefined} from "lodash"
+import {nanoid} from "nanoid"
+import {DRAG_ROUTES} from "../behaviors/drag-behavior"
+import {EventBehavior} from "../behaviors/EventBehavior"
+import {createRoute, EventEmitter} from "../EventBus"
+import {type PointData, Rectangle} from "../maths"
+import type {Container} from "./Container"
+import type {Layer} from "./Layer"
+import type {Stage} from "./Stage"
 import type {SimObject} from "./SimObject";
 
 export const routes = {
@@ -34,27 +34,26 @@ export type GetBoundsParams = {
 
 export type GetPointsParams = {
   applyTransform?: boolean
-  applyCachedTransform?: boolean
 }
 
 
 export abstract class Node extends EventBehavior {
   public abstract render(context: CanvasRenderingContext2D): void
+
   public abstract renderHit(context: CanvasRenderingContext2D): void
-  
+
   public abstract getPoints(params?: GetPointsParams): Array<PointData>
+
   public abstract getBounds(params?: GetBoundsParams): Rectangle
-  public abstract getUnrotateBounds(params?: GetBoundsParams): Rectangle
-  
+
+  public abstract getUnrotateBounds(): Rectangle
+
   public abstract updateAfterTransform(): void
+
   public abstract clone(): SimObject
 
   public abstract layer: Layer
   public abstract stage: Stage
-
-  private _dataAttributeMap: Map<string, unknown> = new Map()
-  private _parent: Container | null = null
-  private _nameList: Array<string> = []
 
   public readonly id: string = nanoid()
   public readonly type: string = "SimObject"
@@ -64,6 +63,14 @@ export abstract class Node extends EventBehavior {
 
   public readonly emitter: CustomEvents = new CustomEvents()
 
+  private _dataAttributeMap: Map<string, unknown> = new Map()
+  private _parent: Container | null = null
+  private _nameList: Array<string> = []
+
+  protected _unrotateBounds: Rectangle = new Rectangle(0, 0, 0, 0)
+  protected _initialBounds: Rectangle = new Rectangle(0, 0, 0, 0)
+  protected _bounds: Rectangle = new Rectangle(0, 0, 0, 0)
+
   public set parent(parent: Container | null) {
     this._parent = parent
   }
@@ -72,11 +79,37 @@ export abstract class Node extends EventBehavior {
     return this._parent
   }
 
+  public get bounds(): Rectangle {
+    return this._bounds
+  }
+
+  public get unrotateBounds(): Rectangle {
+    return this._unrotateBounds
+  }
+
+  public get initialBounds(): Rectangle {
+    return this._initialBounds
+  }
+
   public constructor(config: NodeConfig = {}) {
     super()
 
     if (config.names) {
       config.names.forEach((name) => this.addName(name))
+    }
+  }
+
+  private updateBounds() {
+    this._bounds = this.getBounds()
+    this._unrotateBounds = this.getUnrotateBounds()
+    this._initialBounds = this.getBounds({skipTransform: true})
+  }
+
+  public updateBoundsUp() {
+    let current: Node | null = this
+    while (current) {
+      current.updateBounds()
+      current = current.parent
     }
   }
 
@@ -119,7 +152,7 @@ export abstract class Node extends EventBehavior {
       : this.getAllParents.call(parent, list.concat(parent)) as Array<T>
   }
 
-  public getFirstParentByType<T>({ type, notFoundObject, withoutParent }: {
+  public getFirstParentByType<T>({type, notFoundObject, withoutParent}: {
     notFoundObject?: string
     withoutParent?: string
     type: string

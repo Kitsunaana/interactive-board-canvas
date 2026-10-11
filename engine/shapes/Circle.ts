@@ -1,8 +1,8 @@
-import { isNull } from "lodash";
-import { Bounds, Circle, Matrix3x3, Point, type PointData, Rectangle } from "../maths";
-import { Shape, type ShapeConfig } from "../core/Shape";
-import { type GetBoundsParams } from "../core/Node";
-import { NodeTransformer } from "../behaviors/NodeTransformer";
+import {isNull} from "lodash";
+import {Bounds, Circle, Matrix3x3, Point, type PointData, Rectangle} from "../maths";
+import {Shape, type ShapeConfig} from "../core/Shape";
+import {type GetBoundsParams} from "../core/Node";
+import {NodeTransformer} from "../behaviors/NodeTransformer";
 
 export type CircleShapeConfig = {
   x: number
@@ -54,17 +54,35 @@ export class CircleShape extends Shape {
   }
 
   private readonly _initRadius: number
-  private _bounds: Rectangle | null = null
 
   public isListening: boolean = true
 
-  public constructor({ x, y, radius, ...other }: CircleConfig) {
+  public get radius() {
+    return this.bounds.width / 2
+  }
+
+  public get position(): Point {
+    return this.bounds.center
+  }
+
+  public set position(nextPos: PointData) {
+    super.position = nextPos
+  }
+
+  public getPoints(): Array<PointData> {
+    return this.initialBounds.getCorners()
+  }
+
+  public constructor({x, y, radius, ...other}: CircleConfig) {
     super(other)
 
     this._initRadius = radius
 
-    this.position = { x, y }
-    this.scale = this._overrideScale.bind(this)
+    this.updateBoundsUp()
+    this.position = {
+      x,
+      y
+    }
   }
 
   public clone() {
@@ -73,49 +91,30 @@ export class CircleShape extends Shape {
       radius: this.radius,
     })
   }
-  
-  private _overrideScale(value: PointData) {
+
+  public scale(value: PointData) {
+    const uniform = value.x === 1 ? value.y : value.x
     NodeTransformer.prototype.scale.call(this, {
-      x: value.x,
-      y: value.x
+      x: uniform,
+      y: uniform,
     })
-  }
-
-  public get bounds() {
-    if (isNull(this._bounds)) this._bounds = this.getBounds()
-    return this._bounds
-  }
-
-  public get radius() {
-    return this.getBounds().width / 2
-  }
-
-  public get position(): Point {
-    return this.getBounds({}).center
-  }
-
-  public set position(nextPos: PointData) {
-    this.translate(Point.fromData(nextPos).sub(this.position))
-  }
-
-  public getPoints(): Array<PointData> {
-    return this.getBounds({ skipTransform: true }).getCorners()
-  }
-
-  public updateAfterTransform(): void {
-    this._bounds = null
   }
 
   public render(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return
+
     context.betweenSaveAndRestore(() => {
+      this.tryApplyPreviewMatrixToContext(context)
       this.tracePath(context)
       this.fillStrokeShape(context)
     })
   }
 
   public renderHit(context: CanvasRenderingContext2D): void {
-    if (this.isListening) context.betweenSaveAndRestore(() => {
+    if (!this.isListening) return
+
+    context.betweenSaveAndRestore(() => {
+      this.tryApplyPreviewMatrixToContext(context)
       this.tracePath(context)
       this.fillStrokeHitShape(context)
     })
@@ -125,7 +124,7 @@ export class CircleShape extends Shape {
     if (params.skipTransform) return new Circle(0, 0, this._initRadius).getBounds()
 
     const matrix = this.worldMatrix
-    return  getCircleBoundingBox(new Circle(0, 0, this._initRadius), matrix)
+    return getCircleBoundingBox(new Circle(0, 0, this._initRadius), matrix)
   }
 
   public getUnrotateBounds(): Rectangle {

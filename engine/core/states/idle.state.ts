@@ -1,15 +1,15 @@
-﻿import type { SelectableNode } from "../SelectionManager";
-import { doubleClick } from "../../utils";
-import { getPointFromEvent } from "../../shared/point";
-import { App } from "../__noname";
-import type { State } from "./state.interface";
-import { Point } from "../../maths";
+﻿import type {SelectableNode} from "../SelectionManager";
+import {doubleClick} from "../../utils";
+import {getPointFromEvent} from "../../shared/point";
+import {App} from "../__noname";
+import type {State} from "./state.interface";
+import {Point} from "../../maths";
 
 export class IdleState {
   public constructor(private app: App) {
   }
 
-  public get context() {
+  public get selection() {
     return this.app.contextModel
   }
 
@@ -17,12 +17,29 @@ export class IdleState {
     return this.app.resizeModel
   }
 
-  private handleSelect(node: SelectableNode): void {
-    this.resizer.selected.clear()
-    this.resizer.selected.add(node)
+  private handleSelect({node, ctrl, shift}: {
+    node: SelectableNode
+    shift: boolean
+    ctrl: boolean
+  }): void {
 
-    this.resizer.create(node)
-    this.app.subscribeToResizeHandlers(this.resizer.group.handlers)
+    if (ctrl && shift) {
+      this.resizer.selected.add(node)
+      this.resizer.group.commonParent = this.selection.context!
+      this.resizer.select(this.selection.context!, ...Array.from(this.resizer.selected))
+      this.app.subscribeToResizeHandlers(this.resizer.group.handlers)
+      return
+    }
+
+    if (ctrl) {
+      this.resizer.selected.clear()
+      this.resizer.selected.add(node)
+      this.resizer.group.commonParent = this.selection.context!
+      this.resizer.select(this.selection.context!, node)
+      this.app.subscribeToResizeHandlers(this.resizer.group.handlers)
+      return
+    }
+
   }
 
   public resizeHandler: State["resizeHandler"] = {
@@ -44,11 +61,19 @@ export class IdleState {
       threshold: 450,
       click: (event) => {
         event.stopPropagation()
-        this.context.click(event.target, this.handleSelect.bind(this))
+        this.selection.click(event.target, (node) => this.handleSelect({
+          shift: event.evt.shiftKey,
+          ctrl: event.evt.ctrlKey,
+          node,
+        }))
       },
       dblclick: (event) => {
         event.stopPropagation()
-        this.context.dblclick(event.target, this.handleSelect.bind(this))
+        this.selection.dblclick(event.target, (node) => this.handleSelect({
+          shift: event.evt.shiftKey,
+          ctrl: event.evt.ctrlKey,
+          node,
+        }))
       }
     }),
   }
@@ -70,7 +95,7 @@ export class IdleState {
       }
     },
 
-    onPointerUp: (event) => {
+    onPointerUp: (_event) => {
       this.app.cameraModel.lastPosition = null
       this.app.contextModel.contextExit()
       this.app.resizeModel.destroy()

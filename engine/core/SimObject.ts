@@ -13,7 +13,7 @@ export abstract class SimObject extends NodeTransformer {
   }
 
   public get position(): Point {
-    return this.getBounds({}).point()
+    return this.getBounds().point()
   }
 
   public set position(nextPos: PointData) {
@@ -29,6 +29,14 @@ export abstract class SimObject extends NodeTransformer {
     }
 
     return false
+  }
+
+  public tryApplyPreviewMatrixToContext(context: CanvasRenderingContext2D): void {
+    if (this.isInteracting) {
+      this
+        .getPreviewWorldMatrix()
+        .applyToContext(context)
+    }
   }
 
   public applyDeltaTransform(deltaMatrix: Matrix3x3): void {

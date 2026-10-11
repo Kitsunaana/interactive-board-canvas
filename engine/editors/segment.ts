@@ -29,7 +29,7 @@ export class CubicBezierSegment extends PolygonShape {
   public dragSegmentT: number = 0
 
   public get parentPath() {
-    return this._getFirstParentByType<CubicBezierPath>({ type: "CubicBezierPath" })
+    return this.getFirstParentByType<CubicBezierPath>({ type: "CubicBezierPath" })
   }
 
   public get startAnchorIndex() {

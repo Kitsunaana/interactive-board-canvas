@@ -59,6 +59,11 @@ export abstract class Shape extends SimObject {
     Object.assign(this, config)
   }
 
+  public updateAfterTransform() {
+    if (this.isTransformPreviewActive()) return
+    this.updateBoundsUp()
+  }
+
   protected fillStrokeShape(context: CanvasRenderingContext2D) {
     context.lineWidth = this.lineWidth
     context.fillStyle = this.fillStyle
