@@ -123,6 +123,12 @@ export abstract class NodeTransformer extends Node {
     this.updateWorldTransform()
   }
 
+  public applyInteractionWorldDelta(deltaWorld: Matrix3x3): void {
+    if (!this.isInteracting || !this.interactionSnapshot) return
+
+    this.applyWorldDelta(deltaWorld)
+  }
+
   public rotate(angle: number): void {
     const origin = this.isInteracting && this.interactionSnapshot
       ? this.interactionSnapshot.originWorld

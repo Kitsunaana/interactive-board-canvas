@@ -25,7 +25,6 @@ export class IdleState {
 
     if (ctrl && shift) {
       this.resizer.selected.add(node)
-      this.resizer.group.commonParent = this.selection.context!
       this.resizer.select(this.selection.context!, ...Array.from(this.resizer.selected))
       this.app.subscribeToResizeHandlers(this.resizer.group.handlers)
       return
@@ -34,8 +33,8 @@ export class IdleState {
     if (ctrl) {
       this.resizer.selected.clear()
       this.resizer.selected.add(node)
-      this.resizer.group.commonParent = this.selection.context!
       this.resizer.select(this.selection.context!, node)
+      
       this.app.subscribeToResizeHandlers(this.resizer.group.handlers)
       return
     }
@@ -99,6 +98,7 @@ export class IdleState {
       this.app.cameraModel.lastPosition = null
       this.app.contextModel.contextExit()
       this.app.resizeModel.destroy()
+      // this.app.resizeModel.selected
     }
   }
 }

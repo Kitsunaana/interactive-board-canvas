@@ -28,6 +28,8 @@ export class ResizeState {
       event.stopPropagation()
       
       this.resizer.operation.finishTransform(event)
+      this.resizer.operation.initialize(this.resizer.group.buildContext())
+      
       this.app.goToIdleState()
     }
   }

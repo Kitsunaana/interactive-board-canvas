@@ -1,8 +1,8 @@
 import {entries, values} from "lodash"
-import {inverseOrIdentity, type TransformOperation} from "../behaviors/NodeTransformer"
+import {aroundWorldOrigin, inverseOrIdentity, inWorldAxes, type TransformOperation} from "../behaviors/NodeTransformer"
 import {Group} from "../core/Group"
 import {Shape} from "../core/Shape"
-import {Matrix3x3, Point, Polygon, Rectangle} from "../maths"
+import {Matrix3x3, Point, type PointData, Polygon, Rectangle} from "../maths"
 import {CircleShape} from "../shapes/Circle"
 import {PolygonShape} from "../shapes/Polygon"
 import {mapKeys} from "../utils"
@@ -10,14 +10,37 @@ import type {Corner, Edge} from "./_transform/transform-operation.interface"
 import {SYSTEM_UI} from "./GradientControls/BaseGradientGroup"
 import {SimObject} from "../core/SimObject";
 import {getAbsolutePosition} from "../shared/point";
+import type {ResizeOperationContext} from "./_transform/resize-operation";
+import {Layer} from "../core/Layer";
 
-export class ResizeTransformer extends Group {
-  public static OFFSET_BETWEEN_SHAPES_AND_AABB = 0
+const pointsToCorners = <T extends PointData>(list: Array<T>): Record<Corner, T> => {
+  return {
+    bottomRight: list[2],
+    bottomLeft: list[3],
+    topRight: list[1],
+    topLeft: list[0],
+  }
+}
+
+const pointsToEdge = <T extends PointData>(list: Array<T>): Record<Edge, [T, T]> => {
+  return {
+    bottom: [list[2], list[3]],
+    right: [list[1], list[2]],
+    left: [list[3], list[0]],
+    top: [list[0], list[1]],
+  }
+}
+
+export class ResizeTransformer {
+  public static OFFSET_BETWEEN_SHAPES_AND_AABB = 7
   public static RESIZE_HANDLER_RADIUS = 5
 
   public static isTransformer(candidate: unknown): candidate is ResizeTransformer {
     return candidate instanceof ResizeTransformer
   }
+
+  public commonParent!: SimObject
+  public nodesToTransform: Array<SimObject> = []
 
   public readonly resizeHandlerShapes = {
     edge: {
@@ -49,27 +72,45 @@ export class ResizeTransformer extends Group {
       .flatMap((record) => values(record))
   }
 
-  public nodesToTransform: Array<SimObject> = []
+  public constructor(private readonly layer: Layer) {}
 
-  public setShapes(nodes: Array<SimObject>) {
-    this.removeShapes()
+  public initialize(objects: Array<SimObject>, context: SimObject) {
+    this.removeObjects()
+    this.setObjects(objects)
+    this.commonParent = context
+  }
+
+  public setObjects(nodes: Array<SimObject>) {
     this.nodesToTransform = nodes
 
-    this.addHandlersToLayer()
+    this._addHandlersToLayer()
     this.updateHandlersPosition()
   }
 
-  public removeShapes() {
+  public removeObjects() {
     this.nodesToTransform = []
     this.handlers.forEach((handler) => handler.destroy())
   }
 
-  public render(context: CanvasRenderingContext2D) {
-    super.render(context);
-    this.debugRender(context)
+  public buildContext() {
+    if (this.nodesToTransform.length > 1) return this._buildMultiselectContext()
+    if (this.nodesToTransform.length === 1) return this._buildSingleContext()
+    throw new Error("No one SimObject found")
   }
 
-  public addHandlersToLayer(): void {
+  public updateHandlersPosition(): void {
+    const resizePositions = this._computeTransformHandlerPositions(ResizeTransformer.OFFSET_BETWEEN_SHAPES_AND_AABB)
+
+    mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
+      shape.position = resizePositions.corner[handler]
+    })
+
+    mapKeys(this.resizeHandlerShapes.edge, (handler, shape) => {
+      shape.setPoints(resizePositions.edge[handler])
+    })
+  }
+
+  private _addHandlersToLayer(): void {
     Object
       .values(this.resizeHandlerShapes)
       .flatMap((r) => entries(r))
@@ -81,58 +122,67 @@ export class ResizeTransformer extends Group {
       })
   }
 
-  public updateHandlersPosition(): void {
-    const resizePositions = this.computeTransformHandlerPositions(ResizeTransformer.OFFSET_BETWEEN_SHAPES_AND_AABB)
+  private _computeTransformHandlerPositions(padding: number) {
+    const shareParent = this.nodesToTransform.every((node) => node.parent === this.commonParent)
 
-    mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
-      shape.position = resizePositions.corner[handler]
-    })
-
-    mapKeys(this.resizeHandlerShapes.edge, (handler, shape) => {
-      shape.setPoints(resizePositions.edge[handler])
-    })
-  }
-
-  public computeTransformHandlerPositions(padding: number) {
-    // const mappedCorners = this.node === this
-    //   ? this._getPositionsWhenActionAppliedToSetOfNodes(padding)
-    //   : this._getPositionsForActionAppliedToSingleNode(padding)
-
-    const mappedCorners = this._getPositionsForActionAppliedToSingleNode(padding)
+    const mappedCorners = shareParent
+      ? this._getPositionsForActionAppliedToSingleNode(padding)
+      : this._getPositionsWhenActionAppliedToSetOfNodes(padding)
 
     return {
-      corner: {
-        bottomRight: mappedCorners[2],
-        bottomLeft: mappedCorners[3],
-        topRight: mappedCorners[1],
-        topLeft: mappedCorners[0],
-      } as Record<Corner, Point>,
-
-      edge: {
-        bottom: [mappedCorners[2], mappedCorners[3]],
-        right: [mappedCorners[1], mappedCorners[2]],
-        left: [mappedCorners[3], mappedCorners[0]],
-        top: [mappedCorners[0], mappedCorners[1]],
-      } as Record<Edge, Array<Point>>
+      corner: pointsToCorners(mappedCorners),
+      edge: pointsToEdge(mappedCorners),
     }
   }
-  
-  public commonParent: SimObject = this
 
-  private get apple() {
-    return this.commonParent
-  }
-
-  private get worldMatrixV2() {
+  private get _worldMatrix() {
     return this.commonParent.worldMatrix
   }
 
-  private _getMatrixRelativeToGroupV2(child: SimObject): Matrix3x3 {
+  private _getOriginInOriginalSpace(_operation: TransformOperation): Point {
+    return getAbsolutePosition(new Point(0.5, 0.6), this._getBounds())
+  }
+
+  private _getLeafShapes(node: SimObject): Array<Shape> {
+    if (Shape.isShape(node)) return [node]
+    if (Group.isGroup(node)) return node.getShapes()
+    return []
+  }
+
+  private _getWorldBounds(): Rectangle {
+    const allPoints = this.nodesToTransform.flatMap((node) =>
+      this._getLeafShapes(node).flatMap((shape) =>
+        shape
+          .getPoints({applyTransform: false})
+          .map(shape.worldMatrix.applyToPoint.bind(shape.worldMatrix))
+      )
+    )
+
+    return Polygon.getBounds(allPoints)
+  }
+
+  private _getBounds() {
+    const allPoints = this.nodesToTransform.flatMap((simObject) => {
+      return this
+        ._getLeafShapes(simObject)
+        .flatMap((shape) => {
+          const matrix = this._getMatrixRelativeToGroup(shape)
+
+          return shape
+            .getPoints({applyTransform: false})
+            .map(matrix.applyToPoint.bind(matrix))
+        })
+    })
+
+    return Polygon.getBounds(allPoints)
+  }
+
+  private _getMatrixRelativeToGroup(child: SimObject): Matrix3x3 {
     const chain: Matrix3x3[] = []
 
     let current: SimObject | null = child
 
-    while (current && current !== this.apple) {
+    while (current && current !== this.commonParent) {
       const effectiveLocal = current.isInteracting
         ? Matrix3x3.multiply(current.cachedMatrix, current.localMatrix)
         : current.localMatrix
@@ -146,58 +196,90 @@ export class ResizeTransformer extends Group {
       : Matrix3x3.compose(...chain)
   }
 
-  public getBoundsV2() {
-    const allPoints = this.nodesToTransform.flatMap((simObject) => {
-      const matrix = this._getMatrixRelativeToGroupV2(simObject)
+  private _buildSingleContext(): ResizeOperationContext {
+    const simObject = this.nodesToTransform[0]
 
-      return simObject
-        .getPoints({applyTransform: false})
-        .map(matrix.applyToPoint.bind(matrix))
-    })
+    return {
+      beginInteraction: (type) => simObject.beginInteraction(type),
+      updateInteraction: (value) => simObject.updateInteraction(value),
+      endInteraction: () => simObject.endInteraction(),
 
-    return Polygon.getBounds(allPoints)
+      setOrigin: (type, relativePosition) => simObject.setOrigin(type, relativePosition),
+
+      getBounds: () => simObject.getBounds({skipTransform: true}),
+
+      getWorldPointer: () => simObject.layer.worldPointer,
+      getWorldMatrix: () => simObject.worldMatrix,
+
+      handlersMap: this.mergedResizeHandlers,
+    }
   }
 
-  private getOriginInOriginalSpaceV2(_operation: TransformOperation): Point {
-    return getAbsolutePosition(Point.zero().scale(0.5), this.getBoundsV2())
-  }
+  private _buildMultiselectContext(): ResizeOperationContext {
+    const nodes = this.nodesToTransform
+    const commonParent = this.commonParent
+    const shareParent = nodes.every((node) => node.parent === commonParent)
 
-  debugRender(context: CanvasRenderingContext2D) {}
+    const groupBounds = shareParent ? this._getBounds() : this._getWorldBounds()
+    const worldMatrix = shareParent ? commonParent.worldMatrix.clone() : Matrix3x3.identity()
+    const originWorld = new Point()
+
+    return {
+      beginInteraction: (type) => nodes.forEach((node) => node.beginInteraction(type)),
+      endInteraction: () => nodes.forEach((node) => node.endInteraction()),
+
+      updateInteraction: (scale) => {
+        const scaleInWorldAxes = inWorldAxes(worldMatrix, Matrix3x3.scale(scale.x, scale.y))
+        const deltaWorld = aroundWorldOrigin(originWorld, scaleInWorldAxes)
+
+        nodes.forEach((node) => node.applyInteractionWorldDelta(deltaWorld))
+      },
+
+      setOrigin: (_type, relativePosition) => {
+        const originInCommonParent = getAbsolutePosition(Point.fromData(relativePosition), groupBounds)
+        originWorld.copyFrom(worldMatrix.applyToPoint(originInCommonParent))
+      },
+
+      getWorldPointer: () => this.layer.worldPointer,
+
+      getWorldMatrix: () => worldMatrix,
+      getBounds: () => groupBounds,
+
+      handlersMap: this.mergedResizeHandlers,
+    }
+  }
 
   private _getPositionsForActionAppliedToSingleNode(padding: number): Array<Point> {
-    const worldMatrix = this.worldMatrixV2
+    const worldMatrix = this._worldMatrix
 
-    const orientationSource = this.worldMatrixV2
-    // const orientationSource = this.node.startWorldMatrix ?? worldMatrix
+    const orientationSource = this._worldMatrix
     const orientation = orientationSource.getResizeBasis()
 
-    const origin = orientationSource.applyToPoint(this.getOriginInOriginalSpaceV2("rotate"))
+    const origin = orientationSource.applyToPoint(this._getOriginInOriginalSpace("rotate"))
 
     const orientationAroundOrigin = Matrix3x3.aroundOrigin(origin, () => orientation)
-
     const inverseOrientation = inverseOrIdentity(orientationAroundOrigin)
 
     const matrix = Matrix3x3.compose(inverseOrientation, worldMatrix)
+    const bounds = this._getBounds()
 
-    const bounds = this.getBoundsV2({skipTransform: true})
+    const points = bounds
+      .getCorners()
+      .map((point) => matrix.applyToPoint(point))
 
-    const points = bounds.getCorners().map(matrix.applyToPoint.bind(matrix))
-    const scaledBounds = Polygon.getBounds(points).padding(padding)
+    const scaledBounds = Polygon
+      .getBounds(points)
+      .padding(padding)
 
     return scaledBounds
       .getCorners()
-      .map(orientationAroundOrigin.applyToPoint.bind(orientationAroundOrigin))
+      .map((point) => orientationAroundOrigin.applyToPoint(point))
   }
 
-  private _getPositionsWhenActionAppliedToSetOfNodes(padding: number): Array<Point> {
-    const transformedPoints = this.node.getPoints({
-      applyCachedTransform: true,
-      applyTransform: true,
-    })
-
-    return Polygon
-      .getBounds(transformedPoints)
-      .padding(padding)
+  private _getPositionsWhenActionAppliedToSetOfNodes(offset: number): Array<Point> {
+    return this
+      ._getWorldBounds()
+      .padding(offset)
       .getCorners()
   }
 }
