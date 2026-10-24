@@ -1,12 +1,14 @@
 ﻿import {Point, type PointData} from "../../maths";
+import {injectable} from "inversify";
 
-export const VELOCITY_SCALE = 1.0
-export const FRICTION = 0.90
+export const VELOCITY_SCALE = 0.5
+export const FRICTION = 0.95
 
 export const ZOOM_INTENSITY = 0.1
 export const ZOOM_MIN_SCALE = 0.01
 export const ZOOM_MAX_SCALE = 10
 
+@injectable()
 export class CameraModel {
   public lastPosition: Point | null = null
   
@@ -25,7 +27,7 @@ export class CameraModel {
 
   public handleStart(position: PointData): void {
     this.isDragging = true
-    
+
     const offset = new Point(position.x, position.y)
     const delta = offset.sub(this.position)
 
@@ -44,13 +46,13 @@ export class CameraModel {
     this.position.copyFrom(offset.sub(this._panOffset))
   }
 
-  public handleChangeZoom(event: WheelEvent): void {
-    const delta = event.deltaY > 0 ? -ZOOM_INTENSITY : ZOOM_INTENSITY
+  public handleChangeZoom(position: PointData, deltaY: number): void {
+    const delta = deltaY > 0 ? -ZOOM_INTENSITY : ZOOM_INTENSITY
     const newScale = this.zoom * (1 + delta)
 
     if (newScale < ZOOM_MIN_SCALE || newScale > ZOOM_MAX_SCALE) return
 
-    const mouse = new Point(event.offsetX, event.offsetY)
+    const mouse = Point.fromData(position)
     const nextTranslate = mouse.sub(
       mouse
         .sub(this.position)
@@ -63,6 +65,7 @@ export class CameraModel {
 
   public update(): void {
     if (this.isDragging) return
+
     const hasVelocity = Math.hypot(this._velocity.x, this._velocity.y) > 0.01
 
     if (hasVelocity) {

@@ -5,6 +5,7 @@ import {Container} from "./Container"
 import {Layer} from "./Layer"
 import type {GetBoundsParams, GetPointsParams} from "./Node"
 import {SimObject} from "./SimObject";
+
 export interface StageConfig {
   draggable: boolean
   height: number
@@ -66,12 +67,27 @@ export class Stage extends Container {
   }
 
   public readonly absolutePositionCursor = new Point()
-  public readonly sizes: Sizes = {
+  public _sizes: Sizes = {
     height: 0,
     width: 0,
   }
+  
+  public set sizes(next: Sizes) {
+    this._sizes.width = next.width
+    this._sizes.height = next.height
+    
+    this.children.forEach((layer) => {
+      layer.sizes = next
+    })
+  }
+  
+  public get sizes(): Sizes {
+    return this._sizes
+  }
 
   private readonly _pointerStates = new Map<number, PointerState>()
+  private _animationFrameId: number | null = null
+  private _stageDestroyed = false
 
   public get children() {
     return super.children as Array<Layer>
@@ -92,17 +108,57 @@ export class Stage extends Container {
   public constructor(config: StageConfig) {
     super()
 
-    this.sizes.width = config.width
-    this.sizes.height = config.height
+    // this.sizes.width = config.width
+    // this.sizes.height = config.height
 
-    this.content.style.width = `${this.sizes.width}px`
-    this.content.style.height = `${this.sizes.height}px`
-    this.content.style.position = "relative"
+    // this.content.style.width = `${this.sizes.width}px`
+    // this.content.style.height = `${this.sizes.height}px`
+    // this.content.style.position = "relative"
 
-    document.body.appendChild(this.content)
+    // document.body.appendChild(this.content)
 
-    this._bindContentEvents()
-    this._RAF()
+    // this._bindContentEvents()
+    // this._RAF()
+  }
+  
+  public static create(node: HTMLDivElement) {
+    const stage = new Stage({
+      draggable: false,
+      width: node.clientWidth,
+      height: node.clientHeight,
+    })
+
+    stage.sizes.width = node.clientWidth
+    stage.sizes.height = node.clientHeight
+
+    stage.content = node
+    
+    stage._bindContentEvents()
+    stage._RAF()
+    
+    return stage
+  } 
+
+  public destroy(): void {
+    if (this._stageDestroyed) return
+    this._stageDestroyed = true
+
+    if (this._animationFrameId !== null) {
+      cancelAnimationFrame(this._animationFrameId)
+      this._animationFrameId = null
+    }
+
+    this.content.removeEventListener("pointermove", this._boundHandlePointerMove)
+    this.content.removeEventListener("pointerdown", this._boundHandlePointerDown)
+    this.content.removeEventListener("pointerup", this._boundHandlePointerUp)
+    this.content.removeEventListener("pointercancel", this._boundHandlePointerCancel)
+    this.content.removeEventListener("pointerleave", this._boundHandlePointerLeave)
+    this.content.removeEventListener("click", this._boundHandleClick)
+    this.content.removeEventListener("dblclick", this._boundHandleDoubleClick)
+    this.content.removeEventListener("contextmenu", this._boundHandleContextMenu)
+    this._pointerStates.clear()
+
+    super.destroy()
   }
 
   public updateAfterTransform(): void {
@@ -126,8 +182,8 @@ export class Stage extends Container {
     super.removeChild(child)
 
     if (Layer.isLayer(child)) {
-      this.content.removeChild(child.hitCanvas)
-      this.content.removeChild(child.canvas)
+      // this.content.removeChild(child.hitCanvas)
+      // this.content.removeChild(child.canvas)
     }
   }
 
@@ -135,8 +191,8 @@ export class Stage extends Container {
     list.forEach((layer) => {
       this.children.push(layer)
 
-      this.content.appendChild(layer.canvas)
-      this.content.appendChild(layer.hitCanvas)
+      // this.content.appendChild(layer.canvas)
+      // this.content.appendChild(layer.hitCanvas)
 
       layer.sizes = this.sizes
       layer.parent = this
@@ -152,7 +208,7 @@ export class Stage extends Container {
       layer.renderHit()
     })
 
-    requestAnimationFrame(this._RAF.bind(this))
+    if (!this._stageDestroyed) this._animationFrameId = requestAnimationFrame(this._RAF.bind(this))
   }
 
   private _bindContentEvents(): void {

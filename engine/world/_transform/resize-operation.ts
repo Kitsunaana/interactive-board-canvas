@@ -43,6 +43,10 @@ export class ResizeTransformOperation {
   private context!: ResizeOperationContext
   
   debugRender(context: CanvasRenderingContext2D) {
+    context.strokeStyle = "red"
+
+    context.strokeRect(100, 100, 100, 100)
+
     drawOriginPoint(context, this._startWorldMatrix.applyToPoint(this._pivotLocal), "_pivotLocal")
     drawOriginPoint(context, this._startWorldMatrix.applyToPoint(this._handleLocal), "_handleLocal")
   }
@@ -77,7 +81,6 @@ export class ResizeTransformOperation {
     this._setScaleOrigin();
 
     this.context.updateInteraction(this._transformScale);
-    // this.context.updateHandlersPosition();
   }
 
   public finishTransform(_event: EventObject<PointerEvent>): void {
@@ -88,8 +91,6 @@ export class ResizeTransformOperation {
 
     this.context.updateInteraction(this._transformScale);
     this.context.endInteraction();
-
-    // this.context.updateHandlersPosition();
 
     this._started = false;
     this._activeX = false;
@@ -215,13 +216,12 @@ export class ResizeTransformOperation {
   }
 
   private _setInitialState(event: EventObject<PointerEvent>) {
-    const handler = event.target.getDataAttr("handler") as ResizeHandler | undefined;
+    const handler = event.target.getDataAttr("anchor") as ResizeHandler | undefined;
     if (!handler) return;
 
     const startWorld = this.context.getWorldMatrix();
     const inverse = inverseOrIdentity(startWorld);
 
-    // { skipTransform: true }
     const bounds = this.context.getBounds();
 
     this._initialBounds.copyFrom(bounds);

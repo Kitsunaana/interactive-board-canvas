@@ -6,6 +6,8 @@ export interface State {
     onPointerDown?: (event: EventObject<PointerEvent, Shape>) => void,
     onPointerMove?: (event: EventObject<PointerEvent, Shape>) => void,
     onPointerUp?: (event: EventObject<PointerEvent, Shape>) => void,
+    dblclick?: (event: EventObject<PointerEvent, Shape>) => void
+    click?: (event: EventObject<PointerEvent, Shape>) => void
   },
 
   canvas?: {

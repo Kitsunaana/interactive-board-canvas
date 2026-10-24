@@ -1,17 +1,17 @@
-import {entries, values} from "lodash"
-import {aroundWorldOrigin, inverseOrIdentity, inWorldAxes, type TransformOperation} from "../behaviors/NodeTransformer"
-import {Group} from "../core/Group"
-import {Shape} from "../core/Shape"
-import {Matrix3x3, Point, type PointData, Polygon, Rectangle} from "../maths"
-import {CircleShape} from "../shapes/Circle"
-import {PolygonShape} from "../shapes/Polygon"
-import {mapKeys} from "../utils"
-import type {Corner, Edge} from "./_transform/transform-operation.interface"
-import {SYSTEM_UI} from "./GradientControls/BaseGradientGroup"
-import {SimObject} from "../core/SimObject";
-import {getAbsolutePosition} from "../shared/point";
-import type {ResizeOperationContext} from "./_transform/resize-operation";
-import {Layer} from "../core/Layer";
+import { entries, values } from "lodash"
+import { aroundWorldOrigin, inverseOrIdentity, inWorldAxes } from "../behaviors/NodeTransformer"
+import { Group } from "../core/Group"
+import { Shape } from "../core/Shape"
+import { Matrix3x3, Point, type PointData, Polygon, Rectangle } from "../maths"
+import { CircleShape, PolygonShape } from "../shapes"
+import { mapKeys } from "../utils"
+import type { Corner, Edge } from "./_transform/transform-operation.interface"
+import { SYSTEM_UI } from "./GradientControls/BaseGradientGroup"
+import { SimObject } from "../core/SimObject";
+import { getAbsolutePosition } from "../shared/point";
+import type { ResizeOperationContext } from "./_transform/resize-operation";
+import { Layer } from "../core/Layer";
+import { Container } from "../core/Container";
 
 const pointsToCorners = <T extends PointData>(list: Array<T>): Record<Corner, T> => {
   return {
@@ -39,22 +39,32 @@ export class ResizeTransformer {
     return candidate instanceof ResizeTransformer
   }
 
-  public commonParent!: SimObject
+  public layer!: Layer
+  public commonParent!: Container
   public nodesToTransform: Array<SimObject> = []
 
-  public readonly resizeHandlerShapes = {
+  public resizeHandlerShapes = {
     edge: {
-      bottom: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
-      right: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
-      left: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
-      top: new PolygonShape({initialPoints: [{x: 0, y: 0}, {x: 0, y: 0}]}),
+      bottom: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
+      right: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
+      left: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
+      top: new PolygonShape({ initialPoints: [{ x: 0, y: 0 }, { x: 0, y: 0 }] }),
     },
     corner: {
-      bottomRight: new CircleShape({x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS}),
-      bottomLeft: new CircleShape({x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS}),
-      topRight: new CircleShape({x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS}),
-      topLeft: new CircleShape({x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS}),
+      bottomRight: new CircleShape({ x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS }),
+      bottomLeft: new CircleShape({ x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS }),
+      topRight: new CircleShape({ x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS }),
+      topLeft: new CircleShape({ x: 0, y: 0, radius: ResizeTransformer.RESIZE_HANDLER_RADIUS }),
     },
+  }
+
+  private get _shareParent() {
+    const shapesToTransform = this.nodesToTransform.flatMap(node => this._getLeafShapes(node))
+    if (shapesToTransform.length === 1) return true
+
+    return this.commonParent
+      .getShapes()
+      .every((shape) => shapesToTransform.includes(shape))
   }
 
   public get mergedResizeHandlers() {
@@ -66,30 +76,9 @@ export class ResizeTransformer {
       )), {} as Record<Corner | Edge, Shape>)
   }
 
-  public get handlers(): Array<Shape> {
-    return Object
-      .values(this.resizeHandlerShapes)
-      .flatMap((record) => values(record))
-  }
-
-  public constructor(private readonly layer: Layer) {}
-
-  public initialize(objects: Array<SimObject>, context: SimObject) {
-    this.removeObjects()
-    this.setObjects(objects)
+  public setComponents(objects: Array<SimObject>, context: Container) {
     this.commonParent = context
-  }
-
-  public setObjects(nodes: Array<SimObject>) {
-    this.nodesToTransform = nodes
-
-    this._addHandlersToLayer()
-    this.updateHandlersPosition()
-  }
-
-  public removeObjects() {
-    this.nodesToTransform = []
-    this.handlers.forEach((handler) => handler.destroy())
+    this.nodesToTransform = objects
   }
 
   public buildContext() {
@@ -99,7 +88,7 @@ export class ResizeTransformer {
   }
 
   public updateHandlersPosition(): void {
-    const resizePositions = this._computeTransformHandlerPositions(ResizeTransformer.OFFSET_BETWEEN_SHAPES_AND_AABB)
+    const resizePositions = this.getTransformHandlerPositions(ResizeTransformer.OFFSET_BETWEEN_SHAPES_AND_AABB)
 
     mapKeys(this.resizeHandlerShapes.corner, (handler, shape) => {
       shape.position = resizePositions.corner[handler]
@@ -110,22 +99,8 @@ export class ResizeTransformer {
     })
   }
 
-  private _addHandlersToLayer(): void {
-    Object
-      .values(this.resizeHandlerShapes)
-      .flatMap((r) => entries(r))
-      .forEach(([handleName, shape]) => {
-        shape.setDataAttr("handler", handleName)
-        shape.addName(SYSTEM_UI)
-
-        this.layer.appendChild(shape)
-      })
-  }
-
-  private _computeTransformHandlerPositions(padding: number) {
-    const shareParent = this.nodesToTransform.every((node) => node.parent === this.commonParent)
-
-    const mappedCorners = shareParent
+  public getTransformHandlerPositions(padding: number) {
+    const mappedCorners = this._shareParent
       ? this._getPositionsForActionAppliedToSingleNode(padding)
       : this._getPositionsWhenActionAppliedToSetOfNodes(padding)
 
@@ -133,14 +108,6 @@ export class ResizeTransformer {
       corner: pointsToCorners(mappedCorners),
       edge: pointsToEdge(mappedCorners),
     }
-  }
-
-  private get _worldMatrix() {
-    return this.commonParent.worldMatrix
-  }
-
-  private _getOriginInOriginalSpace(_operation: TransformOperation): Point {
-    return getAbsolutePosition(new Point(0.5, 0.6), this._getBounds())
   }
 
   private _getLeafShapes(node: SimObject): Array<Shape> {
@@ -153,7 +120,7 @@ export class ResizeTransformer {
     const allPoints = this.nodesToTransform.flatMap((node) =>
       this._getLeafShapes(node).flatMap((shape) =>
         shape
-          .getPoints({applyTransform: false})
+          .getPoints({ applyTransform: false })
           .map(shape.worldMatrix.applyToPoint.bind(shape.worldMatrix))
       )
     )
@@ -169,7 +136,7 @@ export class ResizeTransformer {
           const matrix = this._getMatrixRelativeToGroup(shape)
 
           return shape
-            .getPoints({applyTransform: false})
+            .getPoints({ applyTransform: false })
             .map(matrix.applyToPoint.bind(matrix))
         })
     })
@@ -206,7 +173,7 @@ export class ResizeTransformer {
 
       setOrigin: (type, relativePosition) => simObject.setOrigin(type, relativePosition),
 
-      getBounds: () => simObject.getBounds({skipTransform: true}),
+      getBounds: () => simObject.getBounds({ skipTransform: true }),
 
       getWorldPointer: () => simObject.layer.worldPointer,
       getWorldMatrix: () => simObject.worldMatrix,
@@ -218,7 +185,7 @@ export class ResizeTransformer {
   private _buildMultiselectContext(): ResizeOperationContext {
     const nodes = this.nodesToTransform
     const commonParent = this.commonParent
-    const shareParent = nodes.every((node) => node.parent === commonParent)
+    const shareParent = this._shareParent
 
     const groupBounds = shareParent ? this._getBounds() : this._getWorldBounds()
     const worldMatrix = shareParent ? commonParent.worldMatrix.clone() : Matrix3x3.identity()
@@ -250,12 +217,12 @@ export class ResizeTransformer {
   }
 
   private _getPositionsForActionAppliedToSingleNode(padding: number): Array<Point> {
-    const worldMatrix = this._worldMatrix
+    const worldMatrix = this.commonParent.worldMatrix
 
-    const orientationSource = this._worldMatrix
+    const orientationSource = worldMatrix
     const orientation = orientationSource.getResizeBasis()
 
-    const origin = orientationSource.applyToPoint(this._getOriginInOriginalSpace("rotate"))
+    const origin = orientationSource.applyToPoint(this.commonParent.getOriginInOriginalSpace("rotate"))
 
     const orientationAroundOrigin = Matrix3x3.aroundOrigin(origin, () => orientation)
     const inverseOrientation = inverseOrIdentity(orientationAroundOrigin)

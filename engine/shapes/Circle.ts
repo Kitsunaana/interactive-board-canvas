@@ -53,6 +53,8 @@ export class CircleShape extends Shape {
     return candidate instanceof CircleShape
   }
 
+  public type = "Cirle" as const
+
   private readonly _initRadius: number
 
   public isListening: boolean = true

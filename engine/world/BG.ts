@@ -1,5 +1,6 @@
 ﻿import { Matrix3x3, Point } from "../maths";
 import { Layer } from "../core/Layer";
+import {injectable} from "inversify";
 
 export const BASE_GRID_SIZE = 12
 export const COLOR = "#e6e6e6"
@@ -17,6 +18,7 @@ type LevelRenderProps = {
   end: Point
 }
 
+@injectable()
 export class Background extends Layer {
   private static LEVELS: Array<Level> = [
     { size: BASE_GRID_SIZE, minScale: 2.0 },
@@ -33,22 +35,26 @@ export class Background extends Layer {
     { size: BASE_GRID_SIZE * 2048, minScale: 0 },
   ]
 
+  public static create(mainCanvas: HTMLCanvasElement, hitCanvas: HTMLCanvasElement) {
+    return Layer.createFromInstance(mainCanvas, hitCanvas, Background) as Background
+  }
+
   private static getNextLevelMinScale(level: Level) {
     const index = Background.LEVELS.indexOf(level) - 1
     return Background.LEVELS[index]?.minScale || level.minScale * 2
   }
 
-  public _zoom: number = 1
-  public _position: Point = Point.zero()
+  public zoom: number = 1
+  public offset: Point = Point.zero()
 
   public applyToContext(context: CanvasRenderingContext2D) {
     const matrix = Matrix3x3.fromArray([
-      this._zoom,
+      this.zoom,
       0,
       0,
-      this._zoom,
-      this._position.x,
-      this._position.y,
+      this.zoom,
+      this.offset.x,
+      this.offset.y,
     ])
 
     context.setTransform(matrix)
@@ -108,8 +114,8 @@ export class Background extends Layer {
 
   public screenToWorld(point: Point): Point {
     return point
-      .sub(this._position)
-      .div({ x: this._zoom, y: this._zoom })
+      .sub(this.offset)
+      .div({ x: this.zoom, y: this.zoom })
   }
 
   private _getVisibleWorldBounds(): [Point, Point] {
@@ -129,11 +135,11 @@ export class Background extends Layer {
     const nextLevelMinScale = Background.getNextLevelMinScale(level)
     const fadeRange = nextLevelMinScale - level.minScale
 
-    return Math.min(1, Math.max(0, (this._zoom - level.minScale) / fadeRange))
+    return Math.min(1, Math.max(0, (this.zoom - level.minScale) / fadeRange))
   }
 
   private _resolveLevelRenderProps(level: Level): LevelRenderProps | null {
-    if (this._zoom < level.minScale) return null
+    if (this.zoom < level.minScale) return null
     const fadeProgress = this._calculateFadeProgress(level)
     if (fadeProgress <= 0) return null
 
@@ -150,7 +156,7 @@ export class Background extends Layer {
 
     const opacity = fadeProgress * 0.5
     const color = COLOR + Math.floor(opacity * 255).toString(16).padStart(2, '0')
-    const width = 1 / this._zoom
+    const width = 1 / this.zoom
 
     return {
       level,

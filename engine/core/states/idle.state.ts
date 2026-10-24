@@ -1,50 +1,32 @@
-﻿import type {SelectableNode} from "../SelectionManager";
-import {doubleClick} from "../../utils";
-import {getPointFromEvent} from "../../shared/point";
-import {App} from "../__noname";
+﻿import {getPointFromEvent} from "../../shared/point";
 import type {State} from "./state.interface";
 import {Point} from "../../maths";
+import type {SimObject} from "../SimObject";
+import type {Container} from "../Container";
+import {ContextModel} from "../SelectionManager";
+import {inject} from "inversify";
+import {ResizeTransformService} from "../models/_resize.model";
+import {CameraModel} from "../models/_camera.model";
 
 export class IdleState {
-  public constructor(private app: App) {
-  }
+  public constructor(
+    @inject(CameraModel) private readonly camera: CameraModel,
+    @inject(ContextModel) private readonly selection: ContextModel,
+    @inject(ResizeTransformService) private readonly resizer: ResizeTransformService,
+  ) {}
 
-  public get selection() {
-    return this.app.contextModel
-  }
-
-  public get resizer() {
-    return this.app.resizeModel
-  }
-
-  private handleSelect({node, ctrl, shift}: {
-    node: SelectableNode
-    shift: boolean
-    ctrl: boolean
+  private handleSelect({ context, objects }: {
+    objects: Array<SimObject>
+    context: Container
   }): void {
-
-    if (ctrl && shift) {
-      this.resizer.selected.add(node)
-      this.resizer.select(this.selection.context!, ...Array.from(this.resizer.selected))
-      this.app.subscribeToResizeHandlers(this.resizer.group.handlers)
-      return
-    }
-
-    if (ctrl) {
-      this.resizer.selected.clear()
-      this.resizer.selected.add(node)
-      this.resizer.select(this.selection.context!, node)
-      
-      this.app.subscribeToResizeHandlers(this.resizer.group.handlers)
-      return
-    }
-
+    this.resizer.select(context, ...objects)
+    // this.app.subscribeToResizeHandlers(this.resizer.group.handlers)
   }
 
   public resizeHandler: State["resizeHandler"] = {
     onPointerDown: (event) => {
       this.resizer.operation.startTransform(event)
-      this.app.goToResizeState()
+      // this.app.goToResizeState()
     },
 
     onPointerUp: (event) => {
@@ -56,49 +38,53 @@ export class IdleState {
     onPointerDown: (event) => {
       event.stopPropagation()
     },
-    onPointerUp: doubleClick({
-      threshold: 450,
-      click: (event) => {
-        event.stopPropagation()
-        this.selection.click(event.target, (node) => this.handleSelect({
-          shift: event.evt.shiftKey,
-          ctrl: event.evt.ctrlKey,
-          node,
-        }))
-      },
-      dblclick: (event) => {
-        event.stopPropagation()
-        this.selection.dblclick(event.target, (node) => this.handleSelect({
-          shift: event.evt.shiftKey,
-          ctrl: event.evt.ctrlKey,
-          node,
-        }))
-      }
-    }),
+
+    onPointerUp: (event) => {
+      event.stopPropagation()
+    },
+    
+    click: (event) => {
+      this.selection.click({
+        target: event.target,
+        targetMode: event.evt.ctrlKey,
+        multiselectMode: event.evt.shiftKey,
+        onSelect: this.handleSelect.bind(this),
+      })
+    },
+
+    dblclick: (event) => {
+      this.selection.dblclick({
+        target: event.target,
+        targetMode: event.evt.ctrlKey,
+        multiselectMode: event.evt.shiftKey,
+        onSelect: this.handleSelect.bind(this),
+      })
+    }
   }
 
   public canvas: State["canvas"] = {
     onPointerDown: (event) => {
-      this.app.cameraModel.lastPosition = Point.fromData(getPointFromEvent(event.evt))
+      this.camera.lastPosition = Point.fromData(getPointFromEvent(event.evt))
     },
 
     onPointerMove: (event) => {
       const dragDistance = 3
 
-      if (this.app.cameraModel.lastPosition) {
+      if (this.camera.lastPosition) {
         const currentPointerPos = Point.fromData(getPointFromEvent(event.evt))
-        const delta = currentPointerPos.sub(this.app.cameraModel.lastPosition!)
+        const delta = currentPointerPos.sub(this.camera.lastPosition!)
         if (delta.length() >= dragDistance) {
-          this.app.goToDraggingState(currentPointerPos)
+          // this.app.goToDraggingState(currentPointerPos)
         }
       }
     },
 
     onPointerUp: (_event) => {
-      this.app.cameraModel.lastPosition = null
-      this.app.contextModel.contextExit()
-      this.app.resizeModel.destroy()
-      // this.app.resizeModel.selected
+      this.camera.lastPosition = null
+      this.selection.contextExit()
+      this.resizer.destroy()
+
+      this.selection.selected.clear()
     }
   }
 }

@@ -37,7 +37,7 @@ export abstract class Container extends SimObject {
   }
 
   public get children() {
-    return this._children
+    return this._children.sort((first, second) => second.zIndex - first.zIndex)
   }
 
   public render(context: CanvasRenderingContext2D): void {
@@ -56,8 +56,11 @@ export abstract class Container extends SimObject {
   }
 
   public destroy() {
+    if (this.children.length > 0) {
+      this.children.slice().forEach((child) => child.destroy())
+    }
+
     super.destroy()
-    this.children.forEach((child) => child.destroy())
   }
 
   public removeChild(child: SimObject) {

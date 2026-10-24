@@ -1,9 +1,10 @@
 import {NodeTransformer} from "../behaviors/NodeTransformer"
 import {Matrix3x3, Point, type PointData} from "../maths"
 import type {Container} from "./Container";
-import {routes} from "./Node";
+import {routes, type SafeParams} from "./Node";
 
 export abstract class SimObject extends NodeTransformer {
+  private _isDestroyed = false
   public get x() {
     return this.position.x
   }
@@ -14,6 +15,20 @@ export abstract class SimObject extends NodeTransformer {
 
   public get position(): Point {
     return this.getBounds().point()
+  }
+  
+  public set x(value: number) {
+    this.position = {
+      x: value,
+      y: this.position.y,
+    }
+  }
+
+  public set y(value: number) {
+    this.position = {
+      x: this.position.x,
+      y: value,
+    }
   }
 
   public set position(nextPos: PointData) {
@@ -65,6 +80,9 @@ export abstract class SimObject extends NodeTransformer {
   }
 
   public destroy(): void {
+    if (this._isDestroyed) return
+    this._isDestroyed = true
+
     this.remove()
     this.off()
     this.emitter.emit(routes.destroy())
@@ -73,5 +91,30 @@ export abstract class SimObject extends NodeTransformer {
 
   public moveTo(parent: Container): void {
     parent.appendChild(this.remove())
+  }
+  
+  public setAttribute<T extends this, K extends keyof SafeParams<this>>(key: K, value: T[K]) {
+    super.setAttribute(key, value)
+  
+    switch (key) {
+      case "parent": {
+        if (value) this.moveTo(value as unknown as Container)
+        else this.remove()
+        return
+      }
+
+      case "cachedMatrix":
+      case "currentRelativeOrigins":
+      case "interactionOperation":
+      case "isInteracting":
+      case "localMatrix":
+      case "position":
+      case "startWorldMatrix":
+      case "worldMatrix":
+      case "x":
+      case "y": {
+        this[key] = value
+      }
+    }
   }
 }

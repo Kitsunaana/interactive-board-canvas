@@ -9,7 +9,7 @@ export const angleBetweenPoints = (center: PointData, cursor: PointData) => {
 
 export const pointFromEvent = (event: PointerEvent | MouseEvent): Point => new Point(event.clientX, event.clientY)
 
-export const getPointFromEvent = (event: PointerEvent | MouseEvent): PointData => ({
+export const getPointFromEvent = <T extends { clientX: number; clientY: number }>(event: T): PointData => ({
   x: event.clientX,
   y: event.clientY,
 })

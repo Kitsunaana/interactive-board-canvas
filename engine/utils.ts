@@ -23,3 +23,24 @@ export const doubleClick = <T extends unknown[]>({click, dblclick, threshold}: {
     else click(...args)
   }
 }
+
+export type AnyFunction = (...args: any[]) => any
+
+export type ObjectEntry<T extends Record<string, unknown>> = {
+  [K in keyof T]-?: {
+    key: K,
+    value: T[K]
+  }
+}[keyof T]
+
+export const forEachObject = <R extends Record<string, unknown>>(
+  object: R, callback: (entry: ObjectEntry<R>) => void
+) => {
+  Object.keys(object).forEach((key) => {
+    callback({
+      key,
+      value: object[key],
+    } as ObjectEntry<R>)
+  })
+}
+

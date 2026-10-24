@@ -1,10 +1,10 @@
-import {Container} from "./Container";
-import {Shape} from "./Shape";
-import {SYSTEM_UI} from "../world/GradientControls/BaseGradientGroup";
-import {Group} from "./Group";
-import {Layer} from "./Layer";
-import {SimObject} from "./SimObject";
-import {isNull} from "lodash";
+import { Container } from "./Container";
+import { Shape } from "./Shape";
+import { SYSTEM_UI } from "../world/GradientControls/BaseGradientGroup";
+import { Group } from "./Group";
+import { SimObject } from "./SimObject";
+import { inject, injectable } from "inversify";
+import { Background } from "../world/BG";
 
 const invalidIndex = (index: number, list: Array<unknown>) => {
   return index > list.length - 1
@@ -12,16 +12,25 @@ const invalidIndex = (index: number, list: Array<unknown>) => {
 
 export type SelectableNode = Container | Shape
 
-export type OnNodeSelect = (node: SelectableNode) => void
+export type OnNodeSelect = (params: {
+  context: Container
+  objects: Array<SimObject>
+}) => void
 
+export type SelectParams = {
+  onSelect: OnNodeSelect
+  multiselectMode: boolean
+  targetMode: boolean
+  target: Shape
+}
+
+@injectable()
 export class ContextModel {
   private _target: Shape | null = null
   private _context: Container | null = null
   private _isFinishTarget: boolean = false
 
-  public get target(): Shape | null {
-    return this._target
-  }
+  public selected: Set<SelectableNode> = new Set()
 
   public get context() {
     return this._context
@@ -40,72 +49,70 @@ export class ContextModel {
     this._isFinishTarget = false
   }
 
-  public constructor(private readonly _layer: Layer) {
-  }
+  public layer!: Background
+
+  // public constructor(@inject(Background) private readonly _layer: Background) { }
 
   public contextExit() {
     this._isFinishTarget = false
     this._context = null
   }
 
-  public dblclick(target: Shape, onSelect: OnNodeSelect) {
+  private _replaceSelection(...objects: Array<SelectableNode>) {
+    this.selected.clear()
+    objects.forEach(object => this.selected.add(object))
+  }
+
+  public dblclick({ target, targetMode, multiselectMode, onSelect }: SelectParams) {
+    if (targetMode || multiselectMode) return
+
     if (this.context) {
       this._target = target
-      const pathToTarget = this._getPathToTarget(target)
 
+      const pathToTarget = this._getPathToTarget(target)
       const currentContextIndex = pathToTarget.indexOf(this.context)
       const nextContextIndex = currentContextIndex + 1
       const isNextContextNotExist = nextContextIndex > pathToTarget.length - 1
 
       if (!isNextContextNotExist) {
         this.context = pathToTarget[nextContextIndex]
-        onSelect(this._context!)
+        this._replaceSelection(this.context)
+        onSelect(this._formatSelectParams())
       } else {
         this.isFinishTarget = true
-        onSelect(target)
+        this._replaceSelection(target)
+        onSelect(this._formatSelectParams())
       }
     }
   }
 
-  private _findCommonParent(first: SimObject, second: SimObject) {
-    const firstParents = first.getAllParents()
-    const secondParents = second.getAllParents()
+  public click({ target, targetMode, multiselectMode, onSelect }: SelectParams) {
+    if (targetMode && multiselectMode) {
+      this._target = target
 
-    const foundParent = secondParents.find((parent) => firstParents.includes(parent))
-    return foundParent ?? this._layer
-  }
-
-  public click(target: Shape, onSelect: OnNodeSelect) {
-
-    const targetMode = true
-    const multiselect = true
-
-    if (targetMode && multiselect) {
-      const prevTarget = this._target
-      const nextTarget = target
-
-      if (isNull(prevTarget)) {
-        this.context = target.parent
-        this.isFinishTarget = true
-        this._target = target
-        onSelect(target)
+      if (this.selected.has(target)) {
+        this.selected.size > 1 && this.selected.delete(target)
       } else {
-        this.context = this._findCommonParent(prevTarget, nextTarget)
-        this._target = nextTarget
-        onSelect(target)
+        const targetParents = target.getAllParents()
+        const foundSelectedParent = Array
+          .from(this.selected)
+          .find((node: SelectableNode) => Group.isGroup(node) && targetParents.includes(node))
+
+        if (foundSelectedParent) this.selected.delete(foundSelectedParent)
+
+        this.selected.add(target)
       }
-      
-      return
+
+      this.context = this._findCommonParent(Array.from(this.selected))
+      return onSelect(this._formatSelectParams())
     }
 
     if (targetMode) {
       this._target = target
-
-      this.context = target.parent
-      this.isFinishTarget = true
-
-      onSelect(target)
-      return
+      this.selected.clear()
+      this.selected.add(target)
+      this.context = target.parent!
+      return onSelect(this._formatSelectParams())
     }
 
     if (!this.context) return this._initializeLayerContext(target, onSelect)
@@ -124,7 +131,9 @@ export class ContextModel {
       this._target = clickedShape
       this.context = clickedShape.parent!
       this.isFinishTarget = true
-      onSelect(clickedShape)
+
+      this._replaceSelection(clickedShape)
+      onSelect(this._formatSelectParams())
 
       return true
     }
@@ -136,7 +145,9 @@ export class ContextModel {
     if (parentContainerAmongSiblings) {
       this._target = clickedShape
       this.context = parentContainerAmongSiblings
-      onSelect(this.context)
+
+      this._replaceSelection(this.context)
+      onSelect(this._formatSelectParams())
 
       return true
     }
@@ -162,7 +173,8 @@ export class ContextModel {
       this.context = clickedShape.parent!
       this.isFinishTarget = true
 
-      onSelect(clickedShape)
+      this._replaceSelection(clickedShape)
+      onSelect(this._formatSelectParams())
 
       return true
     }
@@ -171,18 +183,22 @@ export class ContextModel {
   private _initializeLayerContext(clickedShape: Shape, onSelect: OnNodeSelect) {
     const ancestryPath = clickedShape.getAllParents().reverse()
 
-    const layerIndex = ancestryPath.indexOf(this._layer)
+    const layerIndex = ancestryPath.indexOf(this.layer)
     const nextIndex = layerIndex + 1
 
     this._target = clickedShape
 
     if (invalidIndex(nextIndex, ancestryPath)) {
-      this.context = this._layer
+      this.context = this.layer
       this.isFinishTarget = true
-      onSelect(clickedShape)
+
+      this._replaceSelection(clickedShape)
+      onSelect(this._formatSelectParams())
     } else {
       this.context = ancestryPath[nextIndex]
-      onSelect(this.context)
+
+      this._replaceSelection(this.context)
+      onSelect(this._formatSelectParams())
     }
   }
 
@@ -193,6 +209,23 @@ export class ContextModel {
     const prev = children.slice(0, foundIndex)
     const next = children.slice(foundIndex + 1)
     return prev.concat(next)
+  }
+
+  private _findCommonParent(candidates: Array<SimObject>): Container {
+    if (candidates.length === 1) return candidates[0].parent!
+
+    const first = candidates[0]
+    const other = candidates.slice(1)
+
+    const firstObjectParents = first.getAllParents()
+
+    return firstObjectParents.find((parent) => {
+      return other.every((object) => (
+        object
+          .getAllParents()
+          .includes(parent)
+      ))
+    }) ?? this.layer
   }
 
   private _getPathToTarget(target: SimObject) {
@@ -208,5 +241,12 @@ export class ContextModel {
 
   private _doesContainerHoldNode(container: Container, node: SelectableNode): boolean {
     return node.getAllParents().includes(container)
+  }
+
+  private _formatSelectParams(): Parameters<OnNodeSelect>[0] {
+    return {
+      context: this.context!,
+      objects: Array.from(this.selected)
+    }
   }
 }

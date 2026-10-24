@@ -1,23 +1,16 @@
 import rough from 'roughjs';
-import {RoughCanvas} from "roughjs/bin/canvas";
-import {Point, type PointData, Rectangle} from '../maths';
-import {Container} from "./Container";
-import {type GetBoundsParams, type GetPointsParams} from "./Node";
-import {MOUSE_ALIASES, type Sizes, TOUCH_ALIASES} from "./Stage";
-import {concat, keys, values} from "lodash";
-import {SimObject} from "./SimObject";
+import { RoughCanvas } from "roughjs/bin/canvas";
+import { Point, type PointData, Rectangle } from '../maths';
+import { Container } from "./Container";
+import { type GetBoundsParams, type GetPointsParams } from "./Node";
+import { type Sizes } from "./Stage";
+import { SimObject } from "./SimObject";
 
 declare global {
   interface CanvasRenderingContext2D {
     betweenSaveAndRestore: (callback: () => void) => void
   }
 }
-
-const SYSTEM_EVENT_NAMES = concat(
-  values(MOUSE_ALIASES),
-  keys(MOUSE_ALIASES),
-  values(TOUCH_ALIASES)
-)
 
 function betweenSaveAndRestore(this: any, drawCallback: () => void) {
   this.context.save()
@@ -51,15 +44,15 @@ export class Layer extends Container {
 
   public type: string = "Layer"
 
-  private readonly _canvas: HTMLCanvasElement
-  private readonly _context: CanvasRenderingContext2D
-  private readonly _hitCanvas: HTMLCanvasElement
-  private readonly _hitContext: CanvasRenderingContext2D
-  private readonly _hitColorsToNodes = new Map<string, SimObject>()
-  private readonly _nodesToHitColors = new Map<string, string>()
+  private _canvas!: HTMLCanvasElement
+  private _context!: CanvasRenderingContext2D
+  private _hitCanvas!: HTMLCanvasElement
+  private _hitContext!: CanvasRenderingContext2D
+  private _hitColorsToNodes = new Map<string, SimObject>()
+  private _nodesToHitColors = new Map<string, string>()
 
   private _lastHitColorId = 0
-  private _rc: RoughCanvas
+  private _rc!: RoughCanvas
 
   public get rc(): RoughCanvas {
     return this._rc
@@ -86,28 +79,59 @@ export class Layer extends Container {
   public constructor() {
     super()
 
-    this._canvas = document.createElement("canvas")
-    this._context = this._canvas.getContext("2d", { alpha: true }) as CanvasRenderingContext2D
+    // this._canvas = document.createElement("canvas")
+    // this._context = this._canvas.getContext("2d", { alpha: true }) as CanvasRenderingContext2D
+    //
+    // this._canvas.classList.add("layer")
+    //
+    // this._canvas.oncontextmenu = (event) => event.preventDefault()
+    //
+    // this._hitCanvas = document.createElement("canvas")
+    // this._hitContext = this._hitCanvas.getContext("2d", {
+    //   willReadFrequently: true,
+    //   alpha: true,
+    // }) as CanvasRenderingContext2D
+    //
+    // this.hitCanvas.classList.add("hitLayer")
+    //
+    // this._hitContext.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._hitContext })
+    // this._context.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._context })
+    //
+    // this._rc = rough.canvas(this._canvas)
+  }
 
-    this._canvas.classList.add("layer")
+  public static create(mainCanvas: HTMLCanvasElement, hitCanvas: HTMLCanvasElement) {
+    return Layer.createFromInstance(mainCanvas, hitCanvas, Layer)
+  }
 
-    this._canvas.oncontextmenu = (event) => event.preventDefault()
+  public static createFromInstance<T extends typeof Layer>(mainCanvas: HTMLCanvasElement, hitCanvas: HTMLCanvasElement, Instance: T) {
+    const layer = new Instance()
 
-    this._hitCanvas = document.createElement("canvas")
-    this._hitContext = this._hitCanvas.getContext("2d", {
+    layer._canvas = mainCanvas
+    layer._hitCanvas = hitCanvas
+
+    layer._context = layer._canvas.getContext("2d", { alpha: true }) as CanvasRenderingContext2D
+    layer._hitContext = layer._hitCanvas.getContext("2d", {
       willReadFrequently: true,
-      alpha: true,
+      alpha: true
     }) as CanvasRenderingContext2D
 
-    this.hitCanvas.classList.add("hitLayer")
+    layer._canvas.classList.add("layer")
+    layer._hitCanvas.classList.add("hitLayer")
 
-    this._hitContext.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._hitContext })
-    this._context.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: this._context })
+    layer._canvas.oncontextmenu = (event) => event.preventDefault()
+    layer._hitCanvas.oncontextmenu = (event) => event.preventDefault()
 
-    this._rc = rough.canvas(this._canvas)
+    layer._hitContext.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: layer._hitContext })
+    layer._context.betweenSaveAndRestore = betweenSaveAndRestore.bind({ context: layer._context })
+
+    layer._rc = rough.canvas(layer._canvas)
+
+    return layer
   }
 
   public update(time: number) {
+    this.fire("render", { time })
   }
 
   public screenToWorld(point: Point): Point {
@@ -137,28 +161,6 @@ export class Layer extends Container {
 
     list.forEach((child) => {
       child.layer = this
-    })
-  }
-
-  public layers: Array<Layer> = []
-
-  public createTempLayer() {
-    const layer = new Layer()
-    this.stage.appendChild(layer)
-    this.layers.push(layer)
-
-    this.on("changeLocalMatrix", () => layer.localMatrix = this.localMatrix)
-    this.on("changeWorldMatrix", () => layer.worldMatrix = this.worldMatrix)
-
-    layer.localMatrix = this.localMatrix
-    layer.worldMatrix = this.worldMatrix
-
-    return layer
-  }
-
-  public delegateEvents(target: SimObject): void {
-    this.on(SYSTEM_EVENT_NAMES.join(" "), (event) => {
-      target.fire(event.type, event)
     })
   }
 

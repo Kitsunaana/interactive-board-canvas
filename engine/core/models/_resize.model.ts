@@ -1,26 +1,27 @@
 ﻿import {Layer} from "../Layer";
 import {ResizeTransformer} from "../../world/TransformerV2";
-import type {SelectableNode} from "../SelectionManager";
 import {ResizeTransformOperation} from "../../world/_transform/resize-operation";
-import {SimObject} from "../SimObject";
+import type {SimObject} from "../SimObject";
+import type {Container} from "../Container";
+import {inject, injectable} from "inversify";
+import {Background} from "../../world/BG";
 
-export class ResizeTransformModel {
-  public selected: Set<SelectableNode> = new Set()
-
+@injectable()
+export class ResizeTransformService {
   public group: ResizeTransformer
   public operation: ResizeTransformOperation = new ResizeTransformOperation()
 
-  public constructor(private readonly layer: Layer) {
-    this.group = new ResizeTransformer(this.layer)
+  public constructor(@inject(Background) private readonly _layer: Layer) {
+    this.group = new ResizeTransformer(this._layer)
   }
 
-  public select(context: SimObject, ...nodes: Array<SimObject>) {
+  public select(context: Container, ...nodes: Array<SimObject>) {
     this.group.initialize(nodes, context)
     this.operation.initialize(this.group.buildContext())
   }
 
   public destroy() {
-    this.selected.clear()
+    // this.selected.clear()
     this.group.removeObjects()
   }
 }

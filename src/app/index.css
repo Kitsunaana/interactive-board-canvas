@@ -7,7 +7,7 @@
 
 body {
   min-height: 100vh;
-  background-color: #05111b;
+  /*background-color: #05111b;*/
   display: flex;
   justify-content: center;
   align-items: center;

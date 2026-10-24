@@ -1,4 +1,4 @@
-import {type GetBoundsParams, type GetPointsParams} from "../core/Node";
+import {type GetBoundsParams, type GetPointsParams, type SafeParams} from "../core/Node";
 import {Shape, type ShapeConfig} from "../core/Shape";
 import {Matrix3x3, Point, type PointData, Polygon, Rectangle} from "../maths";
 
@@ -25,6 +25,8 @@ export class PolygonShape extends Shape {
     return candidate instanceof PolygonShape;
   }
 
+  public type = "Polygon" as const
+
   protected _pointsToTrace: Array<PointData> = [];
   protected _initialPoints!: Array<PointData>
 
@@ -38,19 +40,19 @@ export class PolygonShape extends Shape {
     super(config);
 
     Object.assign(this, config)
-    
+
     this._tension = 0.2
 
     const bounds = Polygon.getBounds(_initialPoints)
-    const nextPoints = _initialPoints //.map((point) => Point.fromData(point).sub(bounds))
-    
+    const nextPoints = _initialPoints.map((point) => Point.fromData(point).sub(bounds))
+
     this._initialPoints = nextPoints
     this._pointsToTrace = this.computePointsToTraceWithTension(nextPoints);
 
-    // this.position = {
-    //   x: bounds.x,
-    //   y: bounds.y
-    // };
+    this.position = {
+      x: bounds.x,
+      y: bounds.y
+    };
 
     this.updateBoundsUp()
   }
@@ -173,12 +175,8 @@ export class PolygonShape extends Shape {
 
   public render(context: CanvasRenderingContext2D): void {
     if (!this.isVisible) return
-    
-    const bounds = this.bounds
 
     context.betweenSaveAndRestore(() => {
-      // context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-      
       this.tryApplyPreviewMatrixToContext(context)
       this.tracePath(context)
       this.fillStrokeShape(context)
@@ -251,4 +249,16 @@ export class PolygonShape extends Shape {
   private _shouldRenderStraightEdges(): boolean {
     return this._pointsToTrace.length < 3 || this.tension === 0;
   }
+
+  public setAttribute<T extends this, K extends keyof SafeParams<this>>(key: K, value: T[K]): void {
+    super.setAttribute(key, value)
+
+    switch (key) {
+      case "initialPoints": {
+        Array.isArray(value) && this.setPoints(value)
+        return
+      }
+    }
+  }
 }
+

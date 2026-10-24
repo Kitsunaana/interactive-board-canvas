@@ -1,6 +1,6 @@
-import { isNumber } from "lodash"
-import { Node } from "../core/Node"
-import { Matrix3x3, Point, type PointData } from "../maths"
+import {isNumber} from "lodash"
+import {Node} from "../core/Node"
+import {Matrix3x3, Point, type PointData} from "../maths"
 
 export type TransformOperation = "scale" | "skew" | "rotate" | "translate"
 
@@ -61,7 +61,7 @@ export abstract class NodeTransformer extends Node {
   private interactionSnapshot: InteractionSnapshot | null = null
 
   public getCurrentAngle(): number {
-    const { a, b } = this.worldMatrix
+    const {a, b} = this.worldMatrix
     if (Math.hypot(a, b) < EPSILON) return 0
     return Math.atan2(b, a)
   }
@@ -202,11 +202,11 @@ export abstract class NodeTransformer extends Node {
 
     this.localMatrix = Matrix3x3.multiply(this.cachedMatrix, this.interactionSnapshot.startLocal)
     this.cachedMatrix = Matrix3x3.identity()
-    
+
     this.interactionOperation = null
     this.interactionSnapshot = null
     this.isInteracting = false
-    
+
     this.updateWorldTransform()
   }
 
@@ -215,11 +215,11 @@ export abstract class NodeTransformer extends Node {
 
     this.localMatrix = this.interactionSnapshot.startLocal.clone()
     this.cachedMatrix = Matrix3x3.identity()
-    
+
     this.interactionOperation = null
     this.interactionSnapshot = null
     this.isInteracting = false
-    
+
     this.updateWorldTransform()
   }
 }
